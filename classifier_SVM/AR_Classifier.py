@@ -59,32 +59,48 @@ import FeaturesetTools
 import numpy as np
 import sklearn.svm
 import pickle
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from tqdm import tqdm
+import joblib
 
 # Key Varibles
 
-## User Definitions
-# Modify the following to define locations of input and output files
-Folder = './' # folder in which to save results with trailing /
+# ## User Definitions
+# Folder structure
+DataFolder = './data/' # base folder for data
+SVMFeaturesFolder = DataFolder + 'svm_features/'
+ResultsFolder = './results/' # base folder for results
+ModelsFolder = ResultsFolder + 'models/'
+PlotsFolder = ResultsFolder + 'plots/'
+
+# File paths and parameters
 class_type = 'linear' # 'linear' or 'rbf' kernel for SVM classifier
 suffix = '' # optional suffix for saving different models, leave as '' for no suffix
-classFile  = 'Lat60_Lon60_Nans0_C1.0_24hr'+suffix+'_features.csv' # file containing extracted features
-trainDataName  = Folder+'Train_Data_by_AR'+suffix+'.csv' # file with train data, will be read in if exists or created if doesn't
-testDataName   = Folder+'Test_Data_by_AR'+suffix+'.csv' # file with test data, will be read in if exists or created if doesn't
-valDataName    = Folder+'Validation_data_by_AR'+suffix+'.csv' # file with val data, will be read in if exists or created if doesn't
-weightData = Folder+'Weight_Lat60_Lon60_Nans0_C1.0_24hr'+suffix+'.txt' #weights used for equalization of features, will be created from analysis of train data if doesn't exist
-outfile = Folder+'ARClassifierStats_weighted_trainvaltest_'+class_type+suffix+'.txt' # output file for statistics; will also be used to define the .pickle filename
-testARList = '../List_of_AR_in_Test_Data_by_AR.csv' #list of active regions in TestData, will be created by randomly assigning 10% of ARs if does not exist in the location specified
-valARList  = '../List_of_AR_in_Validation_data_by_AR.csv' #list of active regions in ValData, will be created by randomly asigning 10% of ARs if does not exist in the location specified
-## End User Definitions
+classFile  = DataFolder + 'Lat60_Lon60_Nans0_C1.0_24hr_png_224'+suffix+'_features.csv'
+trainDataName  = SVMFeaturesFolder + 'Train_Data_by_AR'+suffix+'.csv'
+testDataName   = SVMFeaturesFolder + 'Test_Data_by_AR'+suffix+'.csv'
+valDataName    = SVMFeaturesFolder + 'Validation_data_by_AR'+suffix+'.csv'
+testARList = DataFolder + 'List_of_AR_in_Test_Data_by_AR.csv'
+valARList  = DataFolder + 'List_of_AR_in_Validation_Data_by_AR.csv'
+outfile = ResultsFolder + 'svm_performance.txt'
+weightData = SVMFeaturesFolder + 'Weight_Lat60_Lon60_Nans0_C1.0_24hr'+suffix+'.txt'
 
-# Generate filenames
-classFile  = Folder + '/' + classFile
-trainDataName  = Folder + '/' + trainDataName
-testDataName   = Folder + '/' + testDataName
-valDataName    = Folder + '/' + valDataName
-testARList = Folder + '/' + testARList
-valARList  = Folder + '/' + valARList
-weightData = Folder + '/' + weightData
+# Create directories if they don't exist
+for directory in [SVMFeaturesFolder, ResultsFolder, ModelsFolder, PlotsFolder]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+# Check files
+
+# labels_file = "./data/C1.0_24hr_224_png_Labels.txt"
+
+# # Load labels
+# labels_df = pd.read_csv(labels_file, header=None, names=["filename", "label"])
+# print(labels_df.head())  # Check first few entries
 
 # Generate Files
 
@@ -123,14 +139,96 @@ valData = np.genfromtxt(valDataName,delimiter=',',dtype=float,usecols=range(29))
 valLabel = np.genfromtxt(valDataName,delimiter=',',dtype=int,usecols=29)
 valNames = np.genfromtxt(valDataName,delimiter=',',dtype=str,usecols=30)
 
-print('Training')
-#create and train svm, then use on test data
-classifier = sklearn.svm.SVC(kernel = 'linear',gamma='auto',class_weight='balanced')
-classifier.fit(trainData,trainLabel)
+print('Training and evaluating different LinearSVC configurations')
 
-print('Saving trained model')
-modelfile = outfile[:-4]+'_model.pickle'
-pickle.dump(classifier,open(modelfile,'wb'))
+# Define different configurations to try
+configs = [
+    {'C': 1.0, 'class_weight': 'balanced', 'max_iter': 2000, 'dual': True, 'name': 'Default (C=1)'},
+    {'C': 0.1, 'class_weight': 'balanced', 'max_iter': 2000, 'dual': True, 'name': 'Lower C=0.1'},
+    {'C': 3.0, 'class_weight': 'balanced', 'max_iter': 2000, 'dual': True, 'name': 'Higher C=3'},
+    {'C': 1.0, 'class_weight': None, 'max_iter': 2000, 'dual': True, 'name': 'No class weights'},
+    {'C': 1.0, 'class_weight': 'balanced', 'max_iter': 2000, 'dual': False, 'name': 'Primal optimization'}
+]
+
+# Colors for different configurations
+colors = ['darkorange', 'green', 'blue', 'red', 'purple']
+
+plt.figure(figsize=(12, 8))
+best_auc = 0
+best_config = None
+best_classifier = None
+
+# # Scale the data for better performance
+# print("Scaling data...")
+# scaler = StandardScaler()
+# trainData_scaled = scaler.fit_transform(trainData)
+# testData_scaled = scaler.transform(testData)
+
+for config, color in zip(configs, colors):
+    print(f"\nTraining LinearSVC with {config['name']}...")
+    clf = sklearn.svm.LinearSVC(
+        C=config['C'],
+        class_weight=config['class_weight'],
+        max_iter=config['max_iter'],
+        dual=config['dual']
+    )
+    
+    # Train the classifier
+    clf.fit(trainData, trainLabel)
+    
+    # Calculate ROC curve
+    y_score = clf.decision_function(testData)
+    fpr, tpr, _ = roc_curve(testLabel, y_score)
+    roc_auc = auc(fpr, tpr)
+    
+    # Plot ROC curve
+    plt.plot(fpr, tpr, color=color, lw=2, 
+             label=f"{config['name']} (AUC = {roc_auc:.3f})")
+    
+    # Track best configuration
+    if roc_auc > best_auc:
+        best_auc = roc_auc
+        best_config = config
+        best_classifier = clf
+
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curves for Different LinearSVC Configurations')
+plt.legend(loc="lower right", fontsize=8)
+plt.grid(True, alpha=0.3)
+plt.savefig(PlotsFolder + 'linear_svm_configs_comparison.png', dpi=300, bbox_inches='tight')
+plt.close()
+
+print(f"\nBest configuration: {best_config['name']} with AUC = {best_auc:.3f}")
+
+print('Saving best model')
+modelfile = ModelsFolder + 'best_linear_svm_model.pickle'
+joblib.dump(best_classifier, modelfile)
+
+# Use best classifier for feature importance analysis
+classifier = best_classifier
+
+# Analyze feature importance
+feature_importance = np.abs(classifier.coef_[0])
+feature_importance = feature_importance / np.sum(feature_importance)
+
+# Plot feature importance
+plt.figure(figsize=(12, 6))
+plt.bar(range(29), feature_importance)
+plt.title('Feature Importance in Linear SVM')
+plt.xlabel('Feature Index')
+plt.ylabel('Importance (normalized)')
+plt.savefig(PlotsFolder + 'feature_importance.png')
+plt.close()
+
+# Print top 5 most important features
+top_features = np.argsort(feature_importance)[-5:][::-1]
+print("\nTop 5 most important features:")
+for idx in top_features:
+    print(f"Feature {idx}: {feature_importance[idx]:.4f}")
 
 print('Applying learned classifier to test data')
 P = classifier.predict(testData)

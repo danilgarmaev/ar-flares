@@ -53,10 +53,10 @@ cfg = {
        'lon'          : 60,   # Longitude of AR centroid in degrees
        'lat'          : 60,   # Latitude of AR centroid in degrees
        'newDataDirectory' : '/mnt/solar_flares/AR_Dataset/Lat60_Lon60_Nans0/', # String for new directory path with trailing /
-       'dataDirectory': '/mnt/solar_flares/AR_Dataset/active_regions/', # Path to fits data in NOAA AR number folders with trailing /
+       'dataDirectory': './AR-flares/data/active_regions', # Path to fits data in NOAA AR number folders with trailing /
        'srsDirectory' : '/mnt/solar_flares/AR_Dataset/SRS/', # Path to SRS data with trailing /
        'eventDirectory': '/mnt/solar_flares/AR_Dataset/Events/', # Path to Events data with trailing / 
-       'labelFilePath': '/mnt/solar_flares/AR_Dataset/C1.0_24hr_Labels.txt' # Path to label file
+       'labelFilePath': './AR-flares/data/C1.0_24hr_224_png_Labels.txt' # Path to label file
        }
 print(cfg)
 

@@ -1,0 +1,52 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+*.env
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Log files
+logs/
+*.log
+
+# Local configuration
+*.sqlite3
+*.db
+config.json
+secrets.json
+
+# Data files
+data/
+*.csv
+*.xlsx
+*.json
+*.h5
+*.pkl
+
+# Compiled Cython files
+*.so
+
+# Jupyter Notebook metadata
+.ipynb_checkpoints/
+
+# VS Code and PyCharm settings
+.vscode/
+.idea/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Docker and deployment
+docker-compose.override.yml
+
+# Data 
+data/
