@@ -1,0 +1,103 @@
+# Data directories
+data/
+datasets/
+raw_data/
+processed_data/
+
+# Results and experiments
+results/
+experiments/
+outputs/
+checkpoints/
+runs/
+
+# Model files
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.h5
+*.safetensors
+
+# Logs
+*.log
+logs/
+*.txt
+
+# Plots and figures (if you want to regenerate them)
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.svg
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Environment variables
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Lightning AI specific
+.lightning/
+lightning_logs/
+
+# Weights & Biases
+wandb/
+
+# MLflow
+mlruns/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
