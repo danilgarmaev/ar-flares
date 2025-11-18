@@ -8,6 +8,8 @@ from torch.utils.data import IterableDataset, DataLoader
 import json
 import timm
 from timm.data import resolve_data_config, create_transform
+from timm.optim import create_optimizer_v2
+
 
 import numpy as np
 from PIL import Image
@@ -23,8 +25,8 @@ from peft import LoraConfig, get_peft_model
 IS_COMPUTE_CANADA = os.path.exists('/scratch')
 CFG = {
     # paths
-    "wds_base": '/scratch/dgarmaev/AR-flares/wds_out' if IS_COMPUTE_CANADA else '/teamspace/studios/this_studio/AR-flares/wds_out',
-    "wds_flow_base": '/scratch/dgarmaev/AR-flares/wds_flow' if IS_COMPUTE_CANADA else '/teamspace/studios/this_studio/AR-flares/wds_flow',
+    "wds_base": '/scratch/dgarmaev/AR-flares/wds_out' if IS_COMPUTE_CANADA else '/teamspace/studios/this_studio/AR-flares/data/wds_out',
+    "wds_flow_base": '/scratch/dgarmaev/AR-flares/wds_flow' if IS_COMPUTE_CANADA else '/teamspace/studios/this_studio/AR-flares/data/wds_flow',
     "results_base": '/scratch/dgarmaev/AR-flares/results' if IS_COMPUTE_CANADA else '/teamspace/studios/this_studio/AR-flares/results',
 
     "use_flow": False,   # set False to ignore optical flow, True to use it
@@ -137,87 +139,166 @@ class TarShardDataset(IterableDataset):
             assert self.flow_paths is not None, "Flow shards required when use_flow=True"
             assert len(self.shard_paths) == len(self.flow_paths), "Image vs flow shard count mismatch"
 
+    # def _sample_iter_from_tar(self, img_tar: str, flow_tar: str = None):
+    #     with tarfile.open(img_tar, "r") as tf_img, \
+    #          (tarfile.open(flow_tar, "r") if (self.use_flow and flow_tar) else nullcontext()) as tf_flow:
+
+    #         by_key: Dict[str, Dict[str, tarfile.TarInfo]] = {}
+    #         for m in tf_img.getmembers():
+    #             if not m.isfile(): continue
+    #             if m.name.endswith(".png"):
+    #                 by_key.setdefault(m.name[:-4], {})["png"] = m
+    #             elif m.name.endswith(".json"):
+    #                 by_key.setdefault(m.name[:-5], {})["json"] = m
+
+    #         if self.use_flow:
+    #             for m in tf_flow.getmembers():
+    #                 if m.isfile() and m.name.endswith(".flow.npz"):
+    #                     by_key.setdefault(m.name[:-9], {})["flow"] = m
+
+    #         keys = list(by_key.keys())
+    #         if self.shuffle_samples:
+    #             rng = random.Random(self.seed ^ hash(img_tar))
+    #             rng.shuffle(keys)
+
+    #         for k in keys:
+    #             parts = by_key[k]
+    #             if "png" not in parts or "json" not in parts:
+    #                 continue
+    #             if self.use_flow and "flow" not in parts:
+    #                 continue
+
+    #             meta = json.loads(tf_img.extractfile(parts["json"]).read().decode("utf-8"))
+
+    #             # -- label -- 
+    #             if LABEL_MAP is not None:
+    #                 # use remapped label for ≥M threshold
+    #                 fname = os.path.basename(parts["png"].name)
+    #                 label = LABEL_MAP.get(fname, 0)
+    #             else:
+    #                 # use default binary label from meta (already C-thresholded)
+    #                 label = int(meta["label"])
+
+    #             # image → grayscale
+    #             png_bytes = tf_img.extractfile(parts["png"]).read()
+    #             img = Image.open(io.BytesIO(png_bytes)).convert("L").resize((224,224))
+    #             img_t = torch.from_numpy(np.array(img, dtype=np.float32) / 255.0).unsqueeze(0)
+
+    #             # --- difference option ---
+    #             diff_t = None
+    #             if CFG.get("use_diff", False):
+    #                 prev_k = keys[keys.index(k)-1] if keys.index(k) > 0 else None
+    #                 if prev_k and "png" in by_key[prev_k]:
+    #                     prev_img = Image.open(io.BytesIO(tf_img.extractfile(by_key[prev_k]["png"]).read())).convert("L").resize((224,224))
+    #                     prev_t = torch.from_numpy(np.array(prev_img, np.float32)/255.).unsqueeze(0)
+    #                     diff_t = (img_t - prev_t).clamp(-1,1)
+    #                     diff_t = (diff_t - diff_t.min()) / (diff_t.max() - diff_t.min() + 1e-8)
+
+    #             # --- flow option ---
+    #             flow_t = None
+    #             if CFG.get("use_flow", False):
+    #                 flow_bytes = tf_flow.extractfile(parts["flow"]).read()
+    #                 with np.load(io.BytesIO(flow_bytes)) as f:
+    #                     u = f["u8"].astype(np.float32) * float(f["su"])
+    #                     v = f["v8"].astype(np.float32) * float(f["sv"])
+    #                 flow_t = torch.from_numpy(np.stack([u,v],axis=0))
+
+    #             # --- combine depending on setup ---
+    #             if CFG["use_flow"] and not CFG["use_diff"]:
+    #                 if CFG.get("two_stream", False):
+    #                     # case 4: output tuple for separate encoders
+    #                     yield (img_t.repeat(3,1,1), flow_t), label, meta
+    #                 else:
+    #                     # case 2: same-stream, combine 1 img + 2 flow = 3 channels
+    #                     yield torch.cat([img_t, flow_t], dim=0), label, meta
+    #             elif CFG["use_diff"]:
+    #                 # case 3: add diff channel to image
+    #                 x = torch.cat([img_t, diff_t], dim=0) if diff_t is not None else img_t.repeat(2,1,1)
+    #                 yield x, label, meta
+    #             else:
+    #                 if CFG["backbone"].lower().startswith(("can", "ms_fusion", "multiscale")):
+    #                     yield img_t, label, meta     # 1×224×224
+    #                 else:# case 1: plain image replicated to 3 channels
+    #                     yield img_t.repeat(3,1,1), label, meta
+
     def _sample_iter_from_tar(self, img_tar: str, flow_tar: str = None):
         with tarfile.open(img_tar, "r") as tf_img, \
-             (tarfile.open(flow_tar, "r") if (self.use_flow and flow_tar) else nullcontext()) as tf_flow:
+            (tarfile.open(flow_tar, "r") if (self.use_flow and flow_tar) else nullcontext()) as tf_flow:
 
-            by_key: Dict[str, Dict[str, tarfile.TarInfo]] = {}
+            # Index files by sorted key
+            entries = []
             for m in tf_img.getmembers():
-                if not m.isfile(): continue
-                if m.name.endswith(".png"):
-                    by_key.setdefault(m.name[:-4], {})["png"] = m
-                elif m.name.endswith(".json"):
-                    by_key.setdefault(m.name[:-5], {})["json"] = m
+                if m.isfile() and m.name.endswith(".png"):
+                    key = m.name[:-4]
+                    json_name = key + ".json"
+                    try:
+                        jm = tf_img.getmember(json_name)
+                    except KeyError:
+                        continue
+                    entries.append((key, m, jm))
+            # sort for temporal order (assumes shard naming is chronological)
+            entries.sort(key=lambda x: x[0])
 
-            if self.use_flow:
-                for m in tf_flow.getmembers():
-                    if m.isfile() and m.name.endswith(".flow.npz"):
-                        by_key.setdefault(m.name[:-9], {})["flow"] = m
+            # Build quick map key->index
+            key2idx = {k:i for i,(k,_,_) in enumerate(entries)}
 
-            keys = list(by_key.keys())
-            if self.shuffle_samples:
-                rng = random.Random(self.seed ^ hash(img_tar))
-                rng.shuffle(keys)
+            # helper to load image -> (1,224,224)
+            def load_img(member_png):
+                png_bytes = tf_img.extractfile(member_png).read()
+                img = Image.open(io.BytesIO(png_bytes)).convert("L").resize((224,224))
+                return torch.from_numpy(np.array(img, dtype=np.float32)/255.0).unsqueeze(0)
 
-            for k in keys:
-                parts = by_key[k]
-                if "png" not in parts or "json" not in parts:
+            # optional: parse AR id from JSON to ensure same region
+            def get_meta(jm):
+                return json.loads(tf_img.extractfile(jm).read().decode("utf-8"))
+
+            T = CFG.get("seq_T", 3)
+            offsets = CFG.get("seq_offsets", [-16, -8, 0])  # in multiples of 12-min frames
+
+            for i in range(len(entries)):
+                key0, png0, jm0 = entries[i]
+                meta0 = get_meta(jm0)
+
+                # figure out absolute indices for offsets relative to 'i'
+                idxes = []
+                ok = True
+                for off in offsets:
+                    j = i + off
+                    if j < 0 or j >= len(entries):
+                        ok = False; break
+                    # enforce same AR/region if meta has an identifier
+                    keyj, pngj, jmj = entries[j]
+                    metaj = get_meta(jmj)
+                    if ("ar" in meta0 and "ar" in metaj) and (meta0["ar"] != metaj["ar"]):
+                        ok = False; break
+                    idxes.append(j)
+                if not ok: 
                     continue
-                if self.use_flow and "flow" not in parts:
-                    continue
 
-                meta = json.loads(tf_img.extractfile(parts["json"]).read().decode("utf-8"))
+                # load frames
+                frames = []
+                for j in idxes:
+                    _, pngj, _ = entries[j]
+                    frames.append(load_img(pngj))   # (1,H,W)
+                x_seq = torch.stack(frames, dim=0)  # (T,1,224,224)
 
-                # -- label -- 
+                # label from reference frame (last index)
+                ref_idx = idxes[-1]  # reference = last (time 0)
+                _, _, refjm = entries[ref_idx]
+                meta = get_meta(refjm)
                 if LABEL_MAP is not None:
-                    # use remapped label for ≥M threshold
-                    fname = os.path.basename(parts["png"].name)
+                    fname = os.path.basename(entries[ref_idx][1].name)
                     label = LABEL_MAP.get(fname, 0)
                 else:
-                    # use default binary label from meta (already C-thresholded)
                     label = int(meta["label"])
 
-                # image → grayscale
-                png_bytes = tf_img.extractfile(parts["png"]).read()
-                img = Image.open(io.BytesIO(png_bytes)).convert("L").resize((224,224))
-                img_t = torch.from_numpy(np.array(img, dtype=np.float32) / 255.0).unsqueeze(0)
+                # flow / diff disabled when using sequences (keep simple for baseline)
+                if CFG.get("use_flow", False) or CFG.get("use_diff", False):
+                    # you can extend later; for now keep flow/diff off with sequences
+                    pass
 
-                # --- difference option ---
-                diff_t = None
-                if CFG.get("use_diff", False):
-                    prev_k = keys[keys.index(k)-1] if keys.index(k) > 0 else None
-                    if prev_k and "png" in by_key[prev_k]:
-                        prev_img = Image.open(io.BytesIO(tf_img.extractfile(by_key[prev_k]["png"]).read())).convert("L").resize((224,224))
-                        prev_t = torch.from_numpy(np.array(prev_img, np.float32)/255.).unsqueeze(0)
-                        diff_t = (img_t - prev_t).clamp(-1,1)
-                        diff_t = (diff_t - diff_t.min()) / (diff_t.max() - diff_t.min() + 1e-8)
+                yield x_seq, label, meta
 
-                # --- flow option ---
-                flow_t = None
-                if CFG.get("use_flow", False):
-                    flow_bytes = tf_flow.extractfile(parts["flow"]).read()
-                    with np.load(io.BytesIO(flow_bytes)) as f:
-                        u = f["u8"].astype(np.float32) * float(f["su"])
-                        v = f["v8"].astype(np.float32) * float(f["sv"])
-                    flow_t = torch.from_numpy(np.stack([u,v],axis=0))
-
-                # --- combine depending on setup ---
-                if CFG["use_flow"] and not CFG["use_diff"]:
-                    if CFG.get("two_stream", False):
-                        # case 4: output tuple for separate encoders
-                        yield (img_t.repeat(3,1,1), flow_t), label, meta
-                    else:
-                        # case 2: same-stream, combine 1 img + 2 flow = 3 channels
-                        yield torch.cat([img_t, flow_t], dim=0), label, meta
-                elif CFG["use_diff"]:
-                    # case 3: add diff channel to image
-                    x = torch.cat([img_t, diff_t], dim=0) if diff_t is not None else img_t.repeat(2,1,1)
-                    yield x, label, meta
-                else:
-                    if CFG["backbone"].lower().startswith(("can", "ms_fusion", "multiscale")):
-                        yield img_t, label, meta     # 1×224×224
-                    else:# case 1: plain image replicated to 3 channels
-                        yield img_t.repeat(3,1,1), label, meta
 
     def _roundrobin(self, iters: List[Iterable]):
         active = [iter(x) for x in iters]
@@ -712,7 +793,48 @@ class TwoStreamModel(nn.Module):
         z = torch.cat([img_emb, flow_emb], dim=1)
         return self.head(z)
 
+# ---------------- sequence wrapper ----------------
+class TemporalWrapper(nn.Module):
+    """
+    Shared 2D backbone across T frames. Input: (B,T,1,224,224).
+    ViT/ConvNeXt expects 3ch so we repeat channel.
+    Aggregate temporally via mean or attention, then classify.
+    """
+    def __init__(self, backbone_name="vit_base_patch16_224", num_classes=2,
+                 pretrained=True, freeze_backbone=False, aggregate="mean"):
+        super().__init__()
+        self.aggregate = aggregate
+        # feature extractor
+        self.backbone = timm.create_model(backbone_name, pretrained=pretrained, num_classes=0)
+        if freeze_backbone:
+            for p in self.backbone.parameters(): p.requires_grad = False
+        self.feat_dim = self.backbone.num_features
 
+        if aggregate == "attn":
+            self.temporal_attn = nn.MultiheadAttention(self.feat_dim, num_heads=4, batch_first=True)
+            self.norm = nn.LayerNorm(self.feat_dim)
+
+        self.head = nn.Sequential(
+            nn.LayerNorm(self.feat_dim),
+            nn.Linear(self.feat_dim, 256), nn.ReLU(inplace=True),
+            nn.Dropout(0.2),
+            nn.Linear(256, num_classes)
+        )
+
+    def forward(self, x):  # x: (B,T,1,H,W)
+        B,T,_,H,W = x.shape
+        x = x.reshape(B*T, 1, H, W).repeat(1,3,1,1)  # -> (B*T,3,H,W)
+        feats = self.backbone(x)                     # (B*T, D)
+        feats = feats.view(B, T, self.feat_dim)      # (B,T,D)
+
+        if self.aggregate == "mean":
+            z = feats.mean(dim=1)                    # (B,D)
+        else:
+            # attention over time (CLS-free): self-attend and pool
+            z,_ = self.temporal_attn(feats, feats, feats)  # (B,T,D)
+            z = self.norm(z).mean(dim=1)
+
+        return self.head(z)
 
 
 # ---------------- model builder (two-stream only) ----------------
@@ -731,6 +853,18 @@ def build_model(num_classes=2):
             model = apply_lora_to_timm(model)
 
         print("Built Two-Stream model.")
+        return model
+
+    if CFG.get("use_seq"): 
+        model = TemporalWrapper(
+            backbone_name=CFG["backbone"],
+            num_classes=num_classes,
+            pretrained=CFG["pretrained"],
+            freeze_backbone=CFG["freeze_backbone"],
+            aggregate=CFG.get("seq_aggregate", "mean"),
+        )
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"Built TemporalWrapper over {CFG['backbone']} | trainable={n_train:,}")
         return model
 
     # NEW: Multi-Scale Fusion backbone
@@ -762,6 +896,18 @@ def build_model(num_classes=2):
         num_classes=num_classes,
         in_chans=in_chans
     )
+
+    # reinitialize the classification head for safety
+    if hasattr(model, "head") and isinstance(model.head, nn.Linear):
+        nn.init.xavier_uniform_(model.head.weight)
+        model.head.bias.data.zero_()
+    elif hasattr(model, "head") and isinstance(model.head, nn.Sequential):
+        for m in model.head:
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                m.bias.data.zero_()
+
+
 
     if CFG["freeze_backbone"]:
         for p in model.parameters(): p.requires_grad = False
@@ -878,7 +1024,7 @@ def main():
     # else: 
     #     full_counts = {0:1, 1:1}
     #     print("skipping class count (C-threshold labels already embedded).")
-    full_counts = {1: 149249, 0: 610108}
+    full_counts = {0: 610108, 1: 149249}
     Nn, Nf = full_counts.get(0, 1), full_counts.get(1, 1)
     print(f"Class counts (Train FULL): {full_counts}")
     
@@ -921,15 +1067,22 @@ def main():
     }
 
     # loss
-    class_weights = torch.tensor([1.0, Nn / max(Nf,1)], dtype=torch.float32, device=device)
+    class_weights = torch.tensor([1.0, Nn/Nf], dtype=torch.float32, device=device)
     criterion = FocalLoss(gamma=CFG["focal_gamma"], weight=class_weights) if CFG["use_focal"] \
                 else nn.CrossEntropyLoss(weight=class_weights)
 
     # optimizer on TRAINABLE params only
     head_params = [p for p in model.parameters() if p.requires_grad]
     assert len(head_params) > 0, "No trainable parameters found (head may still be frozen)."
-    optimizer = optim.Adam(head_params, lr=CFG["lr"])
+    # optimizer = optim.Adam(head_params, lr=CFG["lr"], weight_decay=0.05)
+    optimizer = create_optimizer_v2(model, opt='adamw', lr=1e-4,
+                                weight_decay=0.05, layer_decay=0.75)
     scaler = torch.GradScaler('cuda', enabled=torch.cuda.is_available())
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=CFG["epochs"])
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        optimizer, max_lr=1e-4, epochs=CFG["epochs"], steps_per_epoch=steps_per_epoch)
+
+
 
     # save dirs
     # tag = f'{CFG["backbone"]}_lr{CFG["lr"]}_ep{CFG["epochs"]}{"_focal" if CFG["use_focal"] else ""}'
@@ -1003,6 +1156,8 @@ def main():
         avg_val_loss = val_loss / max(1, vbatches)
         val_acc = 100.0 * correct / max(1, total)
         print(f"Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} | Val Acc: {val_acc:.2f}%")
+        print(f"Current LR: {scheduler.get_last_lr()[0]:.2e}")
+        scheduler.step()
    
     # ------------------ Save model ------------------
     torch.save(model.state_dict(), model_path)
@@ -1216,8 +1371,68 @@ def main():
 #         except Exception as e:
 #             print(f"Failed on {img_backbone} + {flow_encoder}: {e}")
 
+# if __name__ == "__main__":
+
+#     CFG.update({
+#     "backbone": "convnext_tiny",    # or "convnext_base" if GPU allows
+#     "pretrained": True,
+#     "freeze_backbone": False,
+#     "lr": 3e-5,
+#     "epochs": 10,
+#     "batch_size": 64,
+#     "use_flow": True,               # keep single-stream for clarity
+#     "two_stream": True,
+#     "flow_encoder": "SmallFlowCNN",
+#     "use_focal": True,
+#     "focal_gamma": 2.0, 
+#     "model_name": "two_stream_convnext_tiny_smallflowcnn"
+#     })
+
+#     # Temporal 
+#     CFG.update({
+#     "use_seq": True,                 # turn on sequence mode
+#     "seq_T": 3,                      # number of frames
+#     "seq_stride_steps": 8,           # 8 * 12min = 96min between frames
+#     "seq_offsets": [-16, -8, 0],     # past-only: (-192, -96, 0) minutes
+#     "seq_aggregate": "mean",         # or "attn"
+#     })
+
+#     main()
+
 if __name__ == "__main__":
-    # CFG.update({
+    CFG.update({
+        "backbone": "convnext_tiny",     # or "vit_base_patch16_224" for ViT variant
+        "pretrained": True,
+        "freeze_backbone": False,
+        "lr": 3e-5,
+        "epochs": 10,
+        "batch_size": 64,
+
+        # ---- turn OFF flow for temporal baseline ----
+        "use_flow": True,
+        "two_stream": False,
+
+        "use_focal": True,
+        "focal_gamma": 2.0,
+
+        "model_name": "temporal_convnext_tiny_seq3_mean_with_flow",
+    })
+
+    # ---- Temporal setup ----
+    CFG.update({
+        "use_seq": True,                 # activate sequence mode
+        "seq_T": 3,                      # 3 frames per sample
+        "seq_stride_steps": 8,           # spacing (8 * 12 min = 96 min)
+        "seq_offsets": [-16, -8, 0],     # past-only (no leakage)
+        "seq_aggregate": "mean",         # mean or attn
+    })
+
+    main()
+
+
+
+# Vesion that didn't work: 
+# CFG.update({
     #     "backbone": "can_small",
     #     "pretrained": False,
     #     "freeze_backbone": False,
@@ -1232,26 +1447,25 @@ if __name__ == "__main__":
     # CFG["model_name"] = f"single_stream_{CFG['backbone']}"
     # print("\n=== Training CANSmall (from scratch) ===\n")
 
-    CFG.update({
-        "backbone": "ms_fusion",
-        "vit_name": "vit_base_patch16_224",
-        "pretrained": True,
-        "freeze_backbone": False,   # fine-tune ViT
-        "k_crops": 8,
-        "crop_size": 64,
-        "crop_stride": 32,
-        "local_dim": 192,
-        "cross_heads": 4,
-        "lr": 3e-5,                 # ViT friendly
-        "epochs": 5,               # 20–30 if you can
-        "batch_size": 64,
-        "use_flow": False,          # start without flow; add later if you want
-        "two_stream": False,
-    })
+    # CFG.update({
+    #     "backbone": "ms_fusion",
+    #     "vit_name": "vit_base_patch16_224",
+    #     "pretrained": True,
+    #     "freeze_backbone": False,   # fine-tune ViT
+    #     "k_crops": 8,
+    #     "crop_size": 64,
+    #     "crop_stride": 32,
+    #     "local_dim": 192,
+    #     "cross_heads": 4,
+    #     "lr": 3e-5,                 # ViT friendly
+    #     "epochs": 5,               # 20–30 if you can
+    #     "batch_size": 64,
+    #     "use_flow": False,          # start without flow; add later if you want
+    #     "two_stream": False,
+    # })
 
-    CFG["model_name"] = f"single_stream_{CFG['backbone']}"    
-    main()
-
+    # CFG["model_name"] = f"single_stream_{CFG['backbone']}"    
+    # main()
 
 # if __name__ == "__main__":
 #     setups = [
@@ -1261,9 +1475,6 @@ if __name__ == "__main__":
 #         {"use_flow": True,  "use_diff": False, "two_stream": True,  "desc": "TwoStream"},
 #     ]
 
-    
-
-
 #     for setup in setups:
 #         CFG.update(setup)
 
@@ -1272,7 +1483,6 @@ if __name__ == "__main__":
 #         CFG["freeze_backbone"] = False
 #         CFG["epochs"] = 5
             
-
 #         # --- Proper run naming ---
 #         if CFG.get("two_stream", False):
 #             CFG["model_name"] = f"two_stream_{CFG['backbone']}"
