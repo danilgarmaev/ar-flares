@@ -4,12 +4,16 @@ datasets/
 raw_data/
 processed_data/
 
-# Results and experiments
+# Results and experiments (keep lightweight summaries & curves)
 results/
 experiments/
 outputs/
 checkpoints/
 runs/
+# Unignore small summary artifacts
+!results/**/*.txt
+!results/**/*.json
+!results/*/training_curves.png
 
 # Model files
 *.pt
@@ -19,10 +23,12 @@ runs/
 *.h5
 *.safetensors
 
-# Logs
+# Logs (ignore raw massive logs, keep curated summaries)
 *.log
 logs/
-*.txt
+# Allow metric/small summary text files
+!README.md
+!*/README.md
 
 # Plots and figures (if you want to regenerate them)
 *.png
