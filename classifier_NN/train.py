@@ -13,6 +13,7 @@ from tqdm import tqdm
 from datetime import datetime
 import pytz
 from timm.optim import create_optimizer_v2
+from timm.data import Mixup
 from sklearn.metrics import roc_auc_score
 
 # Import our modules
@@ -61,7 +62,7 @@ def get_class_counts():
     return full_counts
 
 
-def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, device, steps_per_epoch):
+def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, device, steps_per_epoch, mixup_fn=None):
     """Train for one epoch. Returns (avg_loss, metrics_dict)."""
     model.train()
     running_loss = 0.0
@@ -76,6 +77,13 @@ def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, devi
             inputs = inputs.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
         
+        # Keep original labels for metrics
+        orig_labels = labels.clone()
+        
+        # Apply Mixup
+        if mixup_fn is not None:
+            inputs, labels = mixup_fn(inputs, labels)
+        
         optimizer.zero_grad(set_to_none=True)
         
         with torch.autocast("cuda", enabled=torch.cuda.is_available()):
@@ -88,10 +96,10 @@ def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, devi
         
         running_loss += loss.item()
         seen += 1
-        # collect probabilities
+        # collect probabilities (on original labels for metrics)
         batch_probs = torch.softmax(outputs.detach(), dim=1)[:, 1].cpu().numpy()
         all_probs.extend(batch_probs)
-        all_labels.extend(labels.cpu().numpy())
+        all_labels.extend(orig_labels.cpu().numpy())
         pbar.set_postfix(loss=f"{loss.item():.4f}")
         pbar.update(1)
         if seen >= steps_per_epoch:
@@ -233,6 +241,21 @@ def main():
     print("Creating dataloaders...")
     dls = create_dataloaders()
     
+    # Setup Mixup
+    mixup_fn = None
+    mixup_active = CFG.get("mixup", 0.0) > 0 or CFG.get("cutmix", 0.0) > 0
+    if mixup_active:
+        print("Using Mixup/Cutmix")
+        mixup_fn = Mixup(
+            mixup_alpha=CFG.get("mixup", 0.0), 
+            cutmix_alpha=CFG.get("cutmix", 0.0), 
+            prob=CFG.get("mixup_prob", 1.0), 
+            switch_prob=CFG.get("mixup_switch_prob", 0.5), 
+            mode=CFG.get("mixup_mode", 'batch'),
+            label_smoothing=CFG.get("label_smoothing", 0.1), 
+            num_classes=2
+        )
+
     # Setup loss function
     if CFG.get("balance_classes", False):
         # Balanced data - no class weights needed
@@ -246,7 +269,9 @@ def main():
     criterion = get_loss_function(
         use_focal=CFG["use_focal"],
         gamma=CFG["focal_gamma"],
-        class_weights=class_weights
+        class_weights=class_weights,
+        use_mixup=mixup_active,
+        label_smoothing=CFG.get("label_smoothing", 0.0)
     )
     
     # Setup optimizer
@@ -282,7 +307,7 @@ def main():
         
         # Train
         avg_train_loss, train_metrics = train_epoch(
-            model, dls["Train"], criterion, optimizer, scheduler, scaler, device, steps_per_epoch
+            model, dls["Train"], criterion, optimizer, scheduler, scaler, device, steps_per_epoch, mixup_fn=mixup_fn
         )
         
         # Validate

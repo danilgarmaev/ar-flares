@@ -49,11 +49,21 @@ if CFG["min_flare_class"].upper() == "M":
 
 # Initialize image transform for resizing
 IMG_SIZE = CFG.get("image_size", 224)
-IMAGE_TRANSFORM = transforms.Compose([
+
+# Basic transform (Resize + ToTensor)
+BASIC_TRANSFORM = transforms.Compose([
     transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=transforms.InterpolationMode.BILINEAR),
-    transforms.ToTensor(),  # Converts to [0, 1] range and (C, H, W)
+    transforms.ToTensor(),
 ])
 
+# Augmentation transform (Horizontal Flip + RandomAffine)
+# Note: No vertical flips to preserve polarity physics
+AUG_TRANSFORM = transforms.Compose([
+    transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=transforms.InterpolationMode.BILINEAR),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomAffine(degrees=15, translate=(0.1, 0.1), scale=(0.9, 1.1)),
+    transforms.ToTensor(),
+])
 
 class TarShardDataset(IterableDataset):
     """WebDataset-style iterable dataset for tar archives containing images (and optional flow / sequences).
@@ -88,6 +98,13 @@ class TarShardDataset(IterableDataset):
         self.shuffle_samples = shuffle_samples
         self.shuffle_buffer_size = shuffle_buffer_size
         self.seed = seed
+        
+        # Select transform based on split and config
+        # Only augment training data if 'use_aug' is True in CFG
+        if self.split_name == "Train" and CFG.get("use_aug", False):
+            self.transform = AUG_TRANSFORM
+        else:
+            self.transform = BASIC_TRANSFORM
 
         if self.use_flow:
             assert self.flow_paths is not None, "Flow shards required when use_flow=True"
@@ -118,7 +135,7 @@ class TarShardDataset(IterableDataset):
                 def load_img(member_png):
                     png_bytes = tf_img.extractfile(member_png).read()
                     img = Image.open(io.BytesIO(png_bytes)).convert("L")
-                    img_tensor = IMAGE_TRANSFORM(img)
+                    img_tensor = self.transform(img)
                     return img_tensor
 
                 def get_meta(jm):
@@ -206,7 +223,7 @@ class TarShardDataset(IterableDataset):
                     # Load image
                     png_bytes = tf_img.extractfile(parts["png"]).read()
                     img = Image.open(io.BytesIO(png_bytes)).convert("L")
-                    img_t = IMAGE_TRANSFORM(img)  # (1, H, W)
+                    img_t = self.transform(img)  # (1, H, W)
 
                     # Flow/diff options (simplified for now)
                     if CFG.get("use_flow", False):
