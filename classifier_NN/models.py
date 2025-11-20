@@ -411,16 +411,96 @@ class MultiScaleFusionModel(nn.Module):
         return logits
 
 
+# ===================== PHYSICS-INFORMED ATTENTION MODEL =====================
+class DiffAttentionModel(nn.Module):
+    """
+    Physics-Informed Attention Model.
+    Uses the Difference Image (t - t-1) to generate a spatial attention map.
+    
+    Branch 1: Main Image -> Backbone -> Features
+    Branch 2: Diff Image -> Shallow CNN -> Attention Map (1, H/32, W/32)
+    
+    Combination: Features * (1 + Attention)
+    """
+    def __init__(self, backbone_name="convnext_tiny", num_classes=2, pretrained=True, freeze_backbone=False):
+        super().__init__()
+        
+        # Main Backbone (Image)
+        self.backbone = timm.create_model(backbone_name, pretrained=pretrained, num_classes=0, in_chans=3)
+        if freeze_backbone:
+            for p in self.backbone.parameters():
+                p.requires_grad = False
+        
+        self.num_features = self.backbone.num_features
+        
+        # Attention Branch (Diff Image)
+        # Simple 3-layer CNN to extract "Activity Map" from difference image
+        # Input: (B, 1, H, W) -> Output: (B, 1, 1, 1) or (B, 1, H_feat, W_feat)
+        # For simplicity with global pooling backbones, we'll compute a Global Attention Weight
+        # or we can try to inject it earlier.
+        # Let's do "Feature Modulation": Diff branch predicts a scalar weight per channel?
+        # Or better: Diff branch predicts a spatial map.
+        # Since ConvNeXt pools to (B, C), spatial attention must happen BEFORE pooling.
+        # But timm models encapsulate the pooling.
+        # Strategy: Use Diff to predict a "Gate" vector (B, C) that reweights channels.
+        # "Channel Attention" guided by Dynamics.
+        
+        self.diff_encoder = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1), # H/2
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1), # H/4
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1), # H/8
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d(1), # (B, 64, 1, 1)
+            nn.Flatten(),            # (B, 64)
+            nn.Linear(64, self.num_features), # (B, C)
+            nn.Sigmoid() # Gate [0, 1]
+        )
+        
+        # Classifier Head
+        self.head = nn.Sequential(
+            nn.LayerNorm(self.num_features),
+            nn.Linear(self.num_features, num_classes)
+        )
+        
+    def forward(self, x):
+        # x is tuple (img, diff)
+        img, diff = x
+        
+        # Extract static features
+        feats = self.backbone(img) # (B, C)
+        
+        # Extract dynamic attention gate
+        gate = self.diff_encoder(diff) # (B, C)
+        
+        # Modulate features: "Pay attention to channels that align with dynamics"
+        # We use residual connection: F' = F * (1 + Gate)
+        # This allows the model to ignore dynamics if irrelevant (Gate=0)
+        modulated_feats = feats * (1 + gate)
+        
+        # Classify
+        logits = self.head(modulated_feats)
+        return logits
+
+
 # ===================== MODEL BUILDER =====================
 def build_model(num_classes=2):
     """
     Factory function to build the appropriate model based on CFG.
-    
-    Note: Models will use IMG_SIZE from config (default 224, can be set to 112 for faster training).
-    Most pretrained models handle different input sizes via adaptive pooling.
-    ViT models may need backbones without hardcoded size (e.g., use 'vit_base_patch16' if available).
     """
     
+    # Physics-Informed Attention Model
+    if CFG.get("use_diff_attention", False):
+        model = DiffAttentionModel(
+            backbone_name=CFG["backbone"],
+            num_classes=num_classes,
+            pretrained=CFG["pretrained"],
+            freeze_backbone=CFG["freeze_backbone"]
+        )
+        print("Built Physics-Informed DiffAttentionModel.")
+        return model
+
     # Two-stream model
     if CFG.get("use_flow") and CFG.get("two_stream", False):
         model = TwoStreamModel(

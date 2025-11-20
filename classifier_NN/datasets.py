@@ -111,11 +111,12 @@ class TarShardDataset(IterableDataset):
             assert len(self.shard_paths) == len(self.flow_paths), "Image vs flow shard count mismatch"
 
     def _sample_iter_from_tar(self, img_tar: str, flow_tar: str = None):
-        # Check if sequence mode is enabled
+        # Check if sequence mode or diff attention is enabled
         use_seq = CFG.get("use_seq", False)
+        use_diff_attn = CFG.get("use_diff_attention", False)
         
-        if use_seq:
-            # SEQUENCE MODE: Load temporal sequences of frames
+        if use_seq or use_diff_attn:
+            # SEQUENCE / DIFF MODE: Load temporal sequences of frames
             with tarfile.open(img_tar, "r") as tf_img, \
                 (tarfile.open(flow_tar, "r") if (self.use_flow and flow_tar) else nullcontext()) as tf_flow:
 
@@ -141,8 +142,12 @@ class TarShardDataset(IterableDataset):
                 def get_meta(jm):
                     return json.loads(tf_img.extractfile(jm).read().decode("utf-8"))
 
-                T = CFG.get("seq_T", 3)
-                offsets = CFG.get("seq_offsets", [-16, -8, 0])
+                if use_diff_attn:
+                    # For Diff Attention, we need [t-1, t]
+                    offsets = [-1, 0]
+                else:
+                    T = CFG.get("seq_T", 3)
+                    offsets = CFG.get("seq_offsets", [-16, -8, 0])
 
                 for i in range(len(entries)):
                     key0, png0, jm0 = entries[i]
@@ -157,6 +162,7 @@ class TarShardDataset(IterableDataset):
                             break
                         keyj, pngj, jmj = entries[j]
                         metaj = get_meta(jmj)
+                        # Ensure same Active Region (AR)
                         if ("ar" in meta0 and "ar" in metaj) and (meta0["ar"] != metaj["ar"]):
                             ok = False
                             break
@@ -168,7 +174,23 @@ class TarShardDataset(IterableDataset):
                     for j in idxes:
                         _, pngj, _ = entries[j]
                         frames.append(load_img(pngj))
-                    x_seq = torch.stack(frames, dim=0)  # (T,1,H,W)
+                    
+                    if use_diff_attn:
+                        # frames[0] is t-1, frames[1] is t
+                        img_prev = frames[0]
+                        img_curr = frames[1]
+                        diff = img_curr - img_prev # Difference image
+                        
+                        # Yield (Image, Diff) tuple
+                        # Image is (1,H,W), Diff is (1,H,W)
+                        # Replicate Image to 3ch for backbone if needed, but let model handle it
+                        # We yield (img_curr, diff)
+                        # Note: Standard models expect 3ch. We'll handle this in the model or here.
+                        # Let's yield tensors.
+                        x_out = (img_curr.repeat(3, 1, 1), diff) # (3,H,W), (1,H,W)
+                    else:
+                        x_seq = torch.stack(frames, dim=0)  # (T,1,H,W)
+                        x_out = x_seq
 
                     ref_idx = idxes[-1]
                     _, _, refjm = entries[ref_idx]
@@ -179,7 +201,7 @@ class TarShardDataset(IterableDataset):
                     else:
                         label = int(meta["label"])
 
-                    yield x_seq, label, meta
+                    yield x_out, label, meta
         else:
             # SINGLE-FRAME MODE: Load individual images
             with tarfile.open(img_tar, "r") as tf_img, \

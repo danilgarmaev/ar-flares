@@ -12,6 +12,7 @@ CFG = {
 
     "use_flow": False,   # set False to ignore optical flow, True to use it
     "use_diff": False,  # use pixel-intensity difference instead of optical flow
+    "use_diff_attention": False, # 🔥 Physics-Informed Attention (Image_t - Image_{t-1})
     "min_flare_class": "C", # relabel threshold, "C" or "M"
     "two_stream": False,
     "use_lora": False,
