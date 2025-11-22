@@ -50,14 +50,14 @@ if __name__ == "__main__":
     })
 
     # Experiment 2: ConvNeXt-Atto + No Mixup (Baseline for small model)
-    run_experiment("Exp2_Atto_Baseline", {
-        "backbone": "convnext_atto",
-        "mixup": 0.0,
-        "cutmix": 0.0,
-        "label_smoothing": 0.0,
-        "drop_rate": 0.1,
-        "drop_path_rate": 0.1,
-    })
+    # run_experiment("Exp2_Atto_Baseline", {
+    #     "backbone": "convnext_atto",
+    #     "mixup": 0.0,
+    #     "cutmix": 0.0,
+    #     "label_smoothing": 0.0,
+    #     "drop_rate": 0.1,
+    #     "drop_path_rate": 0.1,
+    # })
 
     # Experiment 3: ConvNeXt-Tiny + Mixup (To see if big model can be tamed)
     run_experiment("Exp3_Tiny_Mixup", {

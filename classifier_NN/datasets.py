@@ -466,7 +466,7 @@ def create_dataloaders():
         common["prefetch_factor"] = CFG["prefetch_factor"]
     
     return {
-        "Train": DataLoader(train_ds, **common),
+        "Train": DataLoader(train_ds, drop_last=True, **common),
         "Validation": DataLoader(val_ds, **common),
         "Test": DataLoader(test_ds, **common),
     }

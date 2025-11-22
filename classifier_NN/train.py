@@ -300,6 +300,7 @@ def main():
     print("="*80 + "\n")
     
     history = []
+    best_val_auc = 0.0
     epoch_metrics_path = os.path.join(exp_dir, "epoch_metrics.jsonl")
     for epoch in range(CFG["epochs"]):
         print(f"\nEpoch {epoch+1}/{CFG['epochs']}")
@@ -326,8 +327,19 @@ def main():
         history.append(epoch_record)
         with open(epoch_metrics_path, "a") as ef:
             ef.write(json.dumps(epoch_record) + "\n")
+            
+        # Save "Last" checkpoint every epoch
+        last_path = os.path.join(exp_dir, "last.pt")
+        torch.save(model.state_dict(), last_path)
+        
+        # Save "Best" checkpoint (based on Val AUC)
+        if val_metrics['val_auc'] > best_val_auc:
+            best_val_auc = val_metrics['val_auc']
+            best_path = os.path.join(exp_dir, "best_auc.pt")
+            torch.save(model.state_dict(), best_path)
+            print(f"⭐ New Best AUC: {best_val_auc:.4f} -> Saved to {best_path}")
     
-    # Save model
+    # Save final model
     tag = f'{CFG["model_name"]}_lr{CFG["lr"]}_ep{CFG["epochs"]}{"_focal" if CFG["use_focal"] else ""}'
     model_path = os.path.join(exp_dir, f"{tag}.pt")
     torch.save(model.state_dict(), model_path)

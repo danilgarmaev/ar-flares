@@ -35,7 +35,7 @@ CFG = {
     "drop_path_rate": 0.1,       # Stochastic depth rate (for ConvNeXt/ViT)
     "redirect_log": False,       # if True redirect stdout to log.txt; if False keep progress bar in terminal
     "batch_size": 64,
-    "num_workers": 4,
+    "num_workers": 2,
     "pin_memory": True,
     "persistent_workers": False,
     "prefetch_factor": 2,
