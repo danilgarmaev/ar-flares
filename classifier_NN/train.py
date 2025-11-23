@@ -84,6 +84,19 @@ def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, devi
         if mixup_fn is not None:
             inputs, labels = mixup_fn(inputs, labels)
         
+        # --- FIX FOR MIXUP CRASH ---
+        # If Mixup failed to one-hot encode (labels are 1D) but Loss expects 2D (SoftTarget),
+        # force one-hot encoding.
+        if len(labels.shape) == 1 and isinstance(criterion, SoftTargetCrossEntropy):
+            # Get num_classes from CFG or infer 2
+            num_classes = 2
+            labels = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
+            # Apply label smoothing if configured
+            smoothing = CFG.get("label_smoothing", 0.0)
+            if smoothing > 0:
+                labels = labels * (1 - smoothing) + smoothing / num_classes
+        # ---------------------------
+        
         optimizer.zero_grad(set_to_none=True)
         
         with torch.autocast("cuda", enabled=torch.cuda.is_available()):
