@@ -58,12 +58,33 @@ BASIC_TRANSFORM = transforms.Compose([
 
 # Augmentation transform (Horizontal Flip + RandomAffine)
 # Note: No vertical flips to preserve polarity physics
+# AUG_TRANSFORM = transforms.Compose([
+#     transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=transforms.InterpolationMode.BILINEAR),
+#     transforms.RandomHorizontalFlip(p=0.5),
+#     transforms.RandomAffine(degrees=15, translate=(0.1, 0.1), scale=(0.9, 1.1)),
+#     transforms.ToTensor(),
+# ])
+
+# More robust augmentation 
 AUG_TRANSFORM = transforms.Compose([
-    transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=transforms.InterpolationMode.BILINEAR),
+    transforms.RandomResizedCrop(
+        size=IMG_SIZE,
+        scale=(0.7, 1.0),          # important!!
+        ratio=(0.75, 1.33)
+    ),
     transforms.RandomHorizontalFlip(p=0.5),
-    transforms.RandomAffine(degrees=15, translate=(0.1, 0.1), scale=(0.9, 1.1)),
+    transforms.RandomVerticalFlip(p=0.5),
+    transforms.RandomRotation(360),  # FULL ROTATION
+    transforms.ColorJitter(
+        brightness=0.1,
+        contrast=0.1,
+        saturation=0.1,
+        hue=0.05
+    ),
+    transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.0)),
     transforms.ToTensor(),
 ])
+
 
 class TarShardDataset(IterableDataset):
     """WebDataset-style iterable dataset for tar archives containing images (and optional flow / sequences).

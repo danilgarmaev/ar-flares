@@ -22,6 +22,8 @@ from datasets import create_dataloaders, count_labels_all_shards, count_samples_
 from models import build_model
 from losses import get_loss_function
 from metrics import evaluate_model
+from timm.scheduler.cosine_lr import CosineLRScheduler
+
 
 
 def setup_experiment():
@@ -80,33 +82,50 @@ def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, devi
         # Keep original labels for metrics
         orig_labels = labels.clone()
         
+        # DEBUG (disabled): print shapes before Mixup on first batch
+        # if seen == 0:
+        #     print("[DEBUG] pre-Mixup inputs type:", type(inputs))
+        #     if isinstance(inputs, torch.Tensor):
+        #         print("[DEBUG] pre-Mixup inputs.shape:", inputs.shape)
+        #     else:
+        #         print("[DEBUG] pre-Mixup inputs is tuple, shapes:", [x.shape for x in inputs])
+        #     print("[DEBUG] pre-Mixup labels.shape:", labels.shape, "dtype:", labels.dtype)
+        #     print("[DEBUG] pre-Mixup labels[0:5]:", labels[:5])
+        
         # Apply Mixup
         if mixup_fn is not None:
             inputs, labels = mixup_fn(inputs, labels)
         
-        # --- FIX FOR MIXUP CRASH ---
-        # If Mixup failed to one-hot encode (labels are 1D) but Loss expects 2D (SoftTarget),
-        # force one-hot encoding.
-        if len(labels.shape) == 1 and isinstance(criterion, SoftTargetCrossEntropy):
-            # Get num_classes from CFG or infer 2
-            num_classes = 2
-            labels = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
-            # Apply label smoothing if configured
-            smoothing = CFG.get("label_smoothing", 0.0)
-            if smoothing > 0:
-                labels = labels * (1 - smoothing) + smoothing / num_classes
-        # ---------------------------
+        # DEBUG (disabled): after Mixup on first batch
+        # if seen == 0:
+        #     if isinstance(inputs, torch.Tensor):
+        #         print("[DEBUG] post-Mixup inputs.shape:", inputs.shape)
+        #     else:
+        #         print("[DEBUG] post-Mixup inputs is tuple, shapes:", [x.shape for x in inputs])
+        #     print("[DEBUG] post-Mixup labels.shape:", labels.shape, "dtype:", labels.dtype)
+        #     print("[DEBUG] post-Mixup labels[0]:", labels[0])
         
         optimizer.zero_grad(set_to_none=True)
         
         with torch.autocast("cuda", enabled=torch.cuda.is_available()):
             outputs = model(inputs)
+            # DEBUG (disabled): log first-batch output shape
+            # if seen == 0:
+            #     print("[DEBUG] outputs.shape:", outputs.shape)
             loss = criterion(outputs, labels)
         
         scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
-        
+
+        # Update LR per batch using global step index (no undefined `epoch`)
+        global_step = seen  # seen is number of batches processed so far in this epoch
+        try:
+            scheduler.step_update(global_step)
+        except AttributeError:
+            # Fallback for schedulers without step_update (e.g., OneCycleLR)
+            scheduler.step()
+
         running_loss += loss.item()
         seen += 1
         # collect probabilities (on original labels for metrics)
@@ -118,24 +137,37 @@ def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, devi
         if seen >= steps_per_epoch:
             break
     pbar.close()
-    avg_loss = running_loss / max(1, seen)
-    # metrics
-    probs_np = np.array(all_probs)
-    labels_np = np.array(all_labels)
-    preds = (probs_np >= 0.5).astype(int)
-    train_acc = 100.0 * (preds == labels_np).mean()
-    TP = ((labels_np == 1) & (preds == 1)).sum()
-    FP = ((labels_np == 0) & (preds == 1)).sum()
-    FN = ((labels_np == 1) & (preds == 0)).sum()
+    
+    # Compute metrics (always on hard labels)
+    all_labels_np = np.array(all_labels)
+    all_probs_np = np.array(all_probs)
+    # If labels accidentally became one-hot, collapse back to class indices
+    if all_labels_np.ndim == 2 and all_labels_np.shape[1] == 2:
+        all_labels_np = all_labels_np.argmax(axis=1)
+    try:
+        auc = roc_auc_score(all_labels_np, all_probs_np)
+    except ValueError:
+        auc = float("nan")
+    preds_np = (all_probs_np >= 0.5).astype(int)
+    acc = (preds_np == all_labels_np).mean() * 100.0
+    
+    # Calculate P/R/F1 for training
+    TP = ((all_labels_np == 1) & (preds_np == 1)).sum()
+    FP = ((all_labels_np == 0) & (preds_np == 1)).sum()
+    FN = ((all_labels_np == 1) & (preds_np == 0)).sum()
     precision = TP / (TP + FP + 1e-7)
     recall = TP / (TP + FN + 1e-7)
     f1 = 2 * precision * recall / (precision + recall + 1e-7)
-    try:
-        auc = roc_auc_score(labels_np, probs_np)
-    except Exception:
-        auc = float('nan')
-    metrics = {"train_acc": train_acc, "train_precision": precision, "train_recall": recall, "train_f1": f1, "train_auc": auc}
-    return avg_loss, metrics
+
+    metrics = {
+        "train_loss": running_loss / max(1, seen),
+        "train_acc": acc,
+        "train_auc": auc,
+        "train_precision": precision,
+        "train_recall": recall,
+        "train_f1": f1,
+    }
+    return running_loss / max(1, seen), metrics
 
 
 def validate_epoch(model, dataloader, criterion, device):
@@ -163,6 +195,9 @@ def validate_epoch(model, dataloader, criterion, device):
     avg_val_loss = val_loss / max(1, vbatches)
     probs_np = np.array(all_probs)
     labels_np = np.array(all_labels)
+    # Ensure validation labels are 1D ints
+    if labels_np.ndim == 2 and labels_np.shape[1] == 2:
+        labels_np = labels_np.argmax(axis=1)
     preds = (probs_np >= 0.5).astype(int)
     val_acc = 100.0 * (preds == labels_np).mean()
     TP = ((labels_np == 1) & (preds == 1)).sum()
@@ -269,6 +304,16 @@ def main():
             num_classes=2
         )
 
+    # --- FIX START: Conflict Resolution ---
+    # If Mixup is on, we MUST disable Focal Loss and Class Weights
+    # because standard Focal Loss expects integer labels, but Mixup creates floats.
+    if mixup_active and CFG["use_focal"]:
+        print("⚠️ WARNING: Focal Loss is incompatible with Mixup in this setup.")
+        print(">> Automatically disabling Focal Loss and Class Weights to prevent shape crash.")
+        CFG["use_focal"] = False
+        class_weights = None 
+    # --- FIX END ---
+
     # Setup loss function
     if CFG.get("balance_classes", False):
         # Balanced data - no class weights needed
@@ -299,13 +344,27 @@ def main():
     # Setup gradient scaler for mixed precision
     scaler = torch.GradScaler('cuda', enabled=torch.cuda.is_available())
     
-    # Setup scheduler
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+    # # Setup scheduler
+    # scheduler = torch.optim.lr_scheduler.OneCycleLR(
+    #     optimizer,
+    #     max_lr=CFG["lr"],
+    #     epochs=CFG["epochs"],
+    #     steps_per_epoch=steps_per_epoch
+    # )
+
+    # Setup cosine LR scheduler with warmup (recommended for ConvNeXt / ViT)
+    scheduler = CosineLRScheduler(
         optimizer,
-        max_lr=CFG["lr"],
-        epochs=CFG["epochs"],
-        steps_per_epoch=steps_per_epoch
+        t_initial=CFG["epochs"] * steps_per_epoch,  # total training steps
+        lr_min=1e-6,                                # minimum LR
+        warmup_lr_init=1e-7,                        # starting LR for warmup
+        warmup_t=steps_per_epoch * 2,               # warmup for 2 epochs
+        cycle_mul=1.0,
+        cycle_decay=0.5,
+        cycle_limit=1,
+        t_in_epochs=False                           # IMPORTANT: step-wise schedule
     )
+
     
     # Training loop
     print("\n" + "="*80)
