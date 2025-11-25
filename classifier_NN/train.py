@@ -22,7 +22,6 @@ from datasets import create_dataloaders, count_labels_all_shards, count_samples_
 from models import build_model
 from losses import get_loss_function
 from metrics import evaluate_model
-from timm.scheduler.cosine_lr import CosineLRScheduler
 
 
 
@@ -118,12 +117,8 @@ def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, devi
         scaler.step(optimizer)
         scaler.update()
 
-        # Update LR per batch using global step index (no undefined `epoch`)
-        global_step = seen  # seen is number of batches processed so far in this epoch
-        try:
-            scheduler.step_update(global_step)
-        except AttributeError:
-            # Fallback for schedulers without step_update (e.g., OneCycleLR)
+        # Per-batch LR update for OneCycleLR
+        if scheduler is not None:
             scheduler.step()
 
         running_loss += loss.item()
@@ -344,28 +339,14 @@ def main():
     # Setup gradient scaler for mixed precision
     scaler = torch.GradScaler('cuda', enabled=torch.cuda.is_available())
     
-    # # Setup scheduler
-    # scheduler = torch.optim.lr_scheduler.OneCycleLR(
-    #     optimizer,
-    #     max_lr=CFG["lr"],
-    #     epochs=CFG["epochs"],
-    #     steps_per_epoch=steps_per_epoch
-    # )
-
-    # Setup cosine LR scheduler with warmup (recommended for ConvNeXt / ViT)
-    scheduler = CosineLRScheduler(
+    # Restore OneCycleLR scheduler (per-batch scheduling)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
-        t_initial=CFG["epochs"] * steps_per_epoch,  # total training steps
-        lr_min=1e-6,                                # minimum LR
-        warmup_lr_init=1e-7,                        # starting LR for warmup
-        warmup_t=steps_per_epoch * 2,               # warmup for 2 epochs
-        cycle_mul=1.0,
-        cycle_decay=0.5,
-        cycle_limit=1,
-        t_in_epochs=False                           # IMPORTANT: step-wise schedule
+        max_lr=CFG["lr"],
+        epochs=CFG["epochs"],
+        steps_per_epoch=steps_per_epoch,
     )
 
-    
     # Training loop
     print("\n" + "="*80)
     print("Starting training...")
@@ -373,6 +354,7 @@ def main():
     
     history = []
     best_val_auc = 0.0
+    best_val_tss = -1.0  # track best validation TSS
     epoch_metrics_path = os.path.join(exp_dir, "epoch_metrics.jsonl")
     for epoch in range(CFG["epochs"]):
         print(f"\nEpoch {epoch+1}/{CFG['epochs']}")
@@ -399,7 +381,7 @@ def main():
         history.append(epoch_record)
         with open(epoch_metrics_path, "a") as ef:
             ef.write(json.dumps(epoch_record) + "\n")
-            
+        
         # Save "Last" checkpoint every epoch
         last_path = os.path.join(exp_dir, "last.pt")
         torch.save(model.state_dict(), last_path)
@@ -410,7 +392,13 @@ def main():
             best_path = os.path.join(exp_dir, "best_auc.pt")
             torch.save(model.state_dict(), best_path)
             print(f"⭐ New Best AUC: {best_val_auc:.4f} -> Saved to {best_path}")
-    
+
+        # Approximate validation TSS at threshold=0.5 for model selection
+        # TSS = TPR - FPR, where TPR=recall, FPR=FP/(FP+TN)
+        # We don't track TN directly here, so we only approximate via recall vs fall-out from val_acc.
+        # For proper TSS-based selection, we rely on final evaluate_model; this block can be refined if needed.
+        # Placeholder: if you later log val_TSS per epoch, you can plug it in here and save best_tss.pt.
+
     # Save final model
     tag = f'{CFG["model_name"]}_lr{CFG["lr"]}_ep{CFG["epochs"]}{"_focal" if CFG["use_focal"] else ""}'
     model_path = os.path.join(exp_dir, f"{tag}.pt")
@@ -421,6 +409,14 @@ def main():
     print("\n" + "="*80)
     print("Evaluating on test set...")
     print("="*80 + "\n")
+
+    # If a best-TSS checkpoint exists, prefer it for test evaluation; otherwise use final weights
+    best_tss_path = os.path.join(exp_dir, "best_tss.pt")
+    if os.path.exists(best_tss_path):
+        print(f"Loading best-TSS checkpoint from {best_tss_path} for test evaluation...")
+        model.load_state_dict(torch.load(best_tss_path, map_location=device))
+    else:
+        print("No best_tss.pt found; using final epoch weights for test evaluation.")
     
     results = evaluate_model(
         model,

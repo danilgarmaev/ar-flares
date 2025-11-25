@@ -66,6 +66,29 @@ BASIC_TRANSFORM = transforms.Compose([
 # ])
 
 # More robust augmentation 
+class PolarityInversion:
+    """Invert magnetic polarity: (I-128)*(-1)+128 on 0–255 8-bit images."""
+    def __call__(self, img: Image.Image) -> Image.Image:
+        # Work in uint8 space to respect 0–255 and 128 as zero-field reference
+        arr = np.array(img, dtype=np.int16)
+        arr = (arr - 128) * -1 + 128
+        arr = np.clip(arr, 0, 255).astype(np.uint8)
+        return Image.fromarray(arr, mode=img.mode)
+
+
+class AddIntegerNoise:
+    """Add uniform integer noise in [-5, 5] and clamp to [0, 255]."""
+    def __init__(self, max_abs_noise: int = 5):
+        self.max_abs_noise = max_abs_noise
+
+    def __call__(self, img: Image.Image) -> Image.Image:
+        arr = np.array(img, dtype=np.int16)
+        noise = np.random.randint(-self.max_abs_noise, self.max_abs_noise + 1, size=arr.shape, dtype=np.int16)
+        arr = arr + noise
+        arr = np.clip(arr, 0, 255).astype(np.uint8)
+        return Image.fromarray(arr, mode=img.mode)
+
+
 AUG_TRANSFORM = transforms.Compose([
     transforms.RandomResizedCrop(
         size=IMG_SIZE,
@@ -74,7 +97,9 @@ AUG_TRANSFORM = transforms.Compose([
     ),
     transforms.RandomHorizontalFlip(p=0.5),
     transforms.RandomVerticalFlip(p=0.5),
-    transforms.RandomRotation(360),  # FULL ROTATION
+    transforms.RandomRotation(30),  # limit to ±30°
+    PolarityInversion(),            # magnetic polarity inversion
+    AddIntegerNoise(max_abs_noise=5),  # ±5 noise with clamping
     transforms.ColorJitter(
         brightness=0.1,
         contrast=0.1,
