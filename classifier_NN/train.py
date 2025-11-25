@@ -21,7 +21,7 @@ from config import CFG, SPLIT_DIRS
 from datasets import create_dataloaders, count_labels_all_shards, count_samples_all_shards
 from models import build_model
 from losses import get_loss_function
-from metrics import evaluate_model
+from metrics import evaluate_model, find_best_threshold_tss
 
 
 
@@ -166,7 +166,7 @@ def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, devi
 
 
 def validate_epoch(model, dataloader, criterion, device):
-    """Validate for one epoch. Returns (avg_loss, metrics_dict)."""
+    """Validate for one epoch. Returns (avg_loss, metrics_dict, best_val_tss)."""
     model.eval()
     val_loss = 0.0
     vbatches = 0
@@ -205,7 +205,19 @@ def validate_epoch(model, dataloader, criterion, device):
         auc = roc_auc_score(labels_np, probs_np)
     except Exception:
         auc = float('nan')
-    metrics = {"val_acc": val_acc, "val_precision": precision, "val_recall": recall, "val_f1": f1, "val_auc": auc}
+
+    # Compute best validation TSS over thresholds (like evaluate_model)
+    best_val_tss, best_val_threshold = find_best_threshold_tss(labels_np, probs_np)
+
+    metrics = {
+        "val_acc": val_acc,
+        "val_precision": precision,
+        "val_recall": recall,
+        "val_f1": f1,
+        "val_auc": auc,
+        "val_best_tss": best_val_tss,
+        "val_best_threshold": best_val_threshold,
+    }
     return avg_val_loss, metrics
 
 
@@ -353,7 +365,6 @@ def main():
     print("="*80 + "\n")
     
     history = []
-    best_val_auc = 0.0
     best_val_tss = -1.0  # track best validation TSS
     epoch_metrics_path = os.path.join(exp_dir, "epoch_metrics.jsonl")
     for epoch in range(CFG["epochs"]):
@@ -371,6 +382,7 @@ def main():
         print(f"Train P/R/F1: {train_metrics['train_precision']:.3f}/{train_metrics['train_recall']:.3f}/{train_metrics['train_f1']:.3f} | Val P/R/F1: {val_metrics['val_precision']:.3f}/{val_metrics['val_recall']:.3f}/{val_metrics['val_f1']:.3f}")
         print(f"Train AUC: {train_metrics['train_auc']:.3f} | Val AUC: {val_metrics['val_auc']:.3f}")
         print(f"Current LR: {scheduler.get_last_lr()[0]:.2e}")
+        print(f"Val Best TSS: {val_metrics['val_best_tss']:.4f} @ threshold={val_metrics['val_best_threshold']:.3f}")
         epoch_record = {
             "epoch": epoch + 1,
             "train_loss": avg_train_loss,
@@ -382,41 +394,28 @@ def main():
         with open(epoch_metrics_path, "a") as ef:
             ef.write(json.dumps(epoch_record) + "\n")
         
-        # Save "Last" checkpoint every epoch
-        last_path = os.path.join(exp_dir, "last.pt")
-        torch.save(model.state_dict(), last_path)
-        
-        # Save "Best" checkpoint (based on Val AUC)
-        if val_metrics['val_auc'] > best_val_auc:
-            best_val_auc = val_metrics['val_auc']
-            best_path = os.path.join(exp_dir, "best_auc.pt")
-            torch.save(model.state_dict(), best_path)
-            print(f"⭐ New Best AUC: {best_val_auc:.4f} -> Saved to {best_path}")
+        # Only save best-TSS checkpoint based on validation TSS to save space
+        if val_metrics['val_best_tss'] > best_val_tss:
+            best_val_tss = val_metrics['val_best_tss']
+            best_tss_path = os.path.join(exp_dir, "best_tss.pt")
+            torch.save(model.state_dict(), best_tss_path)
+            print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} -> Saved to {best_tss_path}")
 
-        # Approximate validation TSS at threshold=0.5 for model selection
-        # TSS = TPR - FPR, where TPR=recall, FPR=FP/(FP+TN)
-        # We don't track TN directly here, so we only approximate via recall vs fall-out from val_acc.
-        # For proper TSS-based selection, we rely on final evaluate_model; this block can be refined if needed.
-        # Placeholder: if you later log val_TSS per epoch, you can plug it in here and save best_tss.pt.
-
-    # Save final model
+    # Save final model tag only for logging, not as an extra large checkpoint
     tag = f'{CFG["model_name"]}_lr{CFG["lr"]}_ep{CFG["epochs"]}{"_focal" if CFG["use_focal"] else ""}'
-    model_path = os.path.join(exp_dir, f"{tag}.pt")
-    torch.save(model.state_dict(), model_path)
-    print(f"\nModel saved to {model_path}")
+    print(f"\nTraining finished for {tag}")
     
-    # Evaluate on test set
+    # Evaluate on test set using best-TSS checkpoint
     print("\n" + "="*80)
     print("Evaluating on test set...")
     print("="*80 + "\n")
 
-    # If a best-TSS checkpoint exists, prefer it for test evaluation; otherwise use final weights
     best_tss_path = os.path.join(exp_dir, "best_tss.pt")
     if os.path.exists(best_tss_path):
         print(f"Loading best-TSS checkpoint from {best_tss_path} for test evaluation...")
         model.load_state_dict(torch.load(best_tss_path, map_location=device))
     else:
-        print("No best_tss.pt found; using final epoch weights for test evaluation.")
+        print("Warning: No best_tss.pt found; evaluating with current model weights (last epoch).")
     
     results = evaluate_model(
         model,
