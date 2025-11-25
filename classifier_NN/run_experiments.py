@@ -44,7 +44,7 @@ if __name__ == "__main__":
         "use_aug": True,       # Enable augmentation
         "drop_rate": 0.3,      # Standard dropout
         "drop_path_rate": 0.2,
-        "weight_decay": 0.05,
+        "weight_decay": 0.1,
         "label_smoothing": 0.0,
         "mixup": 0.0,          # Explicitly disable mixup
         "cutmix": 0.0,         # Explicitly disable cutmix
