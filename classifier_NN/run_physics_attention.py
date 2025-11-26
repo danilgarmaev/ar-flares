@@ -1,7 +1,7 @@
 import os
 import sys
-from config import get_default_cfg
-from train import main
+from .config import get_default_cfg, apply_physics_attention_overrides
+from .train import main
 
 # Physics-Informed Attention Experiment
 # This script runs the training with the Difference Image Attention mechanism.
@@ -18,14 +18,6 @@ def run_physics_experiment():
         "image_size": 112,           # Faster training
         "pretrained": True,
         "freeze_backbone": False,
-        
-        # Enable Physics-Informed Attention
-        "use_diff_attention": True,
-        
-        # Disable conflicting options
-        "use_flow": False,
-        "two_stream": False,
-        "use_seq": False,
         
         # Training Hyperparams
         "lr": 1e-4,
@@ -44,7 +36,8 @@ def run_physics_experiment():
         "cutmix": 0.0,
     }
 
-    cfg = get_default_cfg()
+    base_cfg = get_default_cfg()
+    cfg = apply_physics_attention_overrides(base_cfg)
     cfg.update(overrides)
 
     # Run training

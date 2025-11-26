@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import timm
 from peft import LoraConfig, get_peft_model, TaskType
 
-from config import CFG
+from .config import CFG
 
 # Get image size from config
 IMG_SIZE = CFG.get("image_size", 224)

@@ -110,3 +110,20 @@ def get_default_cfg():
     import copy
 
     return copy.deepcopy(CFG)
+
+
+def apply_physics_attention_overrides(cfg: dict) -> dict:
+    """Return a copy of cfg with physics-informed attention settings applied.
+
+    This keeps all physics-attention specific knobs in one place for
+    reproducibility.
+    """
+    new_cfg = dict(cfg)
+    new_cfg.update({
+        "use_diff_attention": True,
+        "use_diff": True,
+        "use_flow": False,
+        "two_stream": False,
+        "use_seq": False,
+    })
+    return new_cfg

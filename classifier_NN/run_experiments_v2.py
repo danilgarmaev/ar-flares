@@ -1,7 +1,9 @@
 import os
 import sys
-from config import get_default_cfg
-from train import main
+from .config import get_default_cfg
+from .train import main
+
+from .run_experiments import build_experiment_cfg
 
 # Common settings for all experiments
 COMMON_OVERRIDES = {
@@ -25,10 +27,7 @@ def run_experiment(name, overrides):
     print(f"{'='*40}\n")
 
     # Build a fresh config for this experiment
-    cfg = get_default_cfg()
-    cfg.update(COMMON_OVERRIDES)
-    cfg.update(overrides)
-    cfg["model_name"] = name
+    cfg = build_experiment_cfg(name, {**COMMON_OVERRIDES, **overrides})
 
     # Run training
     try:

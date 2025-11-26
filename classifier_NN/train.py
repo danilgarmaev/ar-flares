@@ -17,11 +17,11 @@ from timm.data import Mixup
 from sklearn.metrics import roc_auc_score
 
 # Import our modules
-from config import CFG, SPLIT_DIRS, get_default_cfg
-from datasets import create_dataloaders, count_labels_all_shards, count_samples_all_shards
-from models import build_model
-from losses import get_loss_function
-from metrics import evaluate_model, find_best_threshold_tss
+from .config import CFG, SPLIT_DIRS, get_default_cfg
+from .datasets import create_dataloaders, count_labels_all_shards, count_samples_all_shards
+from .models import build_model
+from .losses import get_loss_function
+from .metrics import evaluate_model, find_best_threshold_tss
 
 def setup_experiment(cfg=None):
     """Create experiment directory. Optionally redirect stdout if cfg['redirect_log'] is True.
@@ -235,15 +235,15 @@ def save_summary(exp_dir, tag, results, cfg=None):
         f.write(f"# AR-Flares Experiment Summary\n\n")
         f.write(f"**Experiment tag:** `{tag}`\n")
         f.write(f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-    f.write(f"**Backbone:** {cfg['backbone']}\n")
-    f.write(f"**Use Flow:** {cfg['use_flow']}\n")
-    f.write(f"**Use Sequences:** {cfg.get('use_seq', False)}\n")
-    f.write(f"**Freeze Backbone:** {cfg['freeze_backbone']}\n")
-    f.write(f"**Learning Rate:** {cfg['lr']}\n")
-    f.write(f"**Epochs:** {cfg['epochs']}\n")
-    f.write(f"**Batch Size:** {cfg['batch_size']}\n")
-    f.write(f"**Seed:** `{cfg.get('seed', 'N/A')}`\n\n")
-        
+        f.write(f"**Backbone:** {cfg['backbone']}\n")
+        f.write(f"**Use Flow:** {cfg['use_flow']}\n")
+        f.write(f"**Use Sequences:** {cfg.get('use_seq', False)}\n")
+        f.write(f"**Freeze Backbone:** {cfg['freeze_backbone']}\n")
+        f.write(f"**Learning Rate:** {cfg['lr']}\n")
+        f.write(f"**Epochs:** {cfg['epochs']}\n")
+        f.write(f"**Batch Size:** {cfg['batch_size']}\n")
+        f.write(f"**Seed:** `{cfg.get('seed', 'N/A')}`\n\n")
+
         f.write("### Results\n")
         f.write(f"- **AUC:** {results['AUC']:.4f}\n")
         f.write(f"- **PR-AUC:** {results['PR_AUC']:.4f}\n")
@@ -251,19 +251,19 @@ def save_summary(exp_dir, tag, results, cfg=None):
         f.write(f"- **HSS:** {results['HSS']:.4f}\n")
         f.write(f"- **Best threshold (TSS):** {results['Best_threshold']:.3f}\n")
         f.write(f"- **Best TSS:** {results['Best_TSS']:.4f}\n\n")
-        
+
         f.write("### Confusion Matrix (threshold=0.5)\n")
         f.write(f"- TP: {results['TP']}\n")
         f.write(f"- TN: {results['TN']}\n")
         f.write(f"- FP: {results['FP']}\n")
         f.write(f"- FN: {results['FN']}\n\n")
-        
+
         f.write("### Notes\n")
         f.write("- Model trained on: Train split\n")
         f.write("- Validated on: Validation split\n")
         f.write("- Tested on: Test split\n")
         f.write("- Next steps: _fill this in manually in Obsidian_\n\n")
-        
+
         f.write("### File Paths\n")
         f.write(f"- Model: `{os.path.join(exp_dir, f'{tag}.pt')}`\n")
         f.write(f"- Metrics: `{os.path.join(exp_dir, 'metrics.json')}`\n")
@@ -328,9 +328,9 @@ def main(cfg=None):
     # If Mixup is on, we MUST disable Focal Loss and Class Weights
     # because standard Focal Loss expects integer labels, but Mixup creates floats.
     if mixup_active and cfg["use_focal"]:
-    print("⚠️ WARNING: Focal Loss is incompatible with Mixup in this setup.")
-    print(">> Automatically disabling Focal Loss and Class Weights to prevent shape crash.")
-    cfg["use_focal"] = False
+        print("⚠️ WARNING: Focal Loss is incompatible with Mixup in this setup.")
+        print(">> Automatically disabling Focal Loss and Class Weights to prevent shape crash.")
+        cfg["use_focal"] = False
         class_weights = None 
     # --- FIX END ---
 
@@ -341,22 +341,22 @@ def main(cfg=None):
         print("Using balanced sampling - no class weights")
     else:
         # Imbalanced data - use class weights
-    class_weights = torch.tensor([1.0, Nn/Nf], dtype=torch.float32, device=device)
+        class_weights = torch.tensor([1.0, Nn/Nf], dtype=torch.float32, device=device)
         print(f"Using class weights: {class_weights.tolist()}")
     
     criterion = get_loss_function(
-    use_focal=cfg["use_focal"],
-    gamma=cfg["focal_gamma"],
+        use_focal=cfg["use_focal"],
+        gamma=cfg["focal_gamma"],
         class_weights=class_weights,
         use_mixup=mixup_active,
-    label_smoothing=cfg.get("label_smoothing", 0.0)
+        label_smoothing=cfg.get("label_smoothing", 0.0)
     )
     
     # Setup optimizer
     optimizer = create_optimizer_v2(
         model,
         opt='adamw',
-    lr=cfg["lr"],
+        lr=cfg["lr"],
         weight_decay=0.05,
         layer_decay=0.75
     )

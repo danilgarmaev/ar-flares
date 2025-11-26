@@ -15,7 +15,7 @@ import torchvision.transforms as transforms
 import numpy as np
 from PIL import Image
 
-from config import CFG, SPLIT_DIRS, SPLIT_FLOW_DIRS, intensity_labels_path
+from .config import CFG, SPLIT_DIRS, SPLIT_FLOW_DIRS, intensity_labels_path
 
 
 # --- flare label remapping ---

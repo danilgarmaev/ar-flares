@@ -1,7 +1,21 @@
 import os
 import sys
-from config import get_default_cfg
-from train import main
+from .config import get_default_cfg
+from .train import main
+
+
+def build_experiment_cfg(name: str, overrides: dict, common_overrides: dict | None = None):
+    """Utility to build a fresh cfg for a single experiment.
+
+    This centralizes how we construct configs so other runners (v2, physics)
+    can share behavior.
+    """
+    cfg = get_default_cfg()
+    if common_overrides:
+        cfg.update(common_overrides)
+    cfg.update(overrides)
+    cfg["model_name"] = name
+    return cfg
 
 # Common settings for all experiments
 COMMON_OVERRIDES = {
@@ -26,10 +40,7 @@ def run_experiment(name, overrides):
     print(f"{'='*40}\n")
 
     # Build a fresh config for this experiment
-    cfg = get_default_cfg()
-    cfg.update(COMMON_OVERRIDES)
-    cfg.update(overrides)
-    cfg["model_name"] = name
+    cfg = build_experiment_cfg(name, overrides, COMMON_OVERRIDES)
 
     # Run training
     try:
