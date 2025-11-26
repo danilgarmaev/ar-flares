@@ -92,17 +92,10 @@ class AddIntegerNoise:
 AUG_TRANSFORM = transforms.Compose([
     transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=transforms.InterpolationMode.BILINEAR),
     transforms.RandomHorizontalFlip(p=0.5),
-    # transforms.RandomVerticalFlip(p=0.5),
+    transforms.RandomVerticalFlip(p=0.5),
     transforms.RandomRotation(30),  # limit to ±30°
     PolarityInversion(),            # magnetic polarity inversion
     AddIntegerNoise(max_abs_noise=5),  # ±5 noise with clamping
-    # transforms.ColorJitter(
-    #     brightness=0.1,
-    #     contrast=0.1,
-    #     saturation=0.1,
-    #     hue=0.05
-    # ),
-    transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.0)),
     transforms.ToTensor(),
 ])
 

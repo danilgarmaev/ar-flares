@@ -16,6 +16,8 @@ COMMON_OVERRIDES = {
     "balance_mode": "prob",
     "neg_keep_prob": 0.25,
     "redirect_log": True,  # Redirect stdout to log.txt for background runs
+    "num_workers": 4,      # Increase workers to feed GPU faster
+    "persistent_workers": True, # Keep workers alive to reduce overhead
 }
 
 def run_experiment(name, overrides):
@@ -37,17 +39,18 @@ def run_experiment(name, overrides):
         print(f"❌ Experiment {name} failed: {e}")
 
 if __name__ == "__main__":
-    # Experiment: ConvNext Tiny + Augmentation (No Mixup)
-    run_experiment("ConvNextTiny_Aug_NoMixup", {
+    # Experiment: ResNet-18 + Augmentation (No Mixup)
+    run_experiment("ResNet18_Aug_NoMixup", {
+        "backbone": "resnet18",      # Smaller backbone
         "use_flow": False,
         "two_stream": False,
-        "use_aug": True,       # Enable augmentation
-        "drop_rate": 0.3,      # Standard dropout
-        "drop_path_rate": 0.2,
-        "weight_decay": 0.1,
+        "use_aug": True,
+        "drop_rate": 0.2,            # ResNet head dropout
+        "drop_path_rate": 0.0,       # ResNet doesn't use drop-path
+        "weight_decay": 0.0001,      # Classic ResNet-style wd
         "label_smoothing": 0.0,
-        "mixup": 0.0,          # Explicitly disable mixup
-        "cutmix": 0.0,         # Explicitly disable cutmix
+        "mixup": 0.0,
+        "cutmix": 0.0,
     })
     
     print("\n✅ All experiments completed!")
