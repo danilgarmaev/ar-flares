@@ -64,6 +64,10 @@ CFG = {
 
     # flow encoder options
     "flow_encoder": "SmallFlowCNN",  # SmallFlowCNN, MediumFlowCNN, FlowResNetTiny
+
+    # Optional metadata for experiment tracking
+    "run_id": None,
+    "notes": "",
 }
 
 # Automatically build a readable model name for results

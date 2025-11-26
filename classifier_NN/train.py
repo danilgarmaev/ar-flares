@@ -32,7 +32,9 @@ def setup_experiment(cfg=None):
         cfg = CFG
     eastern = pytz.timezone('US/Eastern')
     now_et = datetime.now(eastern)
-    exp_id = f"{now_et.strftime('%Y-%m-%d %H:%M:%S')}_{cfg['model_name']}"
+    # Prefer explicit run_id if provided, otherwise derive from timestamp+model name
+    suffix = cfg.get("run_id") or cfg["model_name"]
+    exp_id = f"{now_et.strftime('%Y-%m-%d %H:%M:%S')}_{suffix}"
     exp_dir = os.path.join(cfg["results_base"], exp_id)
     os.makedirs(exp_dir, exist_ok=True)
     plot_dir = os.path.join(exp_dir, "plots")
@@ -242,7 +244,12 @@ def save_summary(exp_dir, tag, results, cfg=None):
         f.write(f"**Learning Rate:** {cfg['lr']}\n")
         f.write(f"**Epochs:** {cfg['epochs']}\n")
         f.write(f"**Batch Size:** {cfg['batch_size']}\n")
-        f.write(f"**Seed:** `{cfg.get('seed', 'N/A')}`\n\n")
+        f.write(f"**Seed:** `{cfg.get('seed', 'N/A')}`\n")
+        if cfg.get("run_id"):
+            f.write(f"**Run ID:** `{cfg['run_id']}`\n")
+        if cfg.get("notes"):
+            f.write(f"**Notes:** {cfg['notes']}\n")
+        f.write("\n")
 
         f.write("### Results\n")
         f.write(f"- **AUC:** {results['AUC']:.4f}\n")
