@@ -47,14 +47,12 @@ if CFG["min_flare_class"].upper() == "M":
         min_class="M"
     )
 
-# Initialize image transform for resizing
-IMG_SIZE = CFG.get("image_size", 224)
-
-# Basic transform (Resize + ToTensor)
-BASIC_TRANSFORM = transforms.Compose([
-    transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=transforms.InterpolationMode.BILINEAR),
-    transforms.ToTensor(),
-])
+def _build_basic_transform(img_size: int):
+    """Basic transform (Resize + ToTensor) parameterized by image size."""
+    return transforms.Compose([
+        transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
+        transforms.ToTensor(),
+    ])
 
 # Augmentation transform (Horizontal Flip + RandomAffine)
 # Note: No vertical flips to preserve polarity physics
@@ -89,15 +87,20 @@ class AddIntegerNoise:
         return Image.fromarray(arr, mode=img.mode)
 
 
-AUG_TRANSFORM = transforms.Compose([
-    transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=transforms.InterpolationMode.BILINEAR),
-    transforms.RandomHorizontalFlip(p=0.5),
-    transforms.RandomVerticalFlip(p=0.5),
-    transforms.RandomRotation(30),  # limit to ±30°
-    PolarityInversion(),            # magnetic polarity inversion
-    AddIntegerNoise(max_abs_noise=5),  # ±5 noise with clamping
-    transforms.ToTensor(),
-])
+def _build_aug_transform(img_size: int):
+    """Augmentation transform parameterized by image size.
+
+    Uses only physics-respecting operations (no vertical flip if disabled in cfg).
+    """
+    return transforms.Compose([
+        transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomVerticalFlip(p=0.5),
+        transforms.RandomRotation(30),  # limit to ±30°
+        PolarityInversion(),            # magnetic polarity inversion
+        AddIntegerNoise(max_abs_noise=5),  # ±5 noise with clamping
+        transforms.ToTensor(),
+    ])
 
 
 class TarShardDataset(IterableDataset):
@@ -123,7 +126,9 @@ class TarShardDataset(IterableDataset):
                  split_name: str = "Train",
                  use_flow: bool = False,
                  shuffle_shards=True, shuffle_samples=False,
-                 shuffle_buffer_size=2048, seed=42):
+                 shuffle_buffer_size=2048, seed=42,
+                 img_size: int | None = None,
+                 use_aug: bool | None = None):
         super().__init__()
         self.shard_paths = list(shard_paths)
         self.flow_paths = list(flow_paths) if flow_paths else None
@@ -134,12 +139,16 @@ class TarShardDataset(IterableDataset):
         self.shuffle_buffer_size = shuffle_buffer_size
         self.seed = seed
         
-        # Select transform based on split and config
-        # Only augment training data if 'use_aug' is True in CFG
-        if self.split_name == "Train" and CFG.get("use_aug", False):
-            self.transform = AUG_TRANSFORM
+        # Resolve transform config
+        if img_size is None:
+            img_size = CFG.get("image_size", 224)
+        if use_aug is None:
+            use_aug = CFG.get("use_aug", False)
+
+        if self.split_name == "Train" and use_aug:
+            self.transform = _build_aug_transform(img_size)
         else:
-            self.transform = BASIC_TRANSFORM
+            self.transform = _build_basic_transform(img_size)
 
         if self.use_flow:
             assert self.flow_paths is not None, "Flow shards required when use_flow=True"
@@ -398,8 +407,14 @@ def list_shards(split_dir: str) -> List[str]:
     return sorted(glob.glob(os.path.join(split_dir, "*.tar")))
 
 
-def make_dataset(split_name: str, shuffle_shards=True, shuffle_samples=False, seed=42):
-    """Create a TarShardDataset for the given split."""
+def make_dataset(split_name: str, shuffle_shards=True, shuffle_samples=False, seed=42,
+                 img_size: int | None = None, use_aug: bool | None = None):
+    """Create a TarShardDataset for the given split.
+
+    img_size and use_aug can be overridden explicitly, otherwise values fall back
+    to the global CFG. This keeps backwards compatibility while allowing
+    cfg-driven datasets via create_dataloaders.
+    """
     img_shards = list_shards(SPLIT_DIRS[split_name])
     if CFG["use_flow"]:
         flow_shards = list_shards(SPLIT_FLOW_DIRS[split_name])
@@ -407,12 +422,17 @@ def make_dataset(split_name: str, shuffle_shards=True, shuffle_samples=False, se
         flow_shards = None
     if not img_shards:
         raise FileNotFoundError(f"No image shards for {split_name}")
-    return TarShardDataset(img_shards, flow_shards,
-                           split_name=split_name,
-                           use_flow=CFG["use_flow"],
-                           shuffle_shards=shuffle_shards,
-                           shuffle_samples=shuffle_samples,
-                           seed=seed)
+    return TarShardDataset(
+        img_shards,
+        flow_shards,
+        split_name=split_name,
+        use_flow=CFG["use_flow"],
+        shuffle_shards=shuffle_shards,
+        shuffle_samples=shuffle_samples,
+        seed=seed,
+        img_size=img_size,
+        use_aug=use_aug,
+    )
 
 
 # --------- shard scanners (fast, no images) ---------
@@ -484,10 +504,20 @@ def count_samples_all_shards(split_dir: str, estimate: bool = True) -> int:
 
 
 def create_dataloaders():
-    """Create train, validation, and test dataloaders."""
-    train_ds = make_dataset("Train", shuffle_shards=True, shuffle_samples=True)
-    val_ds = make_dataset("Validation", shuffle_shards=False, shuffle_samples=False)
-    test_ds = make_dataset("Test", shuffle_shards=False, shuffle_samples=False)
+    """Create train, validation, and test dataloaders.
+
+    Uses image_size and use_aug from CFG; callers that want per-run overrides
+    should update cfg before calling train, which will be reflected via CFG.
+    """
+    img_size = CFG.get("image_size", 224)
+    use_aug = CFG.get("use_aug", False)
+
+    train_ds = make_dataset("Train", shuffle_shards=True, shuffle_samples=True,
+                            img_size=img_size, use_aug=use_aug)
+    val_ds = make_dataset("Validation", shuffle_shards=False, shuffle_samples=False,
+                          img_size=img_size, use_aug=False)
+    test_ds = make_dataset("Test", shuffle_shards=False, shuffle_samples=False,
+                           img_size=img_size, use_aug=False)
 
     common = dict(
         batch_size=CFG["batch_size"],
