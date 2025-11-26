@@ -97,3 +97,16 @@ intensity_labels_path = (
     if IS_COMPUTE_CANADA
     else "/teamspace/studios/this_studio/AR-flares/data"
 )
+
+
+def get_default_cfg():
+    """Return a fresh copy of the default CFG dict.
+
+    This helps avoid surprising cross-experiment interactions when scripts
+    mutate configuration in-place. Callers should take a copy via this
+    function and then apply overrides locally instead of modifying CFG
+    directly.
+    """
+    import copy
+
+    return copy.deepcopy(CFG)
