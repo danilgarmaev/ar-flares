@@ -1,6 +1,6 @@
 import os
 import sys
-from config import CFG
+from config import get_default_cfg
 from train import main
 
 # Physics-Informed Attention Experiment
@@ -43,12 +43,13 @@ def run_physics_experiment():
         "mixup": 0.0,
         "cutmix": 0.0,
     }
-    
-    CFG.update(overrides)
-    
+
+    cfg = get_default_cfg()
+    cfg.update(overrides)
+
     # Run training
     try:
-        main()
+        main(cfg)
     except Exception as e:
         print(f"❌ Experiment failed: {e}")
         import traceback

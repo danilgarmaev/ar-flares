@@ -1,6 +1,6 @@
 import os
 import sys
-from config import CFG
+from config import get_default_cfg
 from train import main
 
 # Common settings for all experiments
@@ -24,17 +24,16 @@ def run_experiment(name, overrides):
     print(f"\n{'='*40}")
     print(f"🚀 Launching Experiment: {name}")
     print(f"{'='*40}\n")
-    
-    # Reset CFG to defaults + common overrides
-    CFG.update(COMMON_OVERRIDES)
-    
-    # Apply specific overrides
-    CFG.update(overrides)
-    CFG["model_name"] = name
-    
+
+    # Build a fresh config for this experiment
+    cfg = get_default_cfg()
+    cfg.update(COMMON_OVERRIDES)
+    cfg.update(overrides)
+    cfg["model_name"] = name
+
     # Run training
     try:
-        main()
+        main(cfg)
     except Exception as e:
         print(f"❌ Experiment {name} failed: {e}")
 

@@ -17,33 +17,36 @@ from timm.data import Mixup
 from sklearn.metrics import roc_auc_score
 
 # Import our modules
-from config import CFG, SPLIT_DIRS
+from config import CFG, SPLIT_DIRS, get_default_cfg
 from datasets import create_dataloaders, count_labels_all_shards, count_samples_all_shards
 from models import build_model
 from losses import get_loss_function
 from metrics import evaluate_model, find_best_threshold_tss
 
+def setup_experiment(cfg=None):
+    """Create experiment directory. Optionally redirect stdout if cfg['redirect_log'] is True.
 
-
-def setup_experiment():
-    """Create experiment directory. Optionally redirect stdout if CFG['redirect_log'] is True."""
+    If cfg is None, falls back to global CFG for backwards compatibility.
+    """
+    if cfg is None:
+        cfg = CFG
     eastern = pytz.timezone('US/Eastern')
     now_et = datetime.now(eastern)
-    exp_id = f"{now_et.strftime('%Y-%m-%d %H:%M:%S')}_{CFG['model_name']}"
-    exp_dir = os.path.join(CFG["results_base"], exp_id)
+    exp_id = f"{now_et.strftime('%Y-%m-%d %H:%M:%S')}_{cfg['model_name']}"
+    exp_dir = os.path.join(cfg["results_base"], exp_id)
     os.makedirs(exp_dir, exist_ok=True)
     plot_dir = os.path.join(exp_dir, "plots")
     os.makedirs(plot_dir, exist_ok=True)
     print(f"Experiment directory: {exp_dir}")
     with open(os.path.join(exp_dir, "config.json"), "w") as f:
-        json.dump(CFG, f, indent=2)
-    if CFG.get("redirect_log", True):
+        json.dump(cfg, f, indent=2)
+    if cfg.get("redirect_log", True):
         log_path = os.path.join(exp_dir, "log.txt")
         sys.stdout = open(log_path, "w", buffering=1)
         print(f"[LOG REDIRECTED] Starting experiment {exp_id}")
     else:
         print(f"Starting experiment {exp_id} (stdout in terminal)")
-    print(f"Image size: {CFG.get('image_size', 224)}x{CFG.get('image_size', 224)}")
+    print(f"Image size: {cfg.get('image_size', 224)}x{cfg.get('image_size', 224)}")
     return exp_dir, plot_dir
 
 
@@ -221,22 +224,25 @@ def validate_epoch(model, dataloader, criterion, device):
     return avg_val_loss, metrics
 
 
-def save_summary(exp_dir, tag, results):
+def save_summary(exp_dir, tag, results, cfg=None):
     """Save experiment summary in Markdown format (Obsidian-friendly)."""
     summary_path = os.path.join(exp_dir, f"{tag}_summary.md")
     
+    if cfg is None:
+        cfg = CFG
+
     with open(summary_path, "w") as f:
         f.write(f"# AR-Flares Experiment Summary\n\n")
         f.write(f"**Experiment tag:** `{tag}`\n")
         f.write(f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"**Backbone:** {CFG['backbone']}\n")
-        f.write(f"**Use Flow:** {CFG['use_flow']}\n")
-        f.write(f"**Use Sequences:** {CFG.get('use_seq', False)}\n")
-        f.write(f"**Freeze Backbone:** {CFG['freeze_backbone']}\n")
-        f.write(f"**Learning Rate:** {CFG['lr']}\n")
-        f.write(f"**Epochs:** {CFG['epochs']}\n")
-        f.write(f"**Batch Size:** {CFG['batch_size']}\n")
-        f.write(f"**Seed:** `{CFG.get('seed', 'N/A')}`\n\n")
+    f.write(f"**Backbone:** {cfg['backbone']}\n")
+    f.write(f"**Use Flow:** {cfg['use_flow']}\n")
+    f.write(f"**Use Sequences:** {cfg.get('use_seq', False)}\n")
+    f.write(f"**Freeze Backbone:** {cfg['freeze_backbone']}\n")
+    f.write(f"**Learning Rate:** {cfg['lr']}\n")
+    f.write(f"**Epochs:** {cfg['epochs']}\n")
+    f.write(f"**Batch Size:** {cfg['batch_size']}\n")
+    f.write(f"**Seed:** `{cfg.get('seed', 'N/A')}`\n\n")
         
         f.write("### Results\n")
         f.write(f"- **AUC:** {results['AUC']:.4f}\n")
@@ -266,13 +272,20 @@ def save_summary(exp_dir, tag, results):
     print(f"Summary written to {summary_path}")
 
 
-def main():
-    """Main training pipeline."""
+def main(cfg=None):
+    """Main training pipeline.
+
+    If cfg is None, uses global CFG for backwards compatibility. New callers
+    should pass in a fresh cfg instance from get_default_cfg() and apply
+    overrides locally.
+    """
+    if cfg is None:
+        cfg = CFG
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
     # Setup experiment directory
-    exp_dir, plot_dir = setup_experiment()
+    exp_dir, plot_dir = setup_experiment(cfg)
     
     # Get class counts for loss weighting
     full_counts = get_class_counts()
@@ -280,12 +293,12 @@ def main():
     
     # Calculate training steps
     total_train_raw = count_samples_all_shards(SPLIT_DIRS["Train"])
-    if CFG.get("balance_classes", False):
-        neg_keep_prob = CFG.get("neg_keep_prob", 0.25)
+    if cfg.get("balance_classes", False):
+        neg_keep_prob = cfg.get("neg_keep_prob", 0.25)
         effective_train = int(Nf + Nn * neg_keep_prob)
     else:
         effective_train = total_train_raw
-    steps_per_epoch = max(1, effective_train // CFG["batch_size"])
+    steps_per_epoch = max(1, effective_train // cfg["batch_size"])
     print(f"Train samples (raw): {total_train_raw:,} | effective (est): {effective_train:,} | steps/epoch: {steps_per_epoch:,}")
     
     # Build model
@@ -298,52 +311,52 @@ def main():
     
     # Setup Mixup
     mixup_fn = None
-    mixup_active = CFG.get("mixup", 0.0) > 0 or CFG.get("cutmix", 0.0) > 0
+    mixup_active = cfg.get("mixup", 0.0) > 0 or cfg.get("cutmix", 0.0) > 0
     if mixup_active:
         print("Using Mixup/Cutmix")
         mixup_fn = Mixup(
-            mixup_alpha=CFG.get("mixup", 0.0), 
-            cutmix_alpha=CFG.get("cutmix", 0.0), 
-            prob=CFG.get("mixup_prob", 1.0), 
-            switch_prob=CFG.get("mixup_switch_prob", 0.5), 
-            mode=CFG.get("mixup_mode", 'batch'),
-            label_smoothing=CFG.get("label_smoothing", 0.1), 
+            mixup_alpha=cfg.get("mixup", 0.0), 
+            cutmix_alpha=cfg.get("cutmix", 0.0), 
+            prob=cfg.get("mixup_prob", 1.0), 
+            switch_prob=cfg.get("mixup_switch_prob", 0.5), 
+            mode=cfg.get("mixup_mode", 'batch'),
+            label_smoothing=cfg.get("label_smoothing", 0.1), 
             num_classes=2
         )
 
     # --- FIX START: Conflict Resolution ---
     # If Mixup is on, we MUST disable Focal Loss and Class Weights
     # because standard Focal Loss expects integer labels, but Mixup creates floats.
-    if mixup_active and CFG["use_focal"]:
-        print("⚠️ WARNING: Focal Loss is incompatible with Mixup in this setup.")
-        print(">> Automatically disabling Focal Loss and Class Weights to prevent shape crash.")
-        CFG["use_focal"] = False
+    if mixup_active and cfg["use_focal"]:
+    print("⚠️ WARNING: Focal Loss is incompatible with Mixup in this setup.")
+    print(">> Automatically disabling Focal Loss and Class Weights to prevent shape crash.")
+    cfg["use_focal"] = False
         class_weights = None 
     # --- FIX END ---
 
     # Setup loss function
-    if CFG.get("balance_classes", False):
+    if cfg.get("balance_classes", False):
         # Balanced data - no class weights needed
         class_weights = None
         print("Using balanced sampling - no class weights")
     else:
         # Imbalanced data - use class weights
-        class_weights = torch.tensor([1.0, Nn/Nf], dtype=torch.float32, device=device)
+    class_weights = torch.tensor([1.0, Nn/Nf], dtype=torch.float32, device=device)
         print(f"Using class weights: {class_weights.tolist()}")
     
     criterion = get_loss_function(
-        use_focal=CFG["use_focal"],
-        gamma=CFG["focal_gamma"],
+    use_focal=cfg["use_focal"],
+    gamma=cfg["focal_gamma"],
         class_weights=class_weights,
         use_mixup=mixup_active,
-        label_smoothing=CFG.get("label_smoothing", 0.0)
+    label_smoothing=cfg.get("label_smoothing", 0.0)
     )
     
     # Setup optimizer
     optimizer = create_optimizer_v2(
         model,
         opt='adamw',
-        lr=CFG["lr"],
+    lr=cfg["lr"],
         weight_decay=0.05,
         layer_decay=0.75
     )
@@ -354,8 +367,8 @@ def main():
     # Restore OneCycleLR scheduler (per-batch scheduling)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
-        max_lr=CFG["lr"],
-        epochs=CFG["epochs"],
+    max_lr=cfg["lr"],
+    epochs=cfg["epochs"],
         steps_per_epoch=steps_per_epoch,
     )
 
@@ -367,8 +380,8 @@ def main():
     history = []
     best_val_tss = -1.0  # track best validation TSS
     epoch_metrics_path = os.path.join(exp_dir, "epoch_metrics.jsonl")
-    for epoch in range(CFG["epochs"]):
-        print(f"\nEpoch {epoch+1}/{CFG['epochs']}")
+    for epoch in range(cfg["epochs"]):
+        print(f"\nEpoch {epoch+1}/{cfg['epochs']}")
         print("-" * 40)
         
         # Train
@@ -402,7 +415,7 @@ def main():
             print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} -> Saved to {best_tss_path}")
 
     # Save final model tag only for logging, not as an extra large checkpoint
-    tag = f'{CFG["model_name"]}_lr{CFG["lr"]}_ep{CFG["epochs"]}{"_focal" if CFG["use_focal"] else ""}'
+    tag = f'{cfg["model_name"]}_lr{cfg["lr"]}_ep{cfg["epochs"]}{"_focal" if cfg["use_focal"] else ""}'
     print(f"\nTraining finished for {tag}")
     
     # Evaluate on test set using best-TSS checkpoint
@@ -421,18 +434,18 @@ def main():
         model,
         dls["Test"],
         device,
-        plot_dir,
-        CFG["backbone"],
-        save_pr_curve=CFG["save_pr_curve"]
+    plot_dir,
+    cfg["backbone"],
+    save_pr_curve=cfg["save_pr_curve"]
     )
     
     # Add metadata to results
     results.update({
-        "seed": CFG.get("seed", None),
-        "backbone": CFG["backbone"],
-        "use_flow": CFG["use_flow"],
-        "use_seq": CFG.get("use_seq", False),
-        "epochs": CFG["epochs"],
+    "seed": cfg.get("seed", None),
+    "backbone": cfg["backbone"],
+    "use_flow": cfg["use_flow"],
+    "use_seq": cfg.get("use_seq", False),
+    "epochs": cfg["epochs"],
         "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     })
     
