@@ -64,18 +64,49 @@ if __name__ == "__main__":
         "cutmix": 0.0,
     })
 
-    # # Experiment: EfficientNet-B0 + Augmentation (No Mixup)
-    # run_experiment("EffNetB0_Aug_NoMixup", {
-    #     "backbone": "efficientnet_b0",
-    #     "use_flow": False,
-    #     "two_stream": False,
-    #     "use_aug": True,
-    #     "drop_rate": 0.2,
-    #     "drop_path_rate": 0.1,
-    #     "weight_decay": 0.0001,
-    #     "label_smoothing": 0.0,
-    #     "mixup": 0.0,
-    #     "cutmix": 0.0,
-    # })
+    # Experiment: EfficientNet-B0 + Augmentation (No Mixup)
+    run_experiment("EffNetB0_Aug_NoMixup", {
+        "backbone": "efficientnet_b0",
+        "use_flow": False,
+        "two_stream": False,
+        "use_aug": True,
+        "epochs": 20,
+        "drop_rate": 0.2,
+        "drop_path_rate": 0.1,
+        "weight_decay": 0.0001,
+        "label_smoothing": 0.0,
+        "mixup": 0.0,
+        "cutmix": 0.0,
+    })
+
+    # Experiment: MobileNetV3-Large + Augmentation (No Mixup)
+    run_experiment("MobileNetV3L_Aug_NoMixup", {
+        "backbone": "mobilenetv3_large_100",
+        "use_flow": False,
+        "two_stream": False,
+        "use_aug": True,
+        "epochs": 20,                # between ResNet18 (10) and EffNetB0 (20)
+        "drop_rate": 0.2,
+        "drop_path_rate": 0.0,       # MobileNetV3 usually doesn't rely heavily on drop-path
+        "weight_decay": 0.0001,
+        "label_smoothing": 0.0,
+        "mixup": 0.0,
+        "cutmix": 0.0,
+    })
+
+    # Experiment: DenseNet-121 + Augmentation (No Mixup)
+    run_experiment("DenseNet121_Aug_NoMixup", {
+        "backbone": "densenet121",
+        "use_flow": False,
+        "two_stream": False,
+        "use_aug": True,
+        "epochs": 10,
+        "drop_rate": 0.2,
+        "drop_path_rate": 0.0,
+        "weight_decay": 0.0001,
+        "label_smoothing": 0.0,
+        "mixup": 0.0,
+        "cutmix": 0.0,
+    })
     
     print("\n✅ All experiments completed!")
