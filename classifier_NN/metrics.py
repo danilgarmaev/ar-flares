@@ -52,6 +52,10 @@ class MetricsCalculator:
         precision = self.TP / (self.TP + self.FP + 1e-7)
         recall = TPR
         f1 = 2 * precision * recall / (precision + recall + 1e-7)
+
+        total = self.TP + self.TN + self.FP + self.FN
+        accuracy = (self.TP + self.TN) / (total + 1e-7)
+
         return {
             "TPR": TPR,
             "TNR": TNR,
@@ -60,6 +64,7 @@ class MetricsCalculator:
             "Precision": precision,
             "Recall": recall,
             "F1": f1,
+            "Accuracy": accuracy,
             "TP": self.TP,
             "TN": self.TN,
             "FP": self.FP,
@@ -243,6 +248,7 @@ def evaluate_model(model, dataloader, device, save_dir, model_name, save_pr_curv
         "Precision": float(final_metrics["Precision"]),
         "Recall": float(final_metrics["Recall"]),
         "F1": float(final_metrics["F1"]),
+        "Accuracy": float(final_metrics["Accuracy"]),
         "Best_TSS": float(best_tss),
         "Best_threshold": float(best_t),
         "TP": int(final_metrics["TP"]),
