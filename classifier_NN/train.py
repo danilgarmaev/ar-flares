@@ -308,8 +308,8 @@ def main(cfg=None):
     steps_per_epoch = max(1, effective_train // cfg["batch_size"])
     print(f"Train samples (raw): {total_train_raw:,} | effective (est): {effective_train:,} | steps/epoch: {steps_per_epoch:,}")
     
-    # Build model
-    model = build_model(num_classes=2)
+    # Build model using this run's config
+    model = build_model(cfg=cfg, num_classes=2)
     model = model.to(device)
     
     # Create dataloaders

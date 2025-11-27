@@ -7,7 +7,7 @@ from peft import LoraConfig, get_peft_model, TaskType
 
 from .config import CFG
 
-# Get image size from config
+# Get image size from config (used as a fallback; prefer cfg passed into build_model)
 IMG_SIZE = CFG.get("image_size", 224)
 
 
@@ -485,81 +485,95 @@ class DiffAttentionModel(nn.Module):
 
 
 # ===================== MODEL BUILDER =====================
-def build_model(num_classes=2):
+def build_model(cfg=None, num_classes=2):
+    """Factory function to build the appropriate model based on a config dict.
+
+    Args:
+        cfg: configuration dictionary. If None, falls back to global CFG for
+             backwards compatibility.
+        num_classes: number of output classes.
     """
-    Factory function to build the appropriate model based on CFG.
-    """
-    
+
+    if cfg is None:
+        cfg = CFG
+
+    backbone = cfg.get("backbone", CFG.get("backbone", "resnet18"))
+    img_size = cfg.get("image_size", IMG_SIZE)
+
     # Physics-Informed Attention Model
-    if CFG.get("use_diff_attention", False):
+    if cfg.get("use_diff_attention", False):
         model = DiffAttentionModel(
-            backbone_name=CFG["backbone"],
+            backbone_name=backbone,
             num_classes=num_classes,
-            pretrained=CFG["pretrained"],
-            freeze_backbone=CFG["freeze_backbone"]
+            pretrained=cfg.get("pretrained", True),
+            freeze_backbone=cfg.get("freeze_backbone", False),
         )
-        print("Built Physics-Informed DiffAttentionModel.")
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"Built Physics-Informed DiffAttentionModel over {backbone} | trainable={n_train:,}")
         return model
 
     # Two-stream model
-    if CFG.get("use_flow") and CFG.get("two_stream", False):
+    if cfg.get("use_flow") and cfg.get("two_stream", False):
         model = TwoStreamModel(
-            img_backbone=CFG["backbone"],
-            flow_encoder=CFG.get("flow_encoder", "SmallFlowCNN"),
+            img_backbone=backbone,
+            flow_encoder=cfg.get("flow_encoder", "SmallFlowCNN"),
             num_classes=num_classes,
-            pretrained=CFG["pretrained"],
-            freeze_backbone=CFG["freeze_backbone"]
+            pretrained=cfg.get("pretrained", True),
+            freeze_backbone=cfg.get("freeze_backbone", False),
         )
-        if CFG.get("use_lora", False):
+        if cfg.get("use_lora", False):
             print("Using LoRA fine-tuning")
             model = apply_lora_to_timm(model)
-        print("Built Two-Stream model.")
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"Built Two-Stream model over {backbone} | trainable={n_train:,}")
         return model
 
     # Temporal sequence model
-    if CFG.get("use_seq"): 
+    if cfg.get("use_seq"):
         model = TemporalWrapper(
-            backbone_name=CFG["backbone"],
+            backbone_name=backbone,
             num_classes=num_classes,
-            pretrained=CFG["pretrained"],
-            freeze_backbone=CFG["freeze_backbone"],
-            aggregate=CFG.get("seq_aggregate", "mean"),
+            pretrained=cfg.get("pretrained", True),
+            freeze_backbone=cfg.get("freeze_backbone", False),
+            aggregate=cfg.get("seq_aggregate", "mean"),
         )
         n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        print(f"Built TemporalWrapper over {CFG['backbone']} | trainable={n_train:,}")
+        print(f"Built TemporalWrapper over {backbone} | trainable={n_train:,}")
         return model
 
     # Multi-scale fusion model
-    if CFG["backbone"].lower() in ["ms_fusion", "multiscale_fusion"]:
+    if backbone.lower() in ["ms_fusion", "multiscale_fusion"]:
         model = MultiScaleFusionModel(
             num_classes=num_classes,
-            k_crops=CFG.get("k_crops", 8),
-            crop_size=CFG.get("crop_size", 64),
-            stride=CFG.get("crop_stride", 32),
-            vit_name=CFG.get("vit_name", "vit_base_patch16_224"),
-            local_dim=CFG.get("local_dim", 192),
-            num_heads=CFG.get("cross_heads", 4),
-            pretrained=CFG.get("pretrained", True),
-            freeze_backbone=CFG.get("freeze_backbone", False),
+            k_crops=cfg.get("k_crops", 8),
+            crop_size=cfg.get("crop_size", 64),
+            stride=cfg.get("crop_stride", 32),
+            vit_name=cfg.get("vit_name", "vit_base_patch16_224"),
+            local_dim=cfg.get("local_dim", 192),
+            num_heads=cfg.get("cross_heads", 4),
+            pretrained=cfg.get("pretrained", True),
+            freeze_backbone=cfg.get("freeze_backbone", False),
         )
-        print("Built MultiScaleFusionModel.")
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"Built MultiScaleFusionModel over {backbone} | trainable={n_train:,}")
         return model
 
     # Domain-specific CAN model
-    if CFG["backbone"].lower() in ["can_small", "can"]:
+    if backbone.lower() in ["can_small", "can"]:
         model = CANSmall(in_chans=1, num_classes=num_classes)
-        print("Built CANSmall (Convolutional Attention Network).")
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"Built CANSmall (Convolutional Attention Network) | trainable={n_train:,}")
         return model
 
-    # Standard single-stream model (ConvNeXt/ViT/etc.)
-    in_chans = 3 if CFG.get("use_flow") else (2 if CFG.get("use_diff") else 3)
+    # Standard single-stream model (ConvNeXt/ViT/ResNet/etc.)
+    in_chans = 3 if cfg.get("use_flow") else (2 if cfg.get("use_diff") else 3)
     model = timm.create_model(
-        CFG["backbone"],
-        pretrained=CFG["pretrained"],
+        backbone,
+        pretrained=cfg.get("pretrained", True),
         num_classes=num_classes,
         in_chans=in_chans,
-        drop_rate=CFG.get("drop_rate", 0.0),
-        drop_path_rate=CFG.get("drop_path_rate", 0.0)
+        drop_rate=cfg.get("drop_rate", 0.0),
+        drop_path_rate=cfg.get("drop_path_rate", 0.0),
     )
 
     # Reinitialize the classification head for safety
@@ -572,15 +586,15 @@ def build_model(num_classes=2):
                 nn.init.xavier_uniform_(m.weight)
                 m.bias.data.zero_()
 
-    if CFG["freeze_backbone"]:
-        for p in model.parameters(): 
+    if cfg.get("freeze_backbone", False):
+        for p in model.parameters():
             p.requires_grad = False
         _enable_head_grads(model)
 
-    if CFG.get("use_lora", False):
+    if cfg.get("use_lora", False):
         print("Using LoRA fine-tuning")
         model = apply_lora_to_timm(model)
 
     n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Built single-stream model with in_chans={in_chans}, img_size={IMG_SIZE}, trainable={n_train:,}")
+    print(f"Built single-stream model with backbone={backbone}, in_chans={in_chans}, img_size={img_size}, trainable={n_train:,}")
     return model

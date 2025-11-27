@@ -49,32 +49,33 @@ def run_experiment(name, overrides):
         print(f"❌ Experiment {name} failed: {e}")
 
 if __name__ == "__main__":
-    # # Experiment: ResNet-18 + Augmentation (No Mixup)
-    # run_experiment("ResNet18_Aug_NoMixup", {
-    #     "backbone": "resnet18",      # Smaller backbone
-    #     "use_flow": False,
-    #     "two_stream": False,
-    #     "use_aug": True,
-    #     "drop_rate": 0.2,            # ResNet head dropout
-    #     "drop_path_rate": 0.0,       # ResNet doesn't use drop-path
-    #     "weight_decay": 0.0001,      # Classic ResNet-style wd
-    #     "label_smoothing": 0.0,
-    #     "mixup": 0.0,
-    #     "cutmix": 0.0,
-    # })
-
-    # Experiment: EfficientNet-B0 + Augmentation (No Mixup)
-    run_experiment("EffNetB0_Aug_NoMixup", {
-        "backbone": "efficientnet_b0",
+    # Experiment: ResNet-18 + Augmentation (No Mixup)
+    run_experiment("ResNet18_Aug_NoMixup", {
+        "backbone": "resnet18",      # Smaller backbone
         "use_flow": False,
         "two_stream": False,
         "use_aug": True,
-        "drop_rate": 0.2,
-        "drop_path_rate": 0.1,
-        "weight_decay": 0.0001,
+        "epochs": 10,
+        "drop_rate": 0.2,            # ResNet head dropout
+        "drop_path_rate": 0.0,       # ResNet doesn't use drop-path
+        "weight_decay": 0.0001,      # Classic ResNet-style wd
         "label_smoothing": 0.0,
         "mixup": 0.0,
         "cutmix": 0.0,
     })
+
+    # # Experiment: EfficientNet-B0 + Augmentation (No Mixup)
+    # run_experiment("EffNetB0_Aug_NoMixup", {
+    #     "backbone": "efficientnet_b0",
+    #     "use_flow": False,
+    #     "two_stream": False,
+    #     "use_aug": True,
+    #     "drop_rate": 0.2,
+    #     "drop_path_rate": 0.1,
+    #     "weight_decay": 0.0001,
+    #     "label_smoothing": 0.0,
+    #     "mixup": 0.0,
+    #     "cutmix": 0.0,
+    # })
     
     print("\n✅ All experiments completed!")
