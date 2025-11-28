@@ -49,7 +49,7 @@ def run_experiment(name, overrides):
         print(f"❌ Experiment {name} failed: {e}")
 
 if __name__ == "__main__":
-    # Experiment: ResNet-18 + Augmentation (No Mixup)
+    # Baseline: ResNet-18 + Augmentation (No Mixup), standard CE loss
     run_experiment("ResNet18_Aug_NoMixup", {
         "backbone": "resnet18",      # Smaller backbone
         "use_flow": False,
@@ -62,41 +62,12 @@ if __name__ == "__main__":
         "label_smoothing": 0.0,
         "mixup": 0.0,
         "cutmix": 0.0,
+        "loss_type": "ce",
     })
 
-    # Experiment: EfficientNet-B0 + Augmentation (No Mixup)
-    run_experiment("EffNetB0_Aug_NoMixup", {
-        "backbone": "efficientnet_b0",
-        "use_flow": False,
-        "two_stream": False,
-        "use_aug": True,
-        "epochs": 20,
-        "drop_rate": 0.2,
-        "drop_path_rate": 0.1,
-        "weight_decay": 0.0001,
-        "label_smoothing": 0.0,
-        "mixup": 0.0,
-        "cutmix": 0.0,
-    })
-
-    # Experiment: MobileNetV3-Large + Augmentation (No Mixup)
-    run_experiment("MobileNetV3L_Aug_NoMixup", {
-        "backbone": "mobilenetv3_large_100",
-        "use_flow": False,
-        "two_stream": False,
-        "use_aug": True,
-        "epochs": 20,                # between ResNet18 (10) and EffNetB0 (20)
-        "drop_rate": 0.2,
-        "drop_path_rate": 0.0,       # MobileNetV3 usually doesn't rely heavily on drop-path
-        "weight_decay": 0.0001,
-        "label_smoothing": 0.0,
-        "mixup": 0.0,
-        "cutmix": 0.0,
-    })
-
-    # Experiment: DenseNet-121 + Augmentation (No Mixup)
-    run_experiment("DenseNet121_Aug_NoMixup", {
-        "backbone": "densenet121",
+    # Skill-oriented: ResNet-18 + Augmentation with TSS-oriented loss
+    run_experiment("ResNet18_Aug_SkillTSS", {
+        "backbone": "resnet18",
         "use_flow": False,
         "two_stream": False,
         "use_aug": True,
@@ -107,6 +78,8 @@ if __name__ == "__main__":
         "label_smoothing": 0.0,
         "mixup": 0.0,
         "cutmix": 0.0,
+        "loss_type": "skill_tss",
+        "tss_loss_weight": 0.1,
     })
     
     print("\n✅ All experiments completed!")
