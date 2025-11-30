@@ -259,6 +259,119 @@ class TemporalWrapper(nn.Module):
         return self.head(z)
 
 
+# ===================== 3D CNN & VIDEO TRANSFORMERS =====================
+class Simple3DCNN(nn.Module):
+    """Lightweight 3D CNN for sequences of grayscale magnetograms.
+
+    Expects input of shape (B, T, 1, H, W). Internally we permute to
+    (B, 1, T, H, W) for Conv3d. The network produces a per-sequence
+    representation which is then classified.
+    """
+
+    def __init__(self, in_chans: int = 1, num_frames: int = 3, num_classes: int = 2, base_channels: int = 32):
+        super().__init__()
+        # Input layout for conv3d: (B, C, T, H, W)
+        self.num_frames = num_frames
+        c = base_channels
+        self.features = nn.Sequential(
+            nn.Conv3d(in_chans, c, kernel_size=(3, 3, 3), padding=1),
+            nn.BatchNorm3d(c),
+            nn.ReLU(inplace=True),
+            nn.MaxPool3d(kernel_size=(1, 2, 2)),  # pool spatial only
+
+            nn.Conv3d(c, 2 * c, kernel_size=(3, 3, 3), padding=1),
+            nn.BatchNorm3d(2 * c),
+            nn.ReLU(inplace=True),
+            nn.MaxPool3d(kernel_size=(2, 2, 2)),  # pool time and space
+
+            nn.Conv3d(2 * c, 4 * c, kernel_size=(3, 3, 3), padding=1),
+            nn.BatchNorm3d(4 * c),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool3d((1, 1, 1)),
+        )
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(4 * c, 256),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.3),
+            nn.Linear(256, num_classes),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (B, T, 1, H, W) -> (B, 1, T, H, W)
+        if x.dim() == 5:
+            x = x.permute(0, 2, 1, 3, 4).contiguous()
+        else:
+            raise ValueError(f"Simple3DCNN expects input of shape (B,T,1,H,W), got {x.shape}")
+        h = self.features(x)
+        return self.classifier(h)
+
+
+class VideoTransformer(nn.Module):
+    """Video Transformer using a 2D image backbone + temporal attention.
+
+    This reuses any timm image backbone (ConvNeXt, ViT, etc.) as a
+    per-frame feature extractor and applies a transformer encoder over
+    the temporal dimension.
+    """
+
+    def __init__(
+        self,
+        backbone_name: str = "convnext_tiny",
+        num_classes: int = 2,
+        num_frames: int = 3,
+        pretrained: bool = True,
+        freeze_backbone: bool = False,
+        num_heads: int = 4,
+        num_layers: int = 2,
+        dropout: float = 0.1,
+    ) -> None:
+        super().__init__()
+        self.num_frames = num_frames
+
+        # Use timm backbone as per-frame encoder (no classifier)
+        self.backbone = timm.create_model(backbone_name, pretrained=pretrained, num_classes=0)
+        if freeze_backbone:
+            for p in self.backbone.parameters():
+                p.requires_grad = False
+        self.feat_dim = self.backbone.num_features
+
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=self.feat_dim,
+            nhead=num_heads,
+            dim_feedforward=4 * self.feat_dim,
+            dropout=dropout,
+            batch_first=True,
+            activation="gelu",
+        )
+        self.temporal_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+
+        self.cls_head = nn.Sequential(
+            nn.LayerNorm(self.feat_dim),
+            nn.Linear(self.feat_dim, 256),
+            nn.ReLU(inplace=True),
+            nn.Dropout(dropout),
+            nn.Linear(256, num_classes),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (B, T, 1, H, W) grayscale -> repeat to 3 channels per frame
+        if x.dim() != 5:
+            raise ValueError(f"VideoTransformer expects (B,T,1,H,W), got {x.shape}")
+        B, T, C, H, W = x.shape
+        assert C == 1, "VideoTransformer currently assumes 1-channel input"
+
+        x = x.view(B * T, C, H, W).repeat(1, 3, 1, 1)  # (B*T,3,H,W)
+        feats = self.backbone(x)  # (B*T, D)
+        feats = feats.view(B, T, self.feat_dim)  # (B,T,D)
+
+        # Add simple temporal encoding (learned position embeddings over T)
+        # This keeps things minimal; could be extended with more explicit encodings.
+        feats = self.temporal_encoder(feats)  # (B,T,D)
+        z = feats.mean(dim=1)  # global temporal pooling
+        return self.cls_head(z)
+
+
 # ===================== MULTI-SCALE FUSION =====================
 def sobel_grad_mag(x1):
     """Compute gradient magnitude using Sobel operator. x1: (B,1,H,W), returns (B,1,H,W)"""
@@ -499,6 +612,37 @@ def build_model(cfg=None, num_classes=2):
 
     backbone = cfg.get("backbone", CFG.get("backbone", "resnet18"))
     img_size = cfg.get("image_size", IMG_SIZE)
+
+    # Explicit 3D CNN video backbone
+    if backbone.lower() in ["simple3dcnn", "3d_cnn", "resnet3d_simple"]:
+        model = Simple3DCNN(
+            in_chans=1,
+            num_frames=cfg.get("seq_T", 3),
+            num_classes=num_classes,
+            base_channels=cfg.get("video_base_channels", 32),
+        )
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"Built Simple3DCNN with T={cfg.get('seq_T', 3)} | trainable={n_train:,}")
+        return model
+
+    # Explicit Video Transformer backbone (multi-scale temporal transformer)
+    if backbone.lower() in ["video_transformer", "timeformer", "video_vit"]:
+        model = VideoTransformer(
+            backbone_name=cfg.get("video_backbone", cfg.get("backbone", "convnext_tiny")),
+            num_classes=num_classes,
+            num_frames=cfg.get("seq_T", 3),
+            pretrained=cfg.get("pretrained", True),
+            freeze_backbone=cfg.get("freeze_backbone", False),
+            num_heads=cfg.get("video_heads", 4),
+            num_layers=cfg.get("video_layers", 2),
+            dropout=cfg.get("drop_rate", 0.1),
+        )
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(
+            f"Built VideoTransformer over {cfg.get('video_backbone', cfg.get('backbone', 'convnext_tiny'))} "
+            f"with T={cfg.get('seq_T', 3)} | trainable={n_train:,}"
+        )
+        return model
 
     # Physics-Informed Attention Model
     if cfg.get("use_diff_attention", False):

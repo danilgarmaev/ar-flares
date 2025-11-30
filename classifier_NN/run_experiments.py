@@ -55,7 +55,7 @@ if __name__ == "__main__":
         "use_flow": False,
         "two_stream": False,
         "use_aug": True,
-        "epochs": 10,
+        "epochs": 20,
         "drop_rate": 0.2,            # ResNet head dropout
         "drop_path_rate": 0.0,       # ResNet doesn't use drop-path
         "weight_decay": 0.0001,      # Classic ResNet-style wd
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         "use_flow": False,
         "two_stream": False,
         "use_aug": True,
-        "epochs": 10,
+        "epochs": 20,
         "drop_rate": 0.2,
         "drop_path_rate": 0.0,
         "weight_decay": 0.0001,

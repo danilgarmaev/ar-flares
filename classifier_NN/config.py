@@ -16,10 +16,10 @@ CFG = {
     "min_flare_class": "C", # relabel threshold, "C" or "M"
     "two_stream": False,
     "use_lora": False,
-    "use_seq": False,    # use temporal sequences
+    "use_seq": True,    # use temporal sequences (3D CNN / Video Transformer)
 
     # sequence settings (only if use_seq=True)
-    "seq_T": 3,                      # number of frames per sequence
+    "seq_T": 3,                      # number of frames per sequence (e.g. last 3 hours)
     "seq_stride_steps": 8,           # spacing between frames (8 * 12min = 96min)
     "seq_offsets": [-16, -8, 0],     # past-only temporal offsets
     "seq_aggregate": "mean",         # "mean" or "attn" for temporal aggregation
@@ -41,7 +41,11 @@ CFG = {
     "prefetch_factor": 2,
 
     # model / training
-    "backbone": "convnext_base",  # switched to convnext_base per user request
+    # backbone options:
+    #  - "convnext_base", "resnet18", etc. for single-frame 2D models
+    #  - "simple3dcnn" for 3D CNN over sequences
+    #  - "video_transformer" for temporal transformer over per-frame features
+    "backbone": "simple3dcnn",  # default to 3D CNN for sequence experiments
     "pretrained": True,
     "freeze_backbone": False,   # allow full fine-tuning of convnext_base
     "lr": 1e-4,
