@@ -287,7 +287,14 @@ def main(cfg=None):
     overrides locally.
     """
     if cfg is None:
+        # Backwards-compatible path: use global CFG directly
         cfg = CFG
+    else:
+        # When a per-run cfg is provided (from run_experiments_*.py),
+        # push overrides into the global CFG so helpers like
+        # create_dataloaders() that read CFG see the correct settings
+        # (e.g., image_size, use_seq, etc.).
+        CFG.update(cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     

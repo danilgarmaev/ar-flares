@@ -25,7 +25,7 @@ CFG = {
     "seq_aggregate": "mean",         # "mean" or "attn" for temporal aggregation
 
     # data loader
-    "image_size": 112,           # image resolution (112x112 or 224x224) - convnext_base supports 112 fine-tuning
+    "image_size": 224,           # image resolution (112x112 or 224x224) - convnext_base supports 112 fine-tuning
     "balance_classes": True,     # subsample negatives to match positive count (Train only)
     "balance_mode": "prob",     # 'prob' = per-epoch random negatives, 'fixed' = deterministic subset
     "neg_keep_prob": 0.25,       # probability to keep a negative when balance_mode='prob'

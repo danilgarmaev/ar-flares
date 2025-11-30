@@ -26,7 +26,7 @@ COMMON_SEQ_VIT_OVERRIDES = {
     "seq_T": 3,
     "seq_offsets": [-16, -8, 0],   # same temporal pattern as 3D CNN run
     # image / training defaults
-    "image_size": 112,
+    "image_size": 224,
     "pretrained": True,
     "freeze_backbone": False,
     "lr": 1e-4,
