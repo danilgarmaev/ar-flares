@@ -180,9 +180,8 @@ def plot_confusion_matrix(y_true, y_pred, save_path, model_name="Model", thresho
 
 
 def evaluate_model(model, dataloader, device, save_dir, model_name, save_pr_curve=True):
-    """
-    Comprehensive model evaluation with all metrics and plots.
-    
+    """Comprehensive model evaluation with all metrics and plots.
+
     Args:
         model: Trained model
         dataloader: Test dataloader
@@ -190,7 +189,7 @@ def evaluate_model(model, dataloader, device, save_dir, model_name, save_pr_curv
         save_dir: Directory to save plots
         model_name: Name of the model for plots and filenames
         save_pr_curve: Whether to save PR curve
-        
+
     Returns:
         Dictionary containing all evaluation metrics
     """
@@ -207,16 +206,17 @@ def evaluate_model(model, dataloader, device, save_dir, model_name, save_pr_curv
             
             outputs = model(inputs)
             probs = torch.softmax(outputs, dim=1)[:, 1].cpu().numpy()
-            preds_class = (probs >= 0.5).astype(int)
+            # Keep 0.5 predictions for compatibility / quick view
+            preds_class_05 = (probs >= 0.5).astype(int)
             
             all_probs.extend(probs)
             all_labels.extend(labels.numpy())
-            all_preds_class.extend(preds_class)
-            metrics_calc.update(labels, preds_class)
+            all_preds_class.extend(preds_class_05)
+            metrics_calc.update(labels, preds_class_05)
     
     all_labels = np.array(all_labels)
     all_probs = np.array(all_probs)
-    all_preds_class = np.array(all_preds_class)
+    all_preds_class_05 = np.array(all_preds_class)
     
     # ROC curve
     roc_path = f"{save_dir}/roc.png"
@@ -231,12 +231,19 @@ def evaluate_model(model, dataloader, device, save_dir, model_name, save_pr_curv
     # Find best threshold by TSS
     best_tss, best_t = find_best_threshold_tss(all_labels, all_probs)
     
-    # Confusion matrix at 0.5 threshold
-    cm_path = f"{save_dir}/confusion_matrix.png"
-    plot_confusion_matrix(all_labels, all_preds_class, cm_path, model_name, threshold=0.5)
+    # Confusion matrix at 0.5 threshold (legacy view)
+    cm05_path = f"{save_dir}/confusion_matrix_0.5.png"
+    plot_confusion_matrix(all_labels, all_preds_class_05, cm05_path, model_name, threshold=0.5)
     
-    # Compute final metrics
-    final_metrics = metrics_calc.compute()
+    # Confusion matrix at best-TSS threshold
+    preds_best = (all_probs >= best_t).astype(int)
+    cmbest_path = f"{save_dir}/confusion_matrix_bestTSS.png"
+    plot_confusion_matrix(all_labels, preds_best, cmbest_path, model_name, threshold=best_t)
+    
+    # Compute final metrics using the **best-TSS threshold** for classification
+    metrics_calc_best = MetricsCalculator()
+    metrics_calc_best.update(all_labels, preds_best)
+    final_metrics = metrics_calc_best.compute()
     
     results = {
         "AUC": float(roc_auc),

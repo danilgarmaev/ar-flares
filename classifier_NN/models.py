@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import timm
+from torchvision.models.video import r3d_18
 from peft import LoraConfig, get_peft_model, TaskType
 
 from .config import CFG
@@ -305,6 +306,39 @@ class Simple3DCNN(nn.Module):
             raise ValueError(f"Simple3DCNN expects input of shape (B,T,1,H,W), got {x.shape}")
         h = self.features(x)
         return self.classifier(h)
+
+
+class ResNet3DSimple(nn.Module):
+    """Wrapper around torchvision r3d_18 for sequence magnetograms.
+
+    Expects input of shape (B, T, 1, H, W). Internally permutes to
+    (B, 1, T, H, W) and maps single-channel input to 3 channels via a
+    learnable 1x1x1 Conv before feeding into r3d_18.
+    """
+
+    def __init__(self, num_frames: int = 3, num_classes: int = 2, pretrained: bool = False):
+        super().__init__()
+        self.num_frames = num_frames
+
+        # r3d_18 expects (B, 3, T, H, W). We keep a lightweight
+        # 1x1x1 conv to map 1ch -> 3ch instead of repeating.
+        self.input_proj = nn.Conv3d(1, 3, kernel_size=1)
+
+        self.backbone = r3d_18(pretrained=pretrained)
+        in_feats = self.backbone.fc.in_features
+        # Replace classification head
+        self.backbone.fc = nn.Linear(in_feats, num_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (B, T, 1, H, W) -> (B, 1, T, H, W)
+        if x.dim() != 5:
+            raise ValueError(f"ResNet3DSimple expects (B,T,1,H,W), got {x.shape}")
+        B, T, C, H, W = x.shape
+        assert C == 1, "ResNet3DSimple currently assumes 1-channel input"
+
+        x = x.permute(0, 2, 1, 3, 4).contiguous()  # (B,1,T,H,W)
+        x = self.input_proj(x)                     # (B,3,T,H,W)
+        return self.backbone(x)
 
 
 class VideoTransformer(nn.Module):
@@ -615,15 +649,25 @@ def build_model(cfg=None, num_classes=2):
 
     # Explicit 3D CNN video backbone
     if backbone.lower() in ["simple3dcnn", "3d_cnn", "resnet3d_simple"]:
-        model = Simple3DCNN(
-            in_chans=1,
-            num_frames=cfg.get("seq_T", 3),
-            num_classes=num_classes,
-            base_channels=cfg.get("video_base_channels", 32),
-        )
-        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        print(f"Built Simple3DCNN with T={cfg.get('seq_T', 3)} | trainable={n_train:,}")
-        return model
+        if backbone.lower() in ["simple3dcnn", "3d_cnn"]:
+            model = Simple3DCNN(
+                in_chans=1,
+                num_frames=cfg.get("seq_T", 3),
+                num_classes=num_classes,
+                base_channels=cfg.get("video_base_channels", 32),
+            )
+            n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            print(f"Built Simple3DCNN with T={cfg.get('seq_T', 3)} | trainable={n_train:,}")
+            return model
+        else:  # "resnet3d_simple"
+            model = ResNet3DSimple(
+                num_frames=cfg.get("seq_T", 3),
+                num_classes=num_classes,
+                pretrained=cfg.get("pretrained_3d", False),
+            )
+            n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            print(f"Built ResNet3DSimple (r3d_18) with T={cfg.get('seq_T', 3)} | trainable={n_train:,}")
+            return model
 
     # Explicit Video Transformer backbone (multi-scale temporal transformer)
     if backbone.lower() in ["video_transformer", "timeformer", "video_vit"]:

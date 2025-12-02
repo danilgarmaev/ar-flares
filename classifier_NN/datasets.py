@@ -91,6 +91,11 @@ def _build_aug_transform(img_size: int):
     """Augmentation transform parameterized by image size.
 
     Uses only physics-respecting operations (no vertical flip if disabled in cfg).
+
+    NOTE:
+      * This is a **per-image** transform; for sequences we now apply the same
+        geometric ops (resize/flip/rotate/polarity) consistently across all
+        frames in a sequence. See `_apply_seq_augment` in `TarShardDataset`.
     """
     return transforms.Compose([
         transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
@@ -144,11 +149,13 @@ class TarShardDataset(IterableDataset):
             img_size = CFG.get("image_size", 224)
         if use_aug is None:
             use_aug = CFG.get("use_aug", False)
+        self.use_aug = (self.split_name == "Train" and use_aug)
 
-        if self.split_name == "Train" and use_aug:
-            self.transform = _build_aug_transform(img_size)
-        else:
-            self.transform = _build_basic_transform(img_size)
+        # Base (non-aug) transform is always available, and we keep the
+        # original aug transform for single-frame mode. For sequences we
+        # apply consistent aug per sequence via `_apply_seq_augment`.
+        self.base_transform = _build_basic_transform(img_size)
+        self.aug_transform = _build_aug_transform(img_size) if self.use_aug else self.base_transform
 
         if self.use_flow:
             assert self.flow_paths is not None, "Flow shards required when use_flow=True"
@@ -177,11 +184,64 @@ class TarShardDataset(IterableDataset):
                         entries.append((key, m, jm))
                 entries.sort(key=lambda x: x[0])
 
-                def load_img(member_png):
+                def load_img_raw(member_png):
+                    """Load raw PIL image (L mode) without tensor/augmentations.
+
+                    Sequence-level augmentations are applied later so that all
+                    frames in a sequence share the same geometric transform.
+                    """
                     png_bytes = tf_img.extractfile(member_png).read()
                     img = Image.open(io.BytesIO(png_bytes)).convert("L")
-                    img_tensor = self.transform(img)
-                    return img_tensor
+                    return img
+
+                def _apply_seq_augment(pil_imgs: List[Image.Image]) -> List[torch.Tensor]:
+                    """Apply **consistent** augmentations to a sequence of frames.
+
+                    Strategy:
+                      * Sample horizontal flip, vertical flip, rotation angle,
+                        and polarity inversion **once** per sequence.
+                      * Apply those to every frame in `pil_imgs`.
+                      * AddIntegerNoise is left per-frame (noise is fine to
+                        vary temporally), but you can change that if desired.
+                    """
+                    if not self.use_aug:
+                        # Just resize + ToTensor via base_transform
+                        return [self.base_transform(img) for img in pil_imgs]
+
+                    # Sample geometric decisions once per sequence
+                    hflip = random.random() < 0.5
+                    vflip = random.random() < 0.5
+                    angle = random.uniform(-30.0, 30.0)
+                    polarity = True  # always apply in aug mode
+
+                    out_tensors: List[torch.Tensor] = []
+                    for img in pil_imgs:
+                        # Resize first
+                        img_t = transforms.Resize(
+                            (self.base_transform.transforms[0].size[0],
+                             self.base_transform.transforms[0].size[1]),
+                            interpolation=transforms.InterpolationMode.BILINEAR,
+                        )(img)
+
+                        # Apply shared geometric transforms
+                        if hflip:
+                            img_t = transforms.functional.hflip(img_t)
+                        if vflip:
+                            img_t = transforms.functional.vflip(img_t)
+                        img_t = transforms.functional.rotate(img_t, angle)
+
+                        # Polarity inversion (shared decision)
+                        if polarity:
+                            img_t = PolarityInversion()(img_t)
+
+                        # Per-frame integer noise (can be made shared if desired)
+                        img_t = AddIntegerNoise(max_abs_noise=5)(img_t)
+
+                        # To tensor
+                        img_t = transforms.ToTensor()(img_t)
+                        out_tensors.append(img_t)
+
+                    return out_tensors
 
                 def get_meta(jm):
                     return json.loads(tf_img.extractfile(jm).read().decode("utf-8"))
@@ -214,10 +274,15 @@ class TarShardDataset(IterableDataset):
                     if not ok:
                         continue
 
-                    frames = []
+                    # Load raw frames first, then apply sequence-level
+                    # augmentations/resize so that all frames share the same
+                    # geometric ops.
+                    pil_frames: List[Image.Image] = []
                     for j in idxes:
                         _, pngj, _ = entries[j]
-                        frames.append(load_img(pngj))
+                        pil_frames.append(load_img_raw(pngj))
+
+                    frames = _apply_seq_augment(pil_frames)
                     
                     if use_diff_attn:
                         # frames[0] is t-1, frames[1] is t

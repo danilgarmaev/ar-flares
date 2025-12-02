@@ -70,4 +70,17 @@ if __name__ == "__main__":
         "use_focal": False,
     })
 
+    # ResNet3D (r3d_18) sequence model for comparison
+    run_experiment("resnet3d_simple_seq_T3", {
+        "backbone": "resnet3d_simple",  # selects ResNet3DSimple in models.build_model
+        "use_flow": False,
+        "two_stream": False,
+        "use_diff_attention": False,
+        "use_aug": True,
+        # Optional: enable pretrained 3D weights if available
+        "pretrained_3d": False,
+        "loss_type": "ce",
+        "use_focal": False,
+    })
+
     print("\n✅ All sequence experiments completed!")
