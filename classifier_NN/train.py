@@ -173,10 +173,10 @@ def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, devi
 def validate_epoch(model, dataloader, criterion, device):
     """Validate for one epoch. Returns (avg_loss, metrics_dict, best_val_tss)."""
     model.eval()
-    val_loss = 0.0
-    vbatches = 0
+    running_loss = 0.0
     all_probs = []
     all_labels = []
+
     with torch.no_grad():
         for inputs, labels, _ in dataloader:
             if isinstance(inputs, (list, tuple)):
@@ -184,46 +184,69 @@ def validate_epoch(model, dataloader, criterion, device):
             else:
                 inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
-            with torch.autocast("cuda", enabled=torch.cuda.is_available()):
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
-            val_loss += loss.item()
-            vbatches += 1
-            probs = torch.softmax(outputs, dim=1)[:, 1].cpu().numpy()
+
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+
+            probs = torch.softmax(outputs, dim=1)[:, 1].detach().cpu().numpy()
             all_probs.extend(probs)
             all_labels.extend(labels.cpu().numpy())
-    avg_val_loss = val_loss / max(1, vbatches)
+
+            running_loss += loss.item() * labels.size(0)
+
     probs_np = np.array(all_probs)
     labels_np = np.array(all_labels)
-    # Ensure validation labels are 1D ints
-    if labels_np.ndim == 2 and labels_np.shape[1] == 2:
-        labels_np = labels_np.argmax(axis=1)
-    preds = (probs_np >= 0.5).astype(int)
-    val_acc = 100.0 * (preds == labels_np).mean()
-    TP = ((labels_np == 1) & (preds == 1)).sum()
-    FP = ((labels_np == 0) & (preds == 1)).sum()
-    FN = ((labels_np == 1) & (preds == 0)).sum()
-    precision = TP / (TP + FP + 1e-7)
-    recall = TP / (TP + FN + 1e-7)
-    f1 = 2 * precision * recall / (precision + recall + 1e-7)
+
+    # Metrics at fixed 0.5 threshold (legacy view)
+    preds_05 = (probs_np >= 0.5).astype(int)
+    val_acc_05 = 100.0 * (preds_05 == labels_np).mean()
+
+    TP_05 = ((labels_np == 1) & (preds_05 == 1)).sum()
+    FP_05 = ((labels_np == 0) & (preds_05 == 1)).sum()
+    FN_05 = ((labels_np == 1) & (preds_05 == 0)).sum()
+    precision_05 = TP_05 / (TP_05 + FP_05 + 1e-7)
+    recall_05 = TP_05 / (TP_05 + FN_05 + 1e-7)
+    f1_05 = 2 * precision_05 * recall_05 / (precision_05 + recall_05 + 1e-7)
+
+    # AUC
     try:
         auc = roc_auc_score(labels_np, probs_np)
-    except Exception:
-        auc = float('nan')
+    except ValueError:
+        auc = float("nan")
 
-    # Compute best validation TSS over thresholds (like evaluate_model)
+    # Best TSS threshold sweep
     best_val_tss, best_val_threshold = find_best_threshold_tss(labels_np, probs_np)
 
+    # Metrics at best-TSS threshold (this is what we report as validation P/R/F1)
+    preds_best = (probs_np >= best_val_threshold).astype(int)
+    val_acc_best = 100.0 * (preds_best == labels_np).mean()
+
+    TP_b = ((labels_np == 1) & (preds_best == 1)).sum()
+    FP_b = ((labels_np == 0) & (preds_best == 1)).sum()
+    FN_b = ((labels_np == 1) & (preds_best == 0)).sum()
+    precision_best = TP_b / (TP_b + FP_b + 1e-7)
+    recall_best = TP_b / (TP_b + FN_b + 1e-7)
+    f1_best = 2 * precision_best * recall_best / (precision_best + recall_best + 1e-7)
+
+    val_loss = running_loss / len(dataloader.dataset)
+
     metrics = {
-        "val_acc": val_acc,
-        "val_precision": precision,
-        "val_recall": recall,
-        "val_f1": f1,
+        # Best-threshold metrics (primary)
+        "val_acc": val_acc_best,
+        "val_precision": precision_best,
+        "val_recall": recall_best,
+        "val_f1": f1_best,
         "val_auc": auc,
         "val_best_tss": best_val_tss,
         "val_best_threshold": best_val_threshold,
+        # Also expose 0.5-based metrics for reference
+        "val_acc_0.5": val_acc_05,
+        "val_precision_0.5": precision_05,
+        "val_recall_0.5": recall_05,
+        "val_f1_0.5": f1_05,
     }
-    return avg_val_loss, metrics
+
+    return val_loss, metrics
 
 
 def save_summary(exp_dir, tag, results, cfg=None):
@@ -393,6 +416,7 @@ def main(cfg=None):
     
     history = []
     best_val_tss = -1.0  # track best validation TSS
+    best_val_f1 = -1.0   # track best validation F1
     epoch_metrics_path = os.path.join(exp_dir, "epoch_metrics.jsonl")
     for epoch in range(cfg["epochs"]):
         print(f"\nEpoch {epoch+1}/{cfg['epochs']}")
@@ -421,17 +445,26 @@ def main(cfg=None):
         with open(epoch_metrics_path, "a") as ef:
             ef.write(json.dumps(epoch_record) + "\n")
         
-        # Only save best-TSS checkpoint based on validation TSS to save space
-        if val_metrics['val_best_tss'] > best_val_tss:
-            best_val_tss = val_metrics['val_best_tss']
-            best_tss_path = os.path.join(exp_dir, "best_tss.pt")
-            torch.save(model.state_dict(), best_tss_path)
-            print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} -> Saved to {best_tss_path}")
-
-    # Save final model tag only for logging, not as an extra large checkpoint
-    tag = f'{cfg["model_name"]}_lr{cfg["lr"]}_ep{cfg["epochs"]}{"_focal" if cfg["use_focal"] else ""}'
-    print(f"\nTraining finished for {tag}")
-    
+        # Only update best checkpoints after epoch 3
+        if epoch >= 3:
+            # Best TSS checkpoint
+            if val_metrics["val_best_tss"] > best_val_tss:
+                best_val_tss = val_metrics["val_best_tss"]
+                best_tss_epoch = epoch
+                torch.save(model.state_dict(), os.path.join(exp_dir, "best_tss.pt"))
+                print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} @ epoch={epoch} -> Saved to best_tss.pt")
+            # Best F1 checkpoint
+            if val_metrics["val_f1"] > best_val_f1:
+                best_val_f1 = val_metrics["val_f1"]
+                best_f1_epoch = epoch
+                torch.save(model.state_dict(), os.path.join(exp_dir, "best_f1.pt"))
+                print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
+        else:
+            print("Skipping best model checkpointing until after epoch 3")
+    # ...existing code...
+    print(f"Best TSS checkpoint: epoch {best_tss_epoch}, TSS={best_val_tss:.4f}")
+    print(f"Best F1 checkpoint: epoch {best_f1_epoch}, F1={best_val_f1:.4f}")
+    # ...existing code...
     # Evaluate on test set using best-TSS checkpoint
     print("\n" + "="*80)
     print("Evaluating on test set...")

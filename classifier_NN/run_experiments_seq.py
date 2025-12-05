@@ -30,7 +30,7 @@ COMMON_SEQ_OVERRIDES = {
     "pretrained": False,       # Simple3DCNN does not use timm pretraining
     "freeze_backbone": False,
     "lr": 1e-4,
-    "epochs": 10,
+    "epochs": 20,
     "batch_size": 32,          # slightly smaller for 3D memory footprint
     "balance_classes": True,
     "balance_mode": "prob",
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         "use_diff_attention": False,
         "use_aug": True,
         # loss setup – start from standard CE; can swap to skill_tss if desired
-        "loss_type": "ce",
+        "loss_type": "skill_tss",
         "use_focal": False,
     })
 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         "use_aug": True,
         # Optional: enable pretrained 3D weights if available
         "pretrained_3d": False,
-        "loss_type": "ce",
+        "loss_type": "skill_tss",
         "use_focal": False,
     })
 
