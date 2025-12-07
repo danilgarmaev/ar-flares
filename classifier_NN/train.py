@@ -176,6 +176,7 @@ def validate_epoch(model, dataloader, criterion, device):
     running_loss = 0.0
     all_probs = []
     all_labels = []
+    n_samples = 0
 
     with torch.no_grad():
         for inputs, labels, _ in dataloader:
@@ -192,7 +193,9 @@ def validate_epoch(model, dataloader, criterion, device):
             all_probs.extend(probs)
             all_labels.extend(labels.cpu().numpy())
 
-            running_loss += loss.item() * labels.size(0)
+            batch_size = labels.size(0)
+            running_loss += loss.item() * batch_size
+            n_samples += batch_size
 
     probs_np = np.array(all_probs)
     labels_np = np.array(all_labels)
@@ -228,7 +231,7 @@ def validate_epoch(model, dataloader, criterion, device):
     recall_best = TP_b / (TP_b + FN_b + 1e-7)
     f1_best = 2 * precision_best * recall_best / (precision_best + recall_best + 1e-7)
 
-    val_loss = running_loss / len(dataloader.dataset)
+    val_loss = running_loss / max(1, n_samples)
 
     metrics = {
         # Best-threshold metrics (primary)
@@ -377,26 +380,40 @@ def main(cfg=None):
         class_weights = None
         print("Using balanced sampling - no class weights")
     else:
-        # Imbalanced data - use class weights
-        class_weights = torch.tensor([1.0, Nn/Nf], dtype=torch.float32, device=device)
+        # Imbalanced data - use class weights (Nn: negatives, Nf: positives)
+        class_weights = torch.tensor([1.0, Nn / Nf], dtype=torch.float32, device=device)
         print(f"Using class weights: {class_weights.tolist()}")
     
     criterion = get_loss_function(
-        use_focal=cfg["use_focal"],
-        gamma=cfg["focal_gamma"],
+        cfg=cfg,
+        use_focal=cfg.get("use_focal", False),
+        gamma=cfg.get("focal_gamma", 2.0),
         class_weights=class_weights,
         use_mixup=mixup_active,
         label_smoothing=cfg.get("label_smoothing", 0.0)
     )
     
     # Setup optimizer
-    optimizer = create_optimizer_v2(
-        model,
-        opt='adamw',
-        lr=cfg["lr"],
-        weight_decay=0.05,
-        layer_decay=0.75
-    )
+    # For VGG-style paper replication, allow opting into plain Adam with
+    # the original hyperparameters (lr=1e-3, betas=(0.9,0.999), eps=1e-7, amsgrad=False).
+    if cfg.get("optimizer", "adamw") == "adam_paper":
+        print("Using Adam optimizer (paper-style)")
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            lr=cfg["lr"],
+            betas=(cfg.get("beta1", 0.9), cfg.get("beta2", 0.999)),
+            eps=cfg.get("adam_eps", 1e-7),
+            amsgrad=cfg.get("adam_amsgrad", False),
+            weight_decay=0.0,
+        )
+    else:
+        optimizer = create_optimizer_v2(
+            model,
+            opt='adamw',
+            lr=cfg["lr"],
+            weight_decay=0.05,
+            layer_decay=0.75
+        )
     
     # Setup gradient scaler for mixed precision
     scaler = torch.GradScaler('cuda', enabled=torch.cuda.is_available())
@@ -461,10 +478,8 @@ def main(cfg=None):
                 print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
         else:
             print("Skipping best model checkpointing until after epoch 3")
-    # ...existing code...
     print(f"Best TSS checkpoint: epoch {best_tss_epoch}, TSS={best_val_tss:.4f}")
     print(f"Best F1 checkpoint: epoch {best_f1_epoch}, F1={best_val_f1:.4f}")
-    # ...existing code...
     # Evaluate on test set using best-TSS checkpoint
     print("\n" + "="*80)
     print("Evaluating on test set...")
