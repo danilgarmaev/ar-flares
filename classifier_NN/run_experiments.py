@@ -50,36 +50,60 @@ def run_experiment(name, overrides):
 
 if __name__ == "__main__":
     # Baseline: ResNet-18 + Augmentation (No Mixup), standard CE loss
-    run_experiment("ResNet18_Aug_NoMixup", {
-        "backbone": "resnet18",      # Smaller backbone
-        "use_flow": False,
-        "two_stream": False,
-        "use_aug": True,
-        "epochs": 20,
-        "drop_rate": 0.2,            # ResNet head dropout
-        "drop_path_rate": 0.0,       # ResNet doesn't use drop-path
-        "weight_decay": 0.0001,      # Classic ResNet-style wd
-        "label_smoothing": 0.0,
-        "mixup": 0.0,
-        "cutmix": 0.0,
-        "loss_type": "ce",
-    })
+    # run_experiment("ResNet18_Aug_NoMixup", {
+    #     "backbone": "resnet18",      # Smaller backbone
+    #     "use_flow": False,
+    #     "two_stream": False,
+    #     "use_aug": True,
+    #     "epochs": 20,
+    #     "drop_rate": 0.2,            # ResNet head dropout
+    #     "drop_path_rate": 0.0,       # ResNet doesn't use drop-path
+    #     "weight_decay": 0.0001,      # Classic ResNet-style wd
+    #     "label_smoothing": 0.0,
+    #     "mixup": 0.0,
+    #     "cutmix": 0.0,
+    #     "loss_type": "ce",
+    # })
 
-    # Skill-oriented: ResNet-18 + Augmentation with TSS-oriented loss
-    run_experiment("ResNet18_Aug_SkillTSS", {
-        "backbone": "resnet18",
+    # # Skill-oriented: ResNet-18 + Augmentation with TSS-oriented loss
+    # run_experiment("ResNet18_Aug_SkillTSS", {
+    #     "backbone": "resnet18",
+    #     "use_flow": False,
+    #     "two_stream": False,
+    #     "use_aug": True,
+    #     "epochs": 20,
+    #     "drop_rate": 0.2,
+    #     "drop_path_rate": 0.0,
+    #     "weight_decay": 0.0001,
+    #     "label_smoothing": 0.0,
+    #     "mixup": 0.0,
+    #     "cutmix": 0.0,
+    #     "loss_type": "skill_tss",
+    #     "tss_loss_weight": 0.1,
+    # })
+
+    # VGG-style PNG experiment mimicking transfer_learning notebook (PNG, no undersampling)
+    run_experiment("VGG_Paper_PNG", {
+        "backbone": "vgg16_bn",  # use a strong 2D backbone; no VGG in current timm setup
         "use_flow": False,
         "two_stream": False,
-        "use_aug": True,
-        "epochs": 20,
-        "drop_rate": 0.2,
-        "drop_path_rate": 0.0,
-        "weight_decay": 0.0001,
-        "label_smoothing": 0.0,
-        "mixup": 0.0,
-        "cutmix": 0.0,
-        "loss_type": "skill_tss",
-        "tss_loss_weight": 0.1,
+        "use_seq": False,
+        "image_size": 224,
+        "batch_size": 64,
+        "epochs": 5,
+        "lr": 1e-3,
+        # no negative undersampling: use full distribution
+        "balance_classes": False,
+        # CE with explicit class weights (computed from train labels in training script)
+        "loss_type": "ce_weighted",
+        "use_focal": False,
+        # Optimizer: plain Adam with paper hyperparameters
+        "optimizer": "adam_paper",
+        "beta1": 0.9,
+        "beta2": 0.999,
+        "adam_eps": 1e-7,
+        "adam_amsgrad": False,
+        "redirect_log": True,
     })
     
     print("\n✅ All experiments completed!")
