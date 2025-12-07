@@ -92,12 +92,26 @@ class SkillOrientedTSSLoss(nn.Module):
         return loss
 
 
+class WeightedCrossEntropy(nn.Module):
+    """Variant of CrossEntropyLoss that computes class weights from counts.
+
+    This is a thin wrapper so experiments can select loss_type="ce_weighted"
+    and pass in precomputed class_weights=[w0,w1,...].
+    """
+    def __init__(self, class_weights=None, label_smoothing: float = 0.0):
+        super().__init__()
+        self.loss = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=label_smoothing)
+
+    def forward(self, logits, targets):
+        return self.loss(logits, targets)
+
+
 def get_loss_function(cfg=None, use_focal=False, gamma=2.0, class_weights=None, use_mixup=False, label_smoothing=0.0):
     """Factory function to get the appropriate loss function.
     
     Args:
         cfg: Optional experiment config dict. If provided, can specify
-            loss_type ("ce", "focal", "skill_tss") and weights.
+            loss_type ("ce", "ce_weighted", "focal", "skill_tss") and weights.
         use_focal: Whether to use Focal Loss (legacy flag, ignored if cfg specifies loss_type).
         gamma: Focal loss gamma parameter
         class_weights: Tensor of class weights for handling imbalance
@@ -122,6 +136,9 @@ def get_loss_function(cfg=None, use_focal=False, gamma=2.0, class_weights=None, 
         elif loss_type == "focal":
             gamma = cfg.get("focal_gamma", gamma)
             return FocalLoss(gamma=gamma, weight=class_weights)
+        elif loss_type == "ce_weighted":
+            # Explicit weighted CE variant (expects class_weights passed from training setup)
+            return WeightedCrossEntropy(class_weights=class_weights, label_smoothing=label_smoothing)
         # fall through to standard cross entropy for "ce" or unknown types
 
     # Legacy behaviour without cfg
