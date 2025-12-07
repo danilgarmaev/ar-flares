@@ -753,16 +753,32 @@ def build_model(cfg=None, num_classes=2):
         print(f"Built CANSmall (Convolutional Attention Network) | trainable={n_train:,}")
         return model
 
-    # Standard single-stream model (ConvNeXt/ViT/ResNet/etc.)
+    # Standard single-stream model (ConvNeXt/ViT/ResNet/VGG/etc.)
+    # NOTE: Some families (e.g. VGG) do not support ConvNeXt/ViT-style kwargs such as
+    # ``drop_path_rate``. Keep the dispatcher family-aware to avoid unexpected kwarg
+    # errors like ``VGG.__init__() got an unexpected keyword argument 'drop_path_rate'``.
     in_chans = 3 if cfg.get("use_flow") else (2 if cfg.get("use_diff") else 3)
-    model = timm.create_model(
-        backbone,
-        pretrained=cfg.get("pretrained", True),
-        num_classes=num_classes,
-        in_chans=in_chans,
-        drop_rate=cfg.get("drop_rate", 0.0),
-        drop_path_rate=cfg.get("drop_path_rate", 0.0),
-    )
+
+    backbone_lower = backbone.lower()
+
+    # VGG family: do NOT pass ConvNeXt/ViT-specific arguments such as drop_path_rate.
+    if backbone_lower.startswith("vgg"):
+        model = timm.create_model(
+            backbone,
+            pretrained=cfg.get("pretrained", True),
+            num_classes=num_classes,
+            in_chans=in_chans,
+            drop_rate=cfg.get("drop_rate", 0.0),
+        )
+    else:
+        model = timm.create_model(
+            backbone,
+            pretrained=cfg.get("pretrained", True),
+            num_classes=num_classes,
+            in_chans=in_chans,
+            drop_rate=cfg.get("drop_rate", 0.0),
+            drop_path_rate=cfg.get("drop_path_rate", 0.0),
+        )
 
     # Reinitialize the classification head for safety
     if hasattr(model, "head") and isinstance(model.head, nn.Linear):
