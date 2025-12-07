@@ -157,6 +157,12 @@ class TarShardDataset(IterableDataset):
         self.base_transform = _build_basic_transform(img_size)
         self.aug_transform = _build_aug_transform(img_size) if self.use_aug else self.base_transform
 
+        # Backwards-compat attribute used in single-frame branch
+        # (see _sample_iter_from_tar, SINGLE-FRAME MODE).
+        # For Train, this includes augmentation; for Val/Test, it's just
+        # the basic resize+ToTensor transform.
+        self.transform = self.aug_transform
+
         if self.use_flow:
             assert self.flow_paths is not None, "Flow shards required when use_flow=True"
             assert len(self.shard_paths) == len(self.flow_paths), "Image vs flow shard count mismatch"
