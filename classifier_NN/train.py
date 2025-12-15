@@ -343,6 +343,30 @@ def main(cfg=None):
     
     # Build model using this run's config
     model = build_model(cfg=cfg, num_classes=2)
+
+    # For VGG-style experiments, optionally freeze all backbone layers and
+    # train only the final classifier, matching the original Keras notebook
+    # behavior (all layers except the last are non-trainable).
+    if cfg.get("freeze_all_but_head", False):
+        # Heuristic: treat common classifier attributes as "head" and freeze
+        # everything else. This covers timm VGG, ResNet, ConvNeXt, etc.
+        head_modules = []
+        for attr in ["head", "classifier", "fc"]:
+            if hasattr(model, attr):
+                m = getattr(model, attr)
+                if m is not None:
+                    head_modules.append(m)
+
+        head_params = set()
+        for hm in head_modules:
+            for p in hm.parameters():
+                head_params.add(p)
+
+        for p in model.parameters():
+            p.requires_grad = (p in head_params)
+
+        print("Freezing all backbone layers; training only final classifier head.")
+
     model = model.to(device)
     
     # Create dataloaders
@@ -462,22 +486,19 @@ def main(cfg=None):
         with open(epoch_metrics_path, "a") as ef:
             ef.write(json.dumps(epoch_record) + "\n")
         
-        # Only update best checkpoints after epoch 3
-        if epoch >= 3:
-            # Best TSS checkpoint
-            if val_metrics["val_best_tss"] > best_val_tss:
-                best_val_tss = val_metrics["val_best_tss"]
-                best_tss_epoch = epoch
-                torch.save(model.state_dict(), os.path.join(exp_dir, "best_tss.pt"))
-                print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} @ epoch={epoch} -> Saved to best_tss.pt")
-            # Best F1 checkpoint
-            if val_metrics["val_f1"] > best_val_f1:
-                best_val_f1 = val_metrics["val_f1"]
-                best_f1_epoch = epoch
-                torch.save(model.state_dict(), os.path.join(exp_dir, "best_f1.pt"))
-                print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
-        else:
-            print("Skipping best model checkpointing until after epoch 3")
+        # Update best checkpoints every epoch (no minimum epoch constraint)
+        # Best TSS checkpoint
+        if val_metrics["val_best_tss"] > best_val_tss:
+            best_val_tss = val_metrics["val_best_tss"]
+            best_tss_epoch = epoch
+            torch.save(model.state_dict(), os.path.join(exp_dir, "best_tss.pt"))
+            print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} @ epoch={epoch} -> Saved to best_tss.pt")
+        # Best F1 checkpoint
+        if val_metrics["val_f1"] > best_val_f1:
+            best_val_f1 = val_metrics["val_f1"]
+            best_f1_epoch = epoch
+            torch.save(model.state_dict(), os.path.join(exp_dir, "best_f1.pt"))
+            print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
     print(f"Best TSS checkpoint: epoch {best_tss_epoch}, TSS={best_val_tss:.4f}")
     print(f"Best F1 checkpoint: epoch {best_f1_epoch}, F1={best_val_f1:.4f}")
     # Evaluate on test set using best-TSS checkpoint
