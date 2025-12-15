@@ -82,28 +82,72 @@ if __name__ == "__main__":
     #     "tss_loss_weight": 0.1,
     # })
 
-    # VGG-style PNG experiment mimicking transfer_learning notebook (PNG, no undersampling)
-    run_experiment("VGG_Paper_PNG", {
-        "backbone": "vgg16_bn",  # use a strong 2D backbone; no VGG in current timm setup
-        "use_flow": False,
-        "two_stream": False,
-        "use_seq": False,
+    run_experiment("ResNet34_5to1", {
+    "backbone": "resnet34",
+    "image_size": 224,
+    "batch_size": 48,
+    "epochs": 10,
+    "lr": 0.001,
+    "weight_decay": 0.01,
+    "balance_classes": False,
+    "loss_type": "ce_weighted",
+    "class_weights": [1.0, 5.0],
+    "optimizer": "adam_paper",
+    "redirect_log": True,
+    })
+
+    run_experiment("MobileNet_5to1", {
+        "backbone": "mobilenetv2_100",
         "image_size": 224,
-        "batch_size": 64,
-        "epochs": 5,
-        "lr": 1e-3,
-        # no negative undersampling: use full distribution
+        "batch_size": 48,
+        "epochs": 10,
+        "lr": 0.001,
+        "weight_decay": 0.01,
         "balance_classes": False,
-        # CE with explicit class weights (computed from train labels in training script)
         "loss_type": "ce_weighted",
-        "use_focal": False,
-        # Optimizer: plain Adam with paper hyperparameters
+        "class_weights": [1.0, 5.0],
         "optimizer": "adam_paper",
-        "beta1": 0.9,
-        "beta2": 0.999,
-        "adam_eps": 1e-7,
-        "adam_amsgrad": False,
         "redirect_log": True,
     })
+
+    run_experiment("MobileViT_5to1", {
+        "backbone": "mobilevit_s",
+        "image_size": 224,
+        "batch_size": 48,
+        "epochs": 10,
+        "lr": 0.001,
+        "weight_decay": 0.001,
+        "balance_classes": False,
+        "loss_type": "ce_weighted",
+        "class_weights": [1.0, 5.0],
+        "optimizer": "adam_paper",
+        "redirect_log": True,
+    })
+
+    # # VGG-style PNG experiment mimicking transfer_learning notebook (PNG, no undersampling)
+    # run_experiment("VGG_Paper_PNG", {
+    #     "backbone": "vgg16_bn",  # use a strong 2D backbone; no VGG in current timm setup
+    #     "use_flow": False,
+    #     "two_stream": False,
+    #     "use_seq": False,
+    #     "image_size": 224,
+    #     "batch_size": 64,
+    #     "epochs": 10,
+    #     "lr": 1e-3,
+    #     # no negative undersampling: use full distribution
+    #     "balance_classes": False,
+    #     # CE with explicit class weights (computed from train labels in training script)
+    #     "loss_type": "ce_weighted",
+    #     "use_focal": False,
+    #     # Optimizer: plain Adam with paper hyperparameters
+    #     "optimizer": "adam_paper",
+    #     "beta1": 0.9,
+    #     "beta2": 0.999,
+    #     "adam_eps": 1e-7,
+    #     "adam_amsgrad": False,
+    #     # Freeze all backbone layers and train only final classifier head
+    #     "freeze_all_but_head": True,
+    #     "redirect_log": True,
+    # })
     
     print("\n✅ All experiments completed!")
