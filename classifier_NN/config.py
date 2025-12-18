@@ -58,6 +58,11 @@ CFG = {
     # evaluation
     "save_pr_curve": True,
 
+    # validation controls
+    # If set, validation only runs for this many batches (useful for very large
+    # datasets and expensive sequence models). Leave as None for full validation.
+    "val_max_batches": None,
+
     # multi-scale fusion settings
     "k_crops": 8,
     "crop_size": 64,
