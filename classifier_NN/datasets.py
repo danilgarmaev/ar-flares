@@ -259,7 +259,22 @@ class TarShardDataset(IterableDataset):
                     T = CFG.get("seq_T", 3)
                     offsets = CFG.get("seq_offsets", [-16, -8, 0])
 
-                for i in range(len(entries)):
+                # Optional stride over sequence start indices to avoid
+                # generating highly-overlapping windows (which can blow up
+                # the effective number of training samples and steps/epoch
+                # for long sequences like T=16 or T=32).
+                seq_stride = CFG.get("seq_stride", 1)
+
+                # For sequence/diff modes we cannot shuffle `entries` (it would
+                # destroy temporal ordering required by offsets). Instead we
+                # shuffle the list of start indices. This gives per-shard
+                # sample shuffling without buffering huge tensors in memory.
+                start_indices = list(range(0, len(entries), max(1, seq_stride)))
+                if self.shuffle_samples:
+                    rng = random.Random(self.seed ^ hash(img_tar))
+                    rng.shuffle(start_indices)
+
+                for i in start_indices:
                     key0, png0, jm0 = entries[i]
                     meta0 = get_meta(jm0)
 
@@ -425,18 +440,28 @@ class TarShardDataset(IterableDataset):
             img_shards = self.shard_paths[wid::num_workers]
             flow_shards = self.flow_paths[wid::num_workers] if self.use_flow else [None] * len(img_shards)
 
+        # IMPORTANT:
+        # Do NOT open all shards concurrently.
+        # Round-robin over per-shard generators keeps many tarfiles open at once
+        # (one per shard per worker), which can hit the OS file-descriptor limit
+        # and cause DataLoader workers to exit unexpectedly.
         img_shards = list(img_shards)
         flow_shards = list(flow_shards)
+        paired = list(zip(img_shards, flow_shards))
         if self.shuffle_shards:
             rng = random.Random(self.seed + (worker_info.id if worker_info else 0))
-            paired = list(zip(img_shards, flow_shards))
             rng.shuffle(paired)
-            img_shards, flow_shards = zip(*paired)
 
-        gens = [self._sample_iter_from_tar(img, flow) for img, flow in zip(img_shards, flow_shards)]
-        stream = self._roundrobin(gens)
+        def _shard_stream():
+            for img, flow in paired:
+                yield from self._sample_iter_from_tar(img, flow)
 
-        if self.shuffle_samples:
+        stream = _shard_stream()
+
+        # In sequence/diff modes, `shuffle_samples=True` is handled inside
+        # `_sample_iter_from_tar` by shuffling start indices. Avoid buffering
+        # full tensors here (can be massive for T=16/32 and OOM workers).
+        if self.shuffle_samples and not (CFG.get("use_seq", False) or CFG.get("use_diff_attention", False)):
             stream = self._buffered_shuffle(stream)
 
         # Class balancing: subsample negatives to match positive count
@@ -487,8 +512,25 @@ def make_dataset(split_name: str, shuffle_shards=True, shuffle_samples=False, se
     cfg-driven datasets via create_dataloaders.
     """
     img_shards = list_shards(SPLIT_DIRS[split_name])
+    # Optional shard limiting for smoke tests / lightweight runs
+    max_train_shards = CFG.get("max_train_shards", None)
+    max_val_shards = CFG.get("max_val_shards", None)
+    max_test_shards = CFG.get("max_test_shards", None)
+    if split_name == "Train" and max_train_shards is not None:
+        img_shards = img_shards[: max(1, int(max_train_shards))]
+    elif split_name == "Validation" and max_val_shards is not None:
+        img_shards = img_shards[: max(1, int(max_val_shards))]
+    elif split_name == "Test" and max_test_shards is not None:
+        img_shards = img_shards[: max(1, int(max_test_shards))]
     if CFG["use_flow"]:
         flow_shards = list_shards(SPLIT_FLOW_DIRS[split_name])
+        # Mirror shard limiting for flow shards if enabled
+        if split_name == "Train" and max_train_shards is not None:
+            flow_shards = flow_shards[: max(1, int(max_train_shards))]
+        elif split_name == "Validation" and max_val_shards is not None:
+            flow_shards = flow_shards[: max(1, int(max_val_shards))]
+        elif split_name == "Test" and max_test_shards is not None:
+            flow_shards = flow_shards[: max(1, int(max_test_shards))]
     else:
         flow_shards = None
     if not img_shards:
