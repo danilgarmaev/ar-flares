@@ -341,6 +341,74 @@ class ResNet3DSimple(nn.Module):
         return self.backbone(x)
 
 
+class SlowFastWrapper(nn.Module):
+    """Wrapper around torchvision slowfast_r50 for sequence magnetograms.
+
+    Expects input of shape (B, T, 1, H, W). Internally permutes to
+    (B, 1, T, H, W), then maps 1-channel input to 3 channels via a
+    learnable 1x1x1 Conv3d before feeding into slowfast_r50.
+
+    The underlying SlowFast model is constructed with pretrained
+    weights and its final fully-connected layer is replaced with a
+    new Linear(in_features, num_classes) classifier.
+    """
+
+    def __init__(
+        self,
+        num_frames: int = 32,
+        num_classes: int = 2,
+        pretrained: bool = True,
+        freeze_backbone: bool = False,
+        alpha: int = 4,
+    ) -> None:
+        super().__init__()
+        self.num_frames = num_frames
+        self.alpha = alpha
+
+        # Map grayscale sequence (B,1,T,H,W) to RGB (B,3,T,H,W)
+        self.input_proj = nn.Conv3d(1, 3, kernel_size=1)
+
+        # Base SlowFast backbone (use torch.hub.load)
+        self.backbone = torch.hub.load(
+            'facebookresearch/pytorchvideo',
+            'slowfast_r50',
+            pretrained=pretrained,
+        )
+        # Replace final projection with a num_classes classifier
+        in_feats = self.backbone.blocks[-1].proj.in_features
+        self.backbone.blocks[-1].proj = nn.Linear(in_feats, num_classes)
+
+        if freeze_backbone:
+            # Stage 1: freeze SlowFast backbone and train only the
+            # final classifier head (and the input projection conv).
+            for p in self.backbone.parameters():
+                p.requires_grad = False
+            for p in self.backbone.blocks[-1].proj.parameters():
+                p.requires_grad = True
+            # input_proj remains trainable by construction
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (B, T, 1, H, W)
+        if x.dim() != 5:
+            raise ValueError(f"SlowFastWrapper expects (B,T,1,H,W), got {x.shape}")
+        B, T, C, H, W = x.shape
+        if C != 1:
+            raise ValueError(f"SlowFastWrapper currently assumes 1-channel input, got C={C}")
+
+        # (B,T,1,H,W) -> (B,1,T,H,W)
+        x = x.permute(0, 2, 1, 3, 4).contiguous()
+        # Project 1 -> 3 channels
+        x = self.input_proj(x)  # (B,3,T,H,W)
+
+        # Construct SlowFast pathways.
+        # Fast pathway: full frame rate; Slow: temporally subsampled.
+        fast = x
+        slow = x[:, :, :: self.alpha, :, :]
+
+        logits = self.backbone([slow, fast])
+        return logits
+
+
 class VideoTransformer(nn.Module):
     """Video Transformer using a 2D image backbone + temporal attention.
 
@@ -668,6 +736,22 @@ def build_model(cfg=None, num_classes=2):
             n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
             print(f"Built ResNet3DSimple (r3d_18) with T={cfg.get('seq_T', 3)} | trainable={n_train:,}")
             return model
+
+    # Explicit SlowFast video backbone
+    if backbone.lower() in ["slowfast", "slowfast_r50"]:
+        model = SlowFastWrapper(
+            num_frames=cfg.get("seq_T", 32),
+            num_classes=num_classes,
+            pretrained=cfg.get("pretrained_3d", True),
+            freeze_backbone=cfg.get("freeze_backbone", False),
+            alpha=cfg.get("slowfast_alpha", 4),
+        )
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(
+            f"Built SlowFastWrapper (slowfast_r50) with T={cfg.get('seq_T', 32)} "
+            f"| alpha={cfg.get('slowfast_alpha', 4)} | trainable={n_train:,}"
+        )
+        return model
 
     # Explicit Video Transformer backbone (multi-scale temporal transformer)
     if backbone.lower() in ["video_transformer", "timeformer", "video_vit"]:
