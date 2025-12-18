@@ -170,8 +170,20 @@ def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, devi
     return running_loss / max(1, seen), metrics
 
 
-def validate_epoch(model, dataloader, criterion, device):
-    """Validate for one epoch. Returns (avg_loss, metrics_dict, best_val_tss)."""
+def validate_epoch(model, dataloader, criterion, device, max_batches: int | None = None):
+    """Validate for one epoch.
+
+    Args:
+        model: torch model
+        dataloader: validation dataloader
+        criterion: loss
+        device: torch device
+        max_batches: if set, only evaluate this many batches (useful for faster
+            validation during large sequence experiments).
+
+    Returns:
+        (avg_loss, metrics_dict)
+    """
     model.eval()
     running_loss = 0.0
     all_probs = []
@@ -179,7 +191,8 @@ def validate_epoch(model, dataloader, criterion, device):
     n_samples = 0
 
     with torch.no_grad():
-        for inputs, labels, _ in dataloader:
+        pbar = tqdm(total=max_batches, desc="Validation", leave=True) if max_batches else tqdm(desc="Validation", leave=True)
+        for bidx, (inputs, labels, _) in enumerate(dataloader, start=1):
             if isinstance(inputs, (list, tuple)):
                 inputs = tuple(x.to(device, non_blocking=True) for x in inputs)
             else:
@@ -196,6 +209,12 @@ def validate_epoch(model, dataloader, criterion, device):
             batch_size = labels.size(0)
             running_loss += loss.item() * batch_size
             n_samples += batch_size
+
+            pbar.set_postfix(loss=f"{loss.item():.4f}")
+            pbar.update(1)
+            if max_batches is not None and bidx >= int(max_batches):
+                break
+        pbar.close()
 
     probs_np = np.array(all_probs)
     labels_np = np.array(all_labels)
@@ -337,7 +356,15 @@ def main(cfg=None):
         neg_keep_prob = cfg.get("neg_keep_prob", 0.25)
         effective_train = int(Nf + Nn * neg_keep_prob)
     else:
-        effective_train = total_train_raw
+        # For sequence models, each training "sample" is a multi-frame
+        # clip (T frames). Approximate the number of clips as
+        # total_frames / T so steps/epoch stays in a reasonable range
+        # even when using long sequences like T=16 or T=32.
+        if cfg.get("use_seq", False):
+            T = max(1, cfg.get("seq_T", 1))
+            effective_train = max(1, total_train_raw // T)
+        else:
+            effective_train = total_train_raw
     steps_per_epoch = max(1, effective_train // cfg["batch_size"])
     print(f"Train samples (raw): {total_train_raw:,} | effective (est): {effective_train:,} | steps/epoch: {steps_per_epoch:,}")
     
@@ -469,7 +496,13 @@ def main(cfg=None):
         )
         
         # Validate
-        avg_val_loss, val_metrics = validate_epoch(model, dls["Validation"], criterion, device)
+        avg_val_loss, val_metrics = validate_epoch(
+            model,
+            dls["Validation"],
+            criterion,
+            device,
+            max_batches=cfg.get("val_max_batches", None),
+        )
         print(f"Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} | Train Acc: {train_metrics['train_acc']:.2f}% | Val Acc: {val_metrics['val_acc']:.2f}%")
         print(f"Train P/R/F1: {train_metrics['train_precision']:.3f}/{train_metrics['train_recall']:.3f}/{train_metrics['train_f1']:.3f} | Val P/R/F1: {val_metrics['val_precision']:.3f}/{val_metrics['val_recall']:.3f}/{val_metrics['val_f1']:.3f}")
         print(f"Train AUC: {train_metrics['train_auc']:.3f} | Val AUC: {val_metrics['val_auc']:.3f}")
@@ -572,7 +605,11 @@ def main(cfg=None):
         print(f"Training curves saved to {curves_path}")
     except Exception as e:
         print(f"Curve plotting failed: {e}")
-    save_summary(exp_dir, tag, results)
+
+    # Derive an experiment tag for the summary from cfg/model_name,
+    # falling back to the experiment directory name if needed.
+    tag = cfg.get("model_name", os.path.basename(exp_dir))
+    save_summary(exp_dir, tag, results, cfg)
     
     print(f"\n✅ Training complete! Results saved to: {exp_dir}\n")
 
