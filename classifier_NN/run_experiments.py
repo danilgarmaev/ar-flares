@@ -83,17 +83,17 @@ if __name__ == "__main__":
     # })
 
     run_experiment("ResNet34_5to1", {
-    "backbone": "resnet34",
-    "image_size": 224,
-    "batch_size": 48,
-    "epochs": 10,
-    "lr": 0.001,
-    "weight_decay": 0.01,
-    "balance_classes": False,
-    "loss_type": "ce_weighted",
-    "class_weights": [1.0, 5.0],
-    "optimizer": "adam_paper",
-    "redirect_log": True,
+        "backbone": "resnet34",
+        "image_size": 224,
+        "batch_size": 48,
+        "epochs": 10,
+        "lr": 0.001,
+        "weight_decay": 0.01,
+        "balance_classes": False,
+        "loss_type": "ce_weighted",
+        "class_weights": [1.0, 5.0],
+        "optimizer": "adam_paper",
+        "redirect_log": True,
     })
 
     run_experiment("MobileNet_5to1", {
