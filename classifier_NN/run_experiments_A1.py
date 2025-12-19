@@ -41,7 +41,7 @@ COMMON_A1_OVERRIDES = {
     "batch_size": 64,
     "optimizer": "adam_paper",
     "lr": 1e-3,
-    "epochs": 10,
+    "epochs": 20,
 
     # imbalance handling
     "balance_classes": False,
@@ -51,7 +51,7 @@ COMMON_A1_OVERRIDES = {
     "use_aug": False,
 
     # model selection
-    "model_selection": "val_loss",
+    "model_selection": "tss",
 
     # logging
     "redirect_log": True,

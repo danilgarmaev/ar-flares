@@ -61,6 +61,14 @@ CFG = {
     # evaluation
     "save_pr_curve": True,
 
+    # checkpointing
+    # Save last epoch weights (overwritten each epoch)
+    "save_last_checkpoint": True,
+    # Save resumable checkpoint (model+optimizer+scheduler+scaler+epoch+cfg) as last_full.pt
+    "save_last_full_checkpoint": True,
+    # Save best-F1 checkpoint (disabled by default to save space)
+    "save_best_f1": False,
+
     # model selection for test evaluation
     # Options: "tss" (default), "f1", "val_loss"
     "model_selection": "tss",

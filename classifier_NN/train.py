@@ -23,6 +23,27 @@ from .models import build_model
 from .losses import get_loss_function
 from .metrics import evaluate_model, find_best_threshold_tss
 
+
+def _save_full_checkpoint(
+    path: str,
+    *,
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer | None,
+    scheduler: object | None,
+    scaler: torch.GradScaler | None,
+    epoch: int,
+    cfg: dict,
+) -> None:
+    ckpt = {
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict() if optimizer is not None else None,
+        "scheduler_state_dict": scheduler.state_dict() if scheduler is not None and hasattr(scheduler, "state_dict") else None,
+        "scaler_state_dict": scaler.state_dict() if scaler is not None else None,
+        "epoch": int(epoch),
+        "cfg": dict(cfg),
+    }
+    torch.save(ckpt, path)
+
 def setup_experiment(cfg=None):
     """Create experiment directory. Optionally redirect stdout if cfg['redirect_log'] is True.
 
@@ -499,8 +520,10 @@ def main(cfg=None):
     
     history = []
     best_val_tss = -1.0  # track best validation TSS
-    best_val_f1 = -1.0   # track best validation F1
     best_val_loss = float("inf")  # track best (lowest) validation loss
+    save_best_f1 = bool(cfg.get("save_best_f1", False))
+    if save_best_f1:
+        best_val_f1 = -1.0  # track best validation F1
     epoch_metrics_path = os.path.join(exp_dir, "epoch_metrics.jsonl")
     for epoch in range(cfg["epochs"]):
         print(f"\nEpoch {epoch+1}/{cfg['epochs']}")
@@ -535,6 +558,20 @@ def main(cfg=None):
         with open(epoch_metrics_path, "a") as ef:
             ef.write(json.dumps(epoch_record) + "\n")
 
+        # Save resumable last-epoch checkpoints (overwritten each epoch)
+        if cfg.get("save_last_checkpoint", True):
+            torch.save(model.state_dict(), os.path.join(exp_dir, "last.pt"))
+        if cfg.get("save_last_full_checkpoint", True):
+            _save_full_checkpoint(
+                os.path.join(exp_dir, "last_full.pt"),
+                model=model,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                scaler=scaler,
+                epoch=epoch + 1,
+                cfg=cfg,
+            )
+
         # Optional: best checkpoint by validation loss (useful for ablations)
         selection = str(cfg.get("model_selection", "tss")).lower()
         if selection in ["val_loss", "loss"]:
@@ -551,16 +588,18 @@ def main(cfg=None):
             best_tss_epoch = epoch
             torch.save(model.state_dict(), os.path.join(exp_dir, "best_tss.pt"))
             print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} @ epoch={epoch} -> Saved to best_tss.pt")
-        # Best F1 checkpoint
-        if val_metrics["val_f1"] > best_val_f1:
-            best_val_f1 = val_metrics["val_f1"]
-            best_f1_epoch = epoch
-            torch.save(model.state_dict(), os.path.join(exp_dir, "best_f1.pt"))
-            print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
+        # Best F1 checkpoint (optional; disabled by default to save space)
+        if save_best_f1:
+            if val_metrics["val_f1"] > best_val_f1:
+                best_val_f1 = val_metrics["val_f1"]
+                best_f1_epoch = epoch
+                torch.save(model.state_dict(), os.path.join(exp_dir, "best_f1.pt"))
+                print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
     if str(cfg.get("model_selection", "tss")).lower() in ["val_loss", "loss"] and "best_loss_epoch" in locals():
         print(f"Best Val Loss checkpoint: epoch {best_loss_epoch}, loss={best_val_loss:.4f}")
     print(f"Best TSS checkpoint: epoch {best_tss_epoch}, TSS={best_val_tss:.4f}")
-    print(f"Best F1 checkpoint: epoch {best_f1_epoch}, F1={best_val_f1:.4f}")
+    if save_best_f1 and "best_f1_epoch" in locals():
+        print(f"Best F1 checkpoint: epoch {best_f1_epoch}, F1={best_val_f1:.4f}")
     # Evaluate on test set using best-TSS checkpoint
     print("\n" + "="*80)
     print("Evaluating on test set...")
