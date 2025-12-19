@@ -191,7 +191,22 @@ def validate_epoch(model, dataloader, criterion, device, max_batches: int | None
     n_samples = 0
 
     with torch.no_grad():
-        pbar = tqdm(total=max_batches, desc="Validation", leave=True) if max_batches else tqdm(desc="Validation", leave=True)
+        # pbar = tqdm(total=max_batches, desc="Validation", leave=True) if max_batches else tqdm(desc="Validation", leave=True)
+        # for bidx, (inputs, labels, _) in enumerate(dataloader, start=1):
+        
+        is_tty = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+        # try to infer number of batches from the dataloader if available
+        try:
+            total_batches = len(dataloader)
+        except TypeError:
+            # DataLoader.__len__ can raise when wrapping an IterableDataset
+            # that doesn't implement __len__ (e.g., our tar-shard datasets).
+            total_batches = None
+        if max_batches is None:
+            total = total_batches
+        else:
+            total = max_batches if total_batches is None else min(max_batches, total_batches)
+        pbar = tqdm(total=total, desc="Validation", leave=True, disable=not is_tty, dynamic_ncols=True)
         for bidx, (inputs, labels, _) in enumerate(dataloader, start=1):
             if isinstance(inputs, (list, tuple)):
                 inputs = tuple(x.to(device, non_blocking=True) for x in inputs)
@@ -485,6 +500,7 @@ def main(cfg=None):
     history = []
     best_val_tss = -1.0  # track best validation TSS
     best_val_f1 = -1.0   # track best validation F1
+    best_val_loss = float("inf")  # track best (lowest) validation loss
     epoch_metrics_path = os.path.join(exp_dir, "epoch_metrics.jsonl")
     for epoch in range(cfg["epochs"]):
         print(f"\nEpoch {epoch+1}/{cfg['epochs']}")
@@ -518,6 +534,15 @@ def main(cfg=None):
         history.append(epoch_record)
         with open(epoch_metrics_path, "a") as ef:
             ef.write(json.dumps(epoch_record) + "\n")
+
+        # Optional: best checkpoint by validation loss (useful for ablations)
+        selection = str(cfg.get("model_selection", "tss")).lower()
+        if selection in ["val_loss", "loss"]:
+            if avg_val_loss < best_val_loss:
+                best_val_loss = avg_val_loss
+                best_loss_epoch = epoch
+                torch.save(model.state_dict(), os.path.join(exp_dir, "best_val_loss.pt"))
+                print(f"🌟 New Best Val Loss: {best_val_loss:.4f} @ epoch={epoch} -> Saved to best_val_loss.pt")
         
         # Update best checkpoints every epoch (no minimum epoch constraint)
         # Best TSS checkpoint
@@ -532,6 +557,8 @@ def main(cfg=None):
             best_f1_epoch = epoch
             torch.save(model.state_dict(), os.path.join(exp_dir, "best_f1.pt"))
             print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
+    if str(cfg.get("model_selection", "tss")).lower() in ["val_loss", "loss"] and "best_loss_epoch" in locals():
+        print(f"Best Val Loss checkpoint: epoch {best_loss_epoch}, loss={best_val_loss:.4f}")
     print(f"Best TSS checkpoint: epoch {best_tss_epoch}, TSS={best_val_tss:.4f}")
     print(f"Best F1 checkpoint: epoch {best_f1_epoch}, F1={best_val_f1:.4f}")
     # Evaluate on test set using best-TSS checkpoint
@@ -539,12 +566,19 @@ def main(cfg=None):
     print("Evaluating on test set...")
     print("="*80 + "\n")
 
-    best_tss_path = os.path.join(exp_dir, "best_tss.pt")
-    if os.path.exists(best_tss_path):
-        print(f"Loading best-TSS checkpoint from {best_tss_path} for test evaluation...")
-        model.load_state_dict(torch.load(best_tss_path, map_location=device))
+    selection = str(cfg.get("model_selection", "tss")).lower()
+    ckpt_name = {
+        "tss": "best_tss.pt",
+        "f1": "best_f1.pt",
+        "val_loss": "best_val_loss.pt",
+        "loss": "best_val_loss.pt",
+    }.get(selection, "best_tss.pt")
+    ckpt_path = os.path.join(exp_dir, ckpt_name)
+    if os.path.exists(ckpt_path):
+        print(f"Loading checkpoint from {ckpt_path} (model_selection={selection}) for test evaluation...")
+        model.load_state_dict(torch.load(ckpt_path, map_location=device))
     else:
-        print("Warning: No best_tss.pt found; evaluating with current model weights (last epoch).")
+        print(f"Warning: No {ckpt_name} found; evaluating with current model weights (last epoch).")
     
     results = evaluate_model(
         model,
