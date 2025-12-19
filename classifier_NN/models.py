@@ -715,6 +715,34 @@ def build_model(cfg=None, num_classes=2):
     backbone = cfg.get("backbone", CFG.get("backbone", "resnet18"))
     img_size = cfg.get("image_size", IMG_SIZE)
 
+    # Explicit torchvision VGG16 (transfer learning) for Experiment A1
+    # Required spec: torchvision.models.vgg16(pretrained=True) and replace final
+    # classifier layer with Linear(4096, 2).
+    backbone_lower = str(backbone).lower()
+    if backbone_lower in ["vgg16_tv", "vgg16_torchvision", "torchvision_vgg16"]:
+        try:
+            from torchvision.models import vgg16, VGG16_Weights
+            weights = VGG16_Weights.DEFAULT if cfg.get("pretrained", True) else None
+            model = vgg16(weights=weights)
+        except Exception:
+            from torchvision.models import vgg16
+            model = vgg16(pretrained=cfg.get("pretrained", True))
+
+        # Replace final classifier: 4096 -> num_classes
+        if not hasattr(model, "classifier") or not isinstance(model.classifier, nn.Sequential):
+            raise RuntimeError("Unexpected torchvision VGG16 structure: missing classifier")
+        model.classifier[-1] = nn.Linear(4096, num_classes)
+
+        if cfg.get("freeze_backbone", False):
+            for p in model.parameters():
+                p.requires_grad = False
+            for p in model.classifier.parameters():
+                p.requires_grad = True
+
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"Built torchvision VGG16 (vgg16_tv) | img_size={img_size} | trainable={n_train:,}")
+        return model
+
     # Explicit 3D CNN video backbone
     if backbone.lower() in ["simple3dcnn", "3d_cnn", "resnet3d_simple"]:
         if backbone.lower() in ["simple3dcnn", "3d_cnn"]:
