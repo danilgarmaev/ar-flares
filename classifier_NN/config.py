@@ -26,6 +26,9 @@ CFG = {
 
     # data loader
     "image_size": 224,           # image resolution (112x112 or 224x224) - convnext_base supports 112 fine-tuning
+    # Spatial resolution ablation for single-frame models.
+    # If >1: downsample by factor using nearest-neighbor, then upsample back to image_size with bilinear.
+    "spatial_downsample_factor": 1,
     "balance_classes": True,     # subsample negatives to match positive count (Train only)
     "balance_mode": "prob",     # 'prob' = per-epoch random negatives, 'fixed' = deterministic subset
     "neg_keep_prob": 0.25,       # probability to keep a negative when balance_mode='prob'
@@ -57,6 +60,10 @@ CFG = {
 
     # evaluation
     "save_pr_curve": True,
+
+    # model selection for test evaluation
+    # Options: "tss" (default), "f1", "val_loss"
+    "model_selection": "tss",
 
     # validation controls
     # If set, validation only runs for this many batches (useful for very large
