@@ -48,8 +48,24 @@ if CFG["min_flare_class"].upper() == "M":
     )
 
 def _build_basic_transform(img_size: int):
-    """Basic transform (Resize + ToTensor) parameterized by image size."""
+    """Basic transform (Resize + ToTensor) parameterized by image size.
+
+    Supports an optional spatial-resolution ablation for single-frame models:
+      - Downsample by an integer factor using nearest-neighbor (no interpolation)
+      - Upsample back to `img_size` using bilinear
+
+    This reduces spatial information while keeping the network input size fixed.
+    """
+    factor = int(CFG.get("spatial_downsample_factor", 1) or 1)
+    if factor <= 1:
+        return transforms.Compose([
+            transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.ToTensor(),
+        ])
+
+    ds = max(1, img_size // factor)
     return transforms.Compose([
+        transforms.Resize((ds, ds), interpolation=transforms.InterpolationMode.NEAREST),
         transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
         transforms.ToTensor(),
     ])
@@ -97,7 +113,13 @@ def _build_aug_transform(img_size: int):
         geometric ops (resize/flip/rotate/polarity) consistently across all
         frames in a sequence. See `_apply_seq_augment` in `TarShardDataset`.
     """
+    factor = int(CFG.get("spatial_downsample_factor", 1) or 1)
+    ds = max(1, img_size // factor) if factor > 1 else img_size
+
+    # Apply spatial ablation before aug ops so augmentation doesn't re-inject
+    # fine-grained detail. For factor==1 this is just an identity resize.
     return transforms.Compose([
+        transforms.Resize((ds, ds), interpolation=transforms.InterpolationMode.NEAREST if factor > 1 else transforms.InterpolationMode.BILINEAR),
         transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
