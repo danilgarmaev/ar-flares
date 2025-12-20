@@ -36,12 +36,22 @@ from typing import Any
 import torch
 from timm.optim import create_optimizer_v2
 
-from .config import CFG, SPLIT_DIRS
-from .datasets import count_samples_all_shards, create_dataloaders
-from .losses import get_loss_function
-from .metrics import evaluate_model
-from .models import build_model
-from .train import get_class_counts, train_epoch, validate_epoch
+try:
+    # Preferred when run as a module: `python -m classifier_NN.resume_experiment`
+    from .config import CFG, SPLIT_DIRS
+    from .datasets import count_samples_all_shards, create_dataloaders
+    from .losses import get_loss_function
+    from .metrics import evaluate_model
+    from .models import build_model
+    from .train import get_class_counts, train_epoch, validate_epoch
+except ImportError:  # pragma: no cover
+    # Allows running as a script: `python classifier_NN/resume_experiment.py`
+    from classifier_NN.config import CFG, SPLIT_DIRS
+    from classifier_NN.datasets import count_samples_all_shards, create_dataloaders
+    from classifier_NN.losses import get_loss_function
+    from classifier_NN.metrics import evaluate_model
+    from classifier_NN.models import build_model
+    from classifier_NN.train import get_class_counts, train_epoch, validate_epoch
 
 
 def _append_jsonl_safely(path: str, record: dict, *, fallback_dir: str | None = None) -> str:
@@ -176,6 +186,7 @@ def resume_experiment(
     device_str: str | None = None,
     redirect_log: bool = True,
     append_epoch_metrics: bool = False,
+    resume_full_ckpt: str | None = "last_full.pt",
 ) -> dict:
     cfg = _load_cfg(exp_dir)
     CFG.update(cfg)
@@ -189,8 +200,15 @@ def resume_experiment(
         _open_log(exp_dir, suffix)
     print(f"Using device: {device}")
 
+    # Prefer a full checkpoint (optimizer/scheduler/scaler/epoch) when available.
+    full_ckpt_path = None
+    if resume_full_ckpt:
+        candidate = os.path.join(exp_dir, resume_full_ckpt)
+        if os.path.exists(candidate):
+            full_ckpt_path = candidate
+
     warm_path = os.path.join(exp_dir, warm_start_ckpt)
-    if not os.path.exists(warm_path):
+    if full_ckpt_path is None and not os.path.exists(warm_path):
         raise FileNotFoundError(f"Missing warm-start checkpoint: {warm_path}")
 
     baseline_path = os.path.join(exp_dir, baseline_best_tss_ckpt)
@@ -230,8 +248,26 @@ def resume_experiment(
 
     print("Building model...")
     model = build_model(cfg=cfg, num_classes=2).to(device)
-    warm_model_sd, warm_opt_sd, warm_epoch = _load_checkpoint(warm_path, device)
-    model.load_state_dict(warm_model_sd)
+
+    warm_opt_sd = None
+    warm_sched_sd = None
+    warm_scaler_sd = None
+    warm_epoch = None
+
+    if full_ckpt_path is not None:
+        full = torch.load(full_ckpt_path, map_location=device)
+        if not isinstance(full, dict) or "model_state_dict" not in full:
+            raise ValueError(f"Full checkpoint {full_ckpt_path} is not in expected format")
+        model.load_state_dict(full["model_state_dict"])
+        warm_opt_sd = full.get("optimizer_state_dict")
+        warm_sched_sd = full.get("scheduler_state_dict")
+        warm_scaler_sd = full.get("scaler_state_dict")
+        warm_epoch = full.get("epoch")
+        print(f"Resuming from full checkpoint: {full_ckpt_path} (epoch={warm_epoch})")
+    else:
+        warm_model_sd, warm_opt_sd, warm_epoch = _load_checkpoint(warm_path, device)
+        model.load_state_dict(warm_model_sd)
+        print(f"Warm-starting from weights: {warm_path}")
 
     # Loss function setup (matches train.py)
     full_counts = get_class_counts()
@@ -274,6 +310,13 @@ def resume_experiment(
 
     scaler = torch.GradScaler("cuda", enabled=torch.cuda.is_available() and device.type == "cuda")
 
+    if warm_scaler_sd is not None:
+        try:
+            scaler.load_state_dict(warm_scaler_sd)
+            print("Restored scaler_state_dict from checkpoint.")
+        except Exception as e:
+            print(f"Warning: failed to load scaler_state_dict; continuing with fresh scaler. Error: {e}")
+
     if warm_opt_sd is not None:
         try:
             optimizer.load_state_dict(warm_opt_sd)
@@ -290,13 +333,19 @@ def resume_experiment(
         raise ValueError(f"max_epochs={target_epochs} is less than start_epoch={start_epoch}")
     extra_epochs = target_epochs - start_epoch
 
-    # Fresh scheduler for the continuation horizon (we cannot perfectly resume OneCycle without its state)
+    # Scheduler: resume state if available, otherwise create a continuation scheduler.
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
         max_lr=cfg["lr"],
         epochs=max(1, int(extra_epochs)) if extra_epochs > 0 else 1,
         steps_per_epoch=steps_per_epoch,
     )
+    if warm_sched_sd is not None:
+        try:
+            scheduler.load_state_dict(warm_sched_sd)
+            print("Restored scheduler_state_dict from checkpoint.")
+        except Exception as e:
+            print(f"Warning: failed to load scheduler_state_dict; continuing with fresh scheduler. Error: {e}")
 
     # Baseline best-TSS: evaluate baseline checkpoint on Validation to seed comparison.
     print("Computing baseline Val TSS from existing best_tss...")
@@ -457,7 +506,14 @@ def main() -> None:
         action="store_true",
         help="Append resumed epochs into exp_dir/epoch_metrics.jsonl (mutates original history)",
     )
+    parser.add_argument(
+        "--resume-full-ckpt",
+        default="last_full.pt",
+        help="If present in exp_dir, resume from this full checkpoint (default: last_full.pt). Use '' to disable.",
+    )
     args = parser.parse_args()
+
+    resume_full = args.resume_full_ckpt if str(args.resume_full_ckpt).strip() else None
 
     for exp_dir in args.exp_dirs:
         out = resume_experiment(
@@ -469,6 +525,7 @@ def main() -> None:
             device_str=args.device,
             redirect_log=not args.no_redirect_log,
             append_epoch_metrics=args.append_epoch_metrics,
+            resume_full_ckpt=resume_full,
         )
         print(f"\nDone: {exp_dir}")
         print(f"  ckpt:    {out['checkpoint']}")
