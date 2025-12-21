@@ -272,7 +272,14 @@ class TarShardDataset(IterableDataset):
                     return out_tensors
 
                 def get_meta(jm):
-                    return json.loads(tf_img.extractfile(jm).read().decode("utf-8"))
+                    mm = json.loads(tf_img.extractfile(jm).read().decode("utf-8"))
+                    # Include the JSON member name / base key so callers can
+                    # derive the original filename (useful for evaluation scripts)
+                    try:
+                        mm.setdefault("basename", jm.name)
+                    except Exception:
+                        pass
+                    return mm
 
                 if use_diff_attn:
                     # For Diff Attention, we need [t-1, t]
@@ -347,6 +354,11 @@ class TarShardDataset(IterableDataset):
                     ref_idx = idxes[-1]
                     _, _, refjm = entries[ref_idx]
                     meta = get_meta(refjm)
+                    # Also include the base key for the reference frame (without extension)
+                    try:
+                        meta.setdefault("basename", entries[ref_idx][0])
+                    except Exception:
+                        pass
                     if LABEL_MAP is not None:
                         fname = os.path.basename(entries[ref_idx][1].name)
                         label = LABEL_MAP.get(fname, 0)
@@ -386,6 +398,12 @@ class TarShardDataset(IterableDataset):
                         continue
 
                     meta = json.loads(tf_img.extractfile(parts["json"]).read().decode("utf-8"))
+                    # Attach the base key (filename without extension) so downstream
+                    # code can recover timestamp or other info encoded in the name.
+                    try:
+                        meta.setdefault("basename", k)
+                    except Exception:
+                        pass
 
                     # Label
                     if LABEL_MAP is not None:

@@ -34,9 +34,17 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional, Tuple
+from datetime import datetime
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 import torch
+
+from tqdm import tqdm
+from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve, precision_recall_curve
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 from .config import CFG
 from .datasets import create_dataloaders
@@ -193,13 +201,129 @@ class BucketStats:
     def tss(self) -> float:
         return self.tpr() + self.tnr() - 1.0
 
+    def precision(self) -> float:
+        denom = self.tp + self.fp
+        return self.tp / denom if denom > 0 else 0.0
+
+    def recall(self) -> float:
+        return self.tpr()
+
+    def f1(self) -> float:
+        p = self.precision()
+        r = self.recall()
+        return (2 * p * r / (p + r)) if (p + r) > 0 else 0.0
+
+    def accuracy(self) -> float:
+        total = self.samples
+        return (self.tp + self.tn) / total if total > 0 else 0.0
+
+    def as_dict(self) -> dict:
+        return {
+            "samples": int(self.samples),
+            "TP": int(self.tp),
+            "TN": int(self.tn),
+            "FP": int(self.fp),
+            "FN": int(self.fn),
+            "TPR": float(self.tpr()),
+            "TNR": float(self.tnr()),
+            "TSS": float(self.tss()),
+            "Precision": float(self.precision()),
+            "Recall": float(self.recall()),
+            "F1": float(self.f1()),
+            "Accuracy": float(self.accuracy()),
+        }
+
     def report(self) -> str:
         return (
             f"[{self.name}]\n"
             f"samples={self.samples}\n"
             f"TP={self.tp} TN={self.tn} FP={self.fp} FN={self.fn}\n"
             f"TPR={self.tpr():.4f} TNR={self.tnr():.4f} TSS={self.tss():.4f}\n"
+            f"Precision={self.precision():.4f} Recall={self.recall():.4f} F1={self.f1():.4f} Acc={self.accuracy():.4f}\n"
         )
+
+
+def _safe_total(dataloader) -> Optional[int]:
+    try:
+        return len(dataloader)
+    except TypeError:
+        return None
+
+
+def _compute_auc_metrics(labels: np.ndarray, probs: np.ndarray) -> dict[str, float]:
+    out: dict[str, float] = {"ROC_AUC": float("nan"), "PR_AUC": float("nan")}
+    if labels.size == 0:
+        return out
+    try:
+        out["ROC_AUC"] = float(roc_auc_score(labels, probs))
+    except Exception:
+        pass
+    try:
+        out["PR_AUC"] = float(average_precision_score(labels, probs))
+    except Exception:
+        pass
+    return out
+
+
+def _plot_curves(out_dir: str, curves: dict[str, tuple[np.ndarray, np.ndarray]], *, title_suffix: str = "") -> None:
+    """Plot ROC and PR curves for multiple series.
+
+    curves: name -> (labels, probs)
+    """
+    if not curves:
+        return
+
+    fig, (ax_roc, ax_pr) = plt.subplots(1, 2, figsize=(14, 6))
+
+    # ROC
+    for name, (y, p) in curves.items():
+        if y.size == 0:
+            continue
+        try:
+            fpr, tpr, _ = roc_curve(y, p)
+            auc_v = roc_auc_score(y, p)
+            ax_roc.plot(fpr, tpr, label=f"{name} (AUC={auc_v:.3f})")
+        except Exception:
+            continue
+    ax_roc.plot([0, 1], [0, 1], "k--", linewidth=1)
+    ax_roc.set_xlabel("False Positive Rate")
+    ax_roc.set_ylabel("True Positive Rate")
+    ax_roc.set_title(f"ROC{title_suffix}")
+    ax_roc.legend(loc="lower right")
+    ax_roc.grid(True, linestyle="--", alpha=0.3)
+
+    # PR
+    for name, (y, p) in curves.items():
+        if y.size == 0:
+            continue
+        try:
+            prec, rec, _ = precision_recall_curve(y, p)
+            ap = average_precision_score(y, p)
+            ax_pr.plot(rec, prec, label=f"{name} (AP={ap:.3f})")
+        except Exception:
+            continue
+    ax_pr.set_xlabel("Recall")
+    ax_pr.set_ylabel("Precision")
+    ax_pr.set_title(f"Precision–Recall{title_suffix}")
+    ax_pr.legend(loc="lower left")
+    ax_pr.grid(True, linestyle="--", alpha=0.3)
+
+    fig.tight_layout()
+    fig.savefig(os.path.join(out_dir, "curves.png"), dpi=200)
+    plt.close(fig)
+
+
+def _plot_bucket_tss(out_dir: str, buckets: dict[str, BucketStats]) -> None:
+    names = list(buckets.keys())
+    tss_vals = [buckets[n].tss() for n in names]
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.bar(names, tss_vals)
+    ax.set_ylabel("TSS")
+    ax.set_title("A2 Longitude Buckets (threshold=0.5)")
+    ax.grid(True, axis="y", linestyle="--", alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out_dir, "bucket_tss.png"), dpi=200)
+    plt.close(fig)
 
 
 def evaluate_longitude_buckets(
@@ -208,13 +332,23 @@ def evaluate_longitude_buckets(
     device: torch.device,
     srs_lookup: Dict[LocationKey, int],
     threshold: float = 0.5,
-) -> Tuple[BucketStats, BucketStats, int]:
+) -> Tuple[BucketStats, BucketStats, int, dict[str, Any]]:
     lon_in_30 = BucketStats(name="Longitude ≤ 30°")
     lon_out_30 = BucketStats(name="30° < Longitude ≤ 60°")
     skipped_missing_srs = 0
 
+    # Collect labels/probs for curves and AUC metrics
+    all_labels: list[int] = []
+    all_probs: list[float] = []
+    in30_labels: list[int] = []
+    in30_probs: list[float] = []
+    out30_labels: list[int] = []
+    out30_probs: list[float] = []
+
     model.eval()
     with torch.no_grad():
+        is_tty = hasattr(getattr(__import__("sys"), "stdout"), "isatty") and __import__("sys").stdout.isatty()
+        pbar = tqdm(total=_safe_total(test_loader), desc="A2 Test", leave=True, disable=not is_tty, dynamic_ncols=True)
         for inputs, labels, meta in test_loader:
             if isinstance(inputs, (list, tuple)):
                 inputs = tuple(x.to(device, non_blocking=True) for x in inputs)
@@ -231,11 +365,36 @@ def evaluate_longitude_buckets(
             probs = _to_prob_positive(outputs).detach()
             preds = (probs >= float(threshold)).to(torch.int64)
 
+            probs_cpu = probs.detach().float().cpu().numpy()
+            labels_cpu = labels_t.detach().to(torch.int64).cpu().numpy()
+
             # meta is expected to be a dict-like batch structure.
+            # meta is usually a dict of batched fields. Some pipelines do not
+            # include a separate 'date' field; in that case we try to extract
+            # the date from the sample filename supplied in 'basename'.
             ars = meta.get("ar")
             dates = meta.get("date")
-            if ars is None or dates is None:
-                raise KeyError("meta must contain keys 'ar' and 'date'")
+            basenames = meta.get("basename")
+
+            if ars is None:
+                raise KeyError("meta must contain key 'ar'")
+
+            if dates is None:
+                if basenames is None:
+                    raise KeyError("meta must contain keys 'date' or 'basename' to extract date")
+                # Normalize basenames into python list of strings
+                if torch.is_tensor(basenames):
+                    basenames_list = [b.decode() if isinstance(b, bytes) else str(b) for b in basenames.detach().cpu().tolist()]
+                else:
+                    basenames_list = list(basenames)
+
+                import re
+                def _extract_date_from_basename(bname: str) -> Optional[str]:
+                    m = re.search(r"(\d{8})", str(bname))
+                    return m.group(1) if m else None
+
+                dates_list = [_extract_date_from_basename(b) for b in basenames_list]
+                dates = dates_list
 
             # Normalize to python lists for per-sample lookup
             if torch.is_tensor(ars):
@@ -266,13 +425,28 @@ def evaluate_longitude_buckets(
                 abs_lon = abs(int(lon))
                 if abs_lon <= 30:
                     lon_in_30.update(preds[i : i + 1], labels_t[i : i + 1])
+                    in30_labels.append(int(labels_cpu[i]))
+                    in30_probs.append(float(probs_cpu[i]))
                 elif 30 < abs_lon <= 60:
                     lon_out_30.update(preds[i : i + 1], labels_t[i : i + 1])
+                    out30_labels.append(int(labels_cpu[i]))
+                    out30_probs.append(float(probs_cpu[i]))
                 else:
                     # Should not exist per spec; skip if it does.
                     continue
 
-    return lon_in_30, lon_out_30, skipped_missing_srs
+                all_labels.append(int(labels_cpu[i]))
+                all_probs.append(float(probs_cpu[i]))
+
+            pbar.update(1)
+        pbar.close()
+
+    arrays = {
+        "all": (np.asarray(all_labels, dtype=np.int64), np.asarray(all_probs, dtype=np.float32)),
+        "in_30": (np.asarray(in30_labels, dtype=np.int64), np.asarray(in30_probs, dtype=np.float32)),
+        "out_30_60": (np.asarray(out30_labels, dtype=np.int64), np.asarray(out30_probs, dtype=np.float32)),
+    }
+    return lon_in_30, lon_out_30, skipped_missing_srs, arrays
 
 
 def _load_cfg_from_exp_dir(exp_dir: str) -> dict:
@@ -299,6 +473,11 @@ def main() -> None:
         help="Root directory containing YYYY_SRS folders",
     )
     parser.add_argument("--threshold", type=float, default=0.5, help="Fixed decision threshold")
+    parser.add_argument(
+        "--out-dir",
+        default=None,
+        help="Directory to write A2 outputs (defaults to a new timestamped folder under results_base)",
+    )
     args = parser.parse_args()
 
     if args.exp_dir is None and args.cfg_json is None:
@@ -334,7 +513,7 @@ def main() -> None:
 
     srs_lookup = build_srs_longitude_lookup(args.srs_root)
 
-    lon_in_30, lon_out_30, skipped = evaluate_longitude_buckets(
+    lon_in_30, lon_out_30, skipped, arrays = evaluate_longitude_buckets(
         model=model,
         test_loader=test_loader,
         device=device,
@@ -345,6 +524,58 @@ def main() -> None:
     print(lon_in_30.report())
     print(lon_out_30.report())
     print(f"skipped_missing_srs={skipped}")
+
+    # Save outputs under results/
+    if args.out_dir is None:
+        base = CFG.get("results_base", os.path.join(os.path.dirname(os.path.dirname(__file__)), "results"))
+        tag = "A2_longitude_eval"
+        if args.exp_dir:
+            tag += "_" + os.path.basename(args.exp_dir)
+        ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        out_dir = os.path.join(base, f"{ts}_{tag}")
+    else:
+        out_dir = args.out_dir
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Metrics dict
+    buckets = {
+        "lon_le_30": lon_in_30,
+        "lon_30_60": lon_out_30,
+    }
+    metrics: dict[str, Any] = {
+        "threshold": float(args.threshold),
+        "skipped_missing_srs": int(skipped),
+        "checkpoint_path": ckpt_path,
+        "exp_dir": args.exp_dir,
+        "buckets": {k: v.as_dict() for k, v in buckets.items()},
+    }
+
+    # Add AUC metrics (overall + per bucket)
+    curves = {}
+    for name, (y, p) in arrays.items():
+        metrics[name] = _compute_auc_metrics(y, p)
+        curves_name = {
+            "all": "All",
+            "in_30": "|lon|≤30°",
+            "out_30_60": "30°<|lon|≤60°",
+        }.get(name, name)
+        curves[curves_name] = (y, p)
+
+    with open(os.path.join(out_dir, "a2_metrics.json"), "w") as f:
+        json.dump(metrics, f, indent=2)
+
+    # Plots
+    _plot_curves(out_dir, curves)
+    _plot_bucket_tss(out_dir, buckets)
+
+    # Human-readable report
+    with open(os.path.join(out_dir, "a2_report.txt"), "w") as f:
+        f.write(lon_in_30.report() + "\n")
+        f.write(lon_out_30.report() + "\n")
+        f.write(f"skipped_missing_srs={skipped}\n")
+        f.write("\n")
+        f.write(f"ROC_AUC(all)={metrics['all']['ROC_AUC']:.4f} PR_AUC(all)={metrics['all']['PR_AUC']:.4f}\n")
+    print(f"Saved A2 outputs to: {out_dir}")
 
 
 if __name__ == "__main__":

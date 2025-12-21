@@ -1,8 +1,11 @@
 """Metrics and evaluation utilities for AR-flares classification."""
+import sys
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc, confusion_matrix, ConfusionMatrixDisplay, precision_recall_curve
+from tqdm import tqdm
 
 
 class MetricsCalculator:
@@ -196,8 +199,16 @@ def evaluate_model(model, dataloader, device, save_dir, model_name, save_pr_curv
     model.eval()
     all_probs, all_labels, all_preds_class = [], [], []
     metrics_calc = MetricsCalculator()
+
+    # IterableDatasets may not define __len__
+    try:
+        total_batches = len(dataloader)
+    except TypeError:
+        total_batches = None
+    is_tty = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
     
     with torch.no_grad():
+        pbar = tqdm(total=total_batches, desc="Test", leave=True, disable=not is_tty, dynamic_ncols=True)
         for inputs, labels, _ in dataloader:
             if isinstance(inputs, (list, tuple)):
                 inputs = tuple(x.to(device, non_blocking=True) for x in inputs)
@@ -213,6 +224,9 @@ def evaluate_model(model, dataloader, device, save_dir, model_name, save_pr_curv
             all_labels.extend(labels.numpy())
             all_preds_class.extend(preds_class_05)
             metrics_calc.update(labels, preds_class_05)
+
+            pbar.update(1)
+        pbar.close()
     
     all_labels = np.array(all_labels)
     all_probs = np.array(all_probs)
