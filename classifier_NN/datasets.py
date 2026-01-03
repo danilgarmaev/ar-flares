@@ -113,11 +113,30 @@ def _build_aug_transform(img_size: int):
         geometric ops (resize/flip/rotate/polarity) consistently across all
         frames in a sequence. See `_apply_seq_augment` in `TarShardDataset`.
     """
+    aug_preset = str(CFG.get("aug_preset", "robust")).lower()
     factor = int(CFG.get("spatial_downsample_factor", 1) or 1)
     ds = max(1, img_size // factor) if factor > 1 else img_size
 
     # Apply spatial ablation before aug ops so augmentation doesn't re-inject
     # fine-grained detail. For factor==1 this is just an identity resize.
+    if aug_preset in {"paper_vgg", "vgg_paper", "paper"}:
+        # Paper-style augmentation (previously commented):
+        # Resize -> RandomHorizontalFlip -> RandomAffine -> ToTensor
+        # (no vertical flips / polarity inversion / noise)
+        return transforms.Compose([
+            transforms.Resize(
+                (ds, ds),
+                interpolation=(
+                    transforms.InterpolationMode.NEAREST if factor > 1 else transforms.InterpolationMode.BILINEAR
+                ),
+            ),
+            transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomAffine(degrees=15, translate=(0.1, 0.1), scale=(0.9, 1.1)),
+            transforms.ToTensor(),
+        ])
+
+    # Default: robust augmentation
     return transforms.Compose([
         transforms.Resize((ds, ds), interpolation=transforms.InterpolationMode.NEAREST if factor > 1 else transforms.InterpolationMode.BILINEAR),
         transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),

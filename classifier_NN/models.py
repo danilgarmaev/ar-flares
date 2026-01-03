@@ -744,7 +744,7 @@ def build_model(cfg=None, num_classes=2):
         return model
 
     # Explicit 3D CNN video backbone
-    if backbone.lower() in ["simple3dcnn", "3d_cnn", "resnet3d_simple"]:
+    if backbone.lower() in ["simple3dcnn", "3d_cnn", "resnet3d_simple", "r3d_18", "r3d18"]:
         if backbone.lower() in ["simple3dcnn", "3d_cnn"]:
             model = Simple3DCNN(
                 in_chans=1,
@@ -755,7 +755,7 @@ def build_model(cfg=None, num_classes=2):
             n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
             print(f"Built Simple3DCNN with T={cfg.get('seq_T', 3)} | trainable={n_train:,}")
             return model
-        else:  # "resnet3d_simple"
+        else:  # "resnet3d_simple" / "r3d_18"
             model = ResNet3DSimple(
                 num_frames=cfg.get("seq_T", 3),
                 num_classes=num_classes,

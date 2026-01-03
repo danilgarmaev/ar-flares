@@ -89,15 +89,43 @@ def get_class_counts():
     return full_counts
 
 
-def train_epoch(model, dataloader, criterion, optimizer, scheduler, scaler, device, steps_per_epoch, mixup_fn=None):
+def train_epoch(
+    model,
+    dataloader,
+    criterion,
+    optimizer,
+    scheduler,
+    scaler,
+    device,
+    steps_per_epoch,
+    mixup_fn=None,
+    cfg: dict | None = None,
+):
     """Train for one epoch. Returns (avg_loss, metrics_dict)."""
     model.train()
+    logged_first_batch = False
     running_loss = 0.0
     seen = 0
     all_probs = []
     all_labels = []
     pbar = tqdm(total=steps_per_epoch, desc=f"Training", leave=True)
     for inputs, labels, _ in dataloader:
+        if (not logged_first_batch) and (cfg is not None) and bool(cfg.get("use_seq", False)):
+            if not (isinstance(inputs, torch.Tensor) and inputs.ndim == 5):
+                raise AssertionError(
+                    f"Sequence inputs must be a 5D Tensor (B,T,1,H,W). Got type={type(inputs)} shape={getattr(inputs, 'shape', None)}"
+                )
+            b, t, c, h, w = inputs.shape
+            if c != 1:
+                raise AssertionError(f"Sequence channel must be 1. Got shape={tuple(inputs.shape)}")
+            expected_t = cfg.get("seq_T", None)
+            if expected_t is not None and t != expected_t:
+                raise AssertionError(f"Sequence length mismatch: cfg seq_T={expected_t} but batch T={t}")
+            print(
+                f"[seq] first train batch: shape={(b, t, c, h, w)} | N={cfg.get('seq_T')} | k={cfg.get('seq_stride')} | offsets={cfg.get('seq_offsets')}"
+            )
+            logged_first_batch = True
+
         if isinstance(inputs, (list, tuple)):
             inputs = tuple(x.to(device, non_blocking=True) for x in inputs)
         else:
@@ -531,7 +559,16 @@ def main(cfg=None):
         
         # Train
         avg_train_loss, train_metrics = train_epoch(
-            model, dls["Train"], criterion, optimizer, scheduler, scaler, device, steps_per_epoch, mixup_fn=mixup_fn
+            model,
+            dls["Train"],
+            criterion,
+            optimizer,
+            scheduler,
+            scaler,
+            device,
+            steps_per_epoch,
+            mixup_fn=mixup_fn,
+            cfg=cfg,
         )
         
         # Validate
