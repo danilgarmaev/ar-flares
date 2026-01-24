@@ -8,8 +8,8 @@ Runs three configurations:
 This isolates the effect of spatial resolution while keeping VGG16 unchanged.
 """
 
-from .config import get_default_cfg
-from .train import main
+from ..config import get_default_cfg
+from ..train import main
 
 
 def build_experiment_cfg(name: str, overrides: dict, common_overrides: dict | None = None):

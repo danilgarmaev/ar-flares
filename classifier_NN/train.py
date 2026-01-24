@@ -121,8 +121,9 @@ def train_epoch(
             expected_t = cfg.get("seq_T", None)
             if expected_t is not None and t != expected_t:
                 raise AssertionError(f"Sequence length mismatch: cfg seq_T={expected_t} but batch T={t}")
+            seq_stride_eff = cfg.get("seq_stride", cfg.get("seq_stride_steps", None))
             print(
-                f"[seq] first train batch: shape={(b, t, c, h, w)} | N={cfg.get('seq_T')} | k={cfg.get('seq_stride')} | offsets={cfg.get('seq_offsets')}"
+                f"[seq] first train batch: shape={(b, t, c, h, w)} | N={cfg.get('seq_T')} | k={seq_stride_eff} | offsets={cfg.get('seq_offsets')}"
             )
             logged_first_batch = True
 

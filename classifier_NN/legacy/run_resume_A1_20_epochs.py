@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import argparse
 
-from .resume_experiment import resume_experiment
+from ..resume_experiment import resume_experiment
 
 
 A1_DIRS = [

@@ -1,16 +1,35 @@
 """Lightweight smoke tests for classifier_NN components.
 
+This module intentionally supports two levels of smoke tests:
+
+- Default (data-free): validates imports, model construction, and a forward pass
+  with synthetic input. This should succeed on fresh environments even when the
+  dataset is not present yet.
+- Optional (data-backed): validates that the WebDataset shards are reachable and
+  that a real dataloader batch can be produced.
+
 Run with:
     python -m classifier_NN.smoke_test
 """
 
 import sys
+import os
 
 import torch
 
-from .config import get_default_cfg, CFG
-from .datasets import create_dataloaders
+from .config import get_default_cfg, CFG, SPLIT_DIRS
 from .models import build_model
+
+
+def _have_train_shards() -> bool:
+    """Return True if Train split directory exists and has at least one .tar shard."""
+    train_dir = SPLIT_DIRS.get("Train")
+    if not train_dir or not os.path.isdir(train_dir):
+        return False
+    try:
+        return any(name.endswith(".tar") for name in os.listdir(train_dir))
+    except OSError:
+        return False
 
 
 def run_smoke_tests():
@@ -26,31 +45,35 @@ def run_smoke_tests():
     # Update global CFG so datasets/model see it
     CFG.update(cfg)
 
-    # Dataloader smoke
+    # Model forward smoke (data-free, always runs)
     try:
-        dls = create_dataloaders()
-        batch = next(iter(dls["Train"]))
-        x, y, meta = batch
-        print("[SMOKE] Dataloader ok - batch shapes:",
-              (x[0].shape, x[1].shape) if isinstance(x, (list, tuple)) else x.shape,
-              "labels shape:", y.shape)
-    except Exception as e:
-        print("[SMOKE] Dataloader failed:", e)
-        return 1
-
-    # Model forward smoke
-    try:
-        model = build_model(num_classes=2)
+        model = build_model(cfg=cfg, num_classes=2)
         model.eval()
         with torch.no_grad():
-            if isinstance(x, (list, tuple)):
-                out = model(tuple(xi for xi in x))
-            else:
-                out = model(x)
+            x = torch.randn(cfg["batch_size"], 1, cfg["image_size"], cfg["image_size"])
+            out = model(x)
         print("[SMOKE] Model forward ok - output shape:", out.shape)
     except Exception as e:
         print("[SMOKE] Model forward failed:", e)
         return 1
+
+    # Optional dataloader smoke (only if shards exist)
+    if _have_train_shards():
+        try:
+            from .datasets import create_dataloaders
+            dls = create_dataloaders()
+            batch = next(iter(dls["Train"]))
+            x, y, meta = batch
+            print(
+                "[SMOKE] Dataloader ok - batch shapes:",
+                (x[0].shape, x[1].shape) if isinstance(x, (list, tuple)) else x.shape,
+                "labels shape:", y.shape,
+            )
+        except Exception as e:
+            print("[SMOKE] Dataloader failed:", e)
+            return 1
+    else:
+        print(f"[SMOKE] Dataloader skipped (no shards found under: {SPLIT_DIRS.get('Train')})")
 
     return 0
 

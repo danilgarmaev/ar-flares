@@ -1,7 +1,7 @@
 import os
 import sys
-from .config import get_default_cfg, apply_physics_attention_overrides
-from .train import main
+from ..config import get_default_cfg, apply_physics_attention_overrides
+from ..train import main
 
 # Physics-Informed Attention Experiment
 # This script runs the training with the Difference Image Attention mechanism.

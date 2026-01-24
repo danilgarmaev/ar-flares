@@ -11,3 +11,4 @@ webdataset>=0.2.86
 fvcore
 iopath
 pytorchvideo
+peft

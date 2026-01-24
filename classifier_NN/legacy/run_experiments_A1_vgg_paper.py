@@ -23,8 +23,8 @@ Usage:
 
 import argparse
 
-from .config import get_default_cfg
-from .train import main
+from ..config import get_default_cfg
+from ..train import main
 
 
 def _build_cfg(name: str, overrides: dict, common_overrides: dict | None = None) -> dict:
