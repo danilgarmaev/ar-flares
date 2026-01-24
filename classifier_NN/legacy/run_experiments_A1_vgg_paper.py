@@ -19,6 +19,7 @@ Usage:
     python -m classifier_NN.legacy.run_experiments_A1_vgg_paper
     python -m classifier_NN.legacy.run_experiments_A1_vgg_paper --smoke
     python -m classifier_NN.legacy.run_experiments_A1_vgg_paper --epochs 20
+    python -m classifier_NN.legacy.run_experiments_A1_vgg_paper --no-pretrained
 """
 
 import argparse
@@ -88,10 +89,13 @@ EXPS = [
 ]
 
 
-def run_all(*, smoke: bool, epochs: int | None):
+def run_all(*, smoke: bool, epochs: int | None, pretrained: bool | None):
     common = dict(PAPER_VGG_COMMON)
     if epochs is not None:
         common["epochs"] = int(epochs)
+
+    if pretrained is not None:
+        common["pretrained"] = bool(pretrained)
 
     if smoke:
         common.update(
@@ -101,6 +105,8 @@ def run_all(*, smoke: bool, epochs: int | None):
                 "num_workers": 0,
                 "persistent_workers": False,
                 "redirect_log": False,
+                # Compute nodes often have no outbound network; avoid downloading weights.
+                "pretrained": False,
                 "val_max_batches": 5,
                 "max_train_shards": 2,
                 "max_val_shards": 1,
@@ -131,6 +137,20 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true", help="Run a tiny 1-epoch shard-limited smoke test")
     ap.add_argument("--epochs", type=int, default=None, help="Override epochs for all runs")
+    ap.add_argument(
+        "--pretrained",
+        dest="pretrained",
+        action="store_true",
+        default=None,
+        help="Use pretrained weights (requires weights already cached or network access)",
+    )
+    ap.add_argument(
+        "--no-pretrained",
+        dest="pretrained",
+        action="store_false",
+        default=None,
+        help="Do not use pretrained weights (safe default on compute nodes)",
+    )
     args = ap.parse_args()
 
-    run_all(smoke=bool(args.smoke), epochs=args.epochs)
+    run_all(smoke=bool(args.smoke), epochs=args.epochs, pretrained=args.pretrained)

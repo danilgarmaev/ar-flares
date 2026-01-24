@@ -27,10 +27,9 @@ export AR_FLARES_WDS_FLOW_BASE=/home/dgarmaev/scratch/ar-flares/data/wds_flow
 export AR_FLARES_RESULTS_BASE=/home/dgarmaev/scratch/ar-flares/results
 export AR_FLARES_INTENSITY_LABELS_ROOT=/home/dgarmaev/scratch/ar-flares/data
 
-# Put model caches on node-local SSD when available
-export HF_HOME="${SLURM_TMPDIR:-/tmp}/hf"
-export TORCH_HOME="${SLURM_TMPDIR:-/tmp}/torch"
-export TRANSFORMERS_CACHE="$HF_HOME"
-export HF_DATASETS_CACHE="$HF_HOME"
+# Put caches on scratch so they can be reused across jobs (compute nodes often have no internet).
+export HF_HOME=/home/dgarmaev/scratch/ar-flares/.cache/hf
+export TORCH_HOME=/home/dgarmaev/scratch/ar-flares/.cache/torch
+mkdir -p "$HF_HOME" "$TORCH_HOME"
 
-python -m classifier_NN.legacy.run_experiments_A1_vgg_paper --smoke
+python -m classifier_NN.legacy.run_experiments_A1_vgg_paper --smoke --no-pretrained
