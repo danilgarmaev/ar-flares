@@ -21,9 +21,11 @@ module load cuda/12.2
 
 source /scratch/${USER}/venvs/ar-flares/bin/activate
 
+export PYTHONUNBUFFERED=1
+
 python -c "import torch; print('torch', torch.__version__, 'cuda_available', torch.cuda.is_available())"
 
 echo "Running smoke test..."
-python -m classifier_NN.smoke_test
+timeout 180 python -m classifier_NN.smoke_test
 
 echo "Smoke test finished at $(date)"
