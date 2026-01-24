@@ -16,9 +16,9 @@ Runs:
 - A1paper-56:  spatial_downsample_factor=4
 
 Usage:
-  python -m classifier_NN.run_experiments_A1_vgg_paper
-  python -m classifier_NN.run_experiments_A1_vgg_paper --smoke
-  python -m classifier_NN.run_experiments_A1_vgg_paper --epochs 20
+    python -m classifier_NN.legacy.run_experiments_A1_vgg_paper
+    python -m classifier_NN.legacy.run_experiments_A1_vgg_paper --smoke
+    python -m classifier_NN.legacy.run_experiments_A1_vgg_paper --epochs 20
 """
 
 import argparse
@@ -54,7 +54,7 @@ PAPER_VGG_COMMON = {
     "image_size": 224,
 
     # training (paper)
-    "batch_size": 64,
+    "batch_size": 256,
     "optimizer": "adam_paper",
     "lr": 1e-3,
     "epochs": 20,
@@ -68,7 +68,7 @@ PAPER_VGG_COMMON = {
     "aug_preset": "paper_vgg",
 
     # dataloader (paper)
-    "num_workers": 4,
+    "num_workers": 8,
     "persistent_workers": True,
     "prefetch_factor": 2,
     "pin_memory": True,
