@@ -24,7 +24,7 @@ By using the difference image to generate a spatial attention map, we can force 
 ## Usage
 To run the experiment:
 ```bash
-python run_physics_attention.py
+python -m classifier_NN.legacy.run_physics_attention
 ```
 
 ## Configuration

@@ -46,9 +46,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from .config import CFG
-from .datasets import create_dataloaders
-from .models import build_model
+from ..config import CFG
+from ..datasets import create_dataloaders
+from ..models import build_model
 
 
 LocationKey = Tuple[int, str]  # (ar_number, YYYYMMDD)

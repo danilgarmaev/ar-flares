@@ -1,7 +1,7 @@
 import os
 import sys
-from .config import get_default_cfg
-from .train import main
+from ..config import get_default_cfg
+from ..train import main
 
 from .run_experiments import build_experiment_cfg
 
