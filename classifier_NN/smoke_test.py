@@ -50,7 +50,29 @@ def run_smoke_tests():
         model = build_model(cfg=cfg, num_classes=2)
         model.eval()
         with torch.no_grad():
-            x = torch.randn(cfg["batch_size"], 1, cfg["image_size"], cfg["image_size"])
+            backbone = str(cfg.get("backbone", "")).lower()
+
+            # Default config uses a 3D backbone; generate the correct synthetic
+            # input shape based on backbone family.
+            video_backbones = {
+                "simple3dcnn",
+                "3d_cnn",
+                "resnet3d_simple",
+                "r3d_18",
+                "r3d18",
+                "slowfast",
+                "slowfast_r50",
+                "video_transformer",
+                "timeformer",
+                "video_vit",
+            }
+
+            if backbone in video_backbones:
+                t = int(cfg.get("seq_T", 3))
+                x = torch.randn(cfg["batch_size"], t, 1, cfg["image_size"], cfg["image_size"])
+            else:
+                x = torch.randn(cfg["batch_size"], 1, cfg["image_size"], cfg["image_size"])
+
             out = model(x)
         print("[SMOKE] Model forward ok - output shape:", out.shape)
     except Exception as e:

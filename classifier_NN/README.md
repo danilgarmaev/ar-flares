@@ -12,7 +12,7 @@ python train_balanced_convnext.py
 screen -dmS training bash -c "python train_balanced_convnext.py 2>&1 | tee training_output.log"
 
 # Monitor progress
-./check_training.sh
+../scripts/check_training.sh
 
 # Attach to running training
 screen -r training
