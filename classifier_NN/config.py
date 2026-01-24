@@ -1,14 +1,104 @@
-"""Configuration settings for AR-flares classifier training."""
+"""Configuration settings for AR-flares classifier training.
+
+Notes on design
+---------------
+This project historically ran in multiple environments (Compute Canada, local
+workstations, hosted notebooks). Hard-coding paths based on `/scratch` being
+present is brittle because many systems have `/scratch` even when the dataset
+is in the repo checkout.
+
+To keep things reproducible and portable, we resolve paths in this order:
+  1) explicit environment variables (recommended)
+  2) known common locations if they exist
+  3) repo-relative `data/` and `results/`
+"""
+
+from __future__ import annotations
+
 import os
+from pathlib import Path
+
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _first_existing_dir(*candidates: str | os.PathLike | None) -> str | None:
+    for c in candidates:
+        if not c:
+            continue
+        p = Path(c).expanduser()
+        if p.is_dir():
+            return str(p)
+    return None
+
+
+def _first_writable_parent(*candidates: str | os.PathLike | None) -> str | None:
+    """Return the first candidate whose parent is writable.
+
+    This lets us pick a sensible results directory even when it doesn't exist yet.
+    """
+    for c in candidates:
+        if not c:
+            continue
+        p = Path(c).expanduser()
+        parent = p if p.suffix == "" else p.parent
+        # If it's a directory path, check its parent; if it's a file-like path,
+        # still check parent.
+        parent = p.parent
+        if parent.exists() and os.access(str(parent), os.W_OK):
+            return str(p)
+    return None
 
 # ===================== CONFIG =====================
+# Keep this for metadata/logging only; do not gate path resolution on it.
 IS_COMPUTE_CANADA = os.path.exists('/scratch')
+
+# Optional environment overrides (recommended on clusters)
+ENV_WDS_BASE = os.environ.get("AR_FLARES_WDS_BASE")
+ENV_WDS_FLOW_BASE = os.environ.get("AR_FLARES_WDS_FLOW_BASE")
+ENV_RESULTS_BASE = os.environ.get("AR_FLARES_RESULTS_BASE")
+ENV_INTENSITY_LABELS_ROOT = os.environ.get("AR_FLARES_INTENSITY_LABELS_ROOT")
+
+# Common candidate locations
+_REPO_WDS = str(_PROJECT_ROOT / "data" / "wds_out")
+_REPO_WDS_FLOW = str(_PROJECT_ROOT / "data" / "wds_flow")
+_REPO_RESULTS = str(_PROJECT_ROOT / "results")
+
+_SCRATCH_WDS = "/scratch/dgarmaev/ar-flares/data/wds_out"
+_SCRATCH_WDS_LEGACY = "/scratch/dgarmaev/ar-flares-legacy/data/wds_out"
+_SCRATCH_WDS_FLOW = "/scratch/dgarmaev/ar-flares/data/wds_flow"
+_SCRATCH_WDS_FLOW_LEGACY = "/scratch/dgarmaev/ar-flares-legacy/data/wds_flow"
+_SCRATCH_RESULTS = "/scratch/dgarmaev/ar-flares/results"
+
+_TEAMSPACE_WDS = "/teamspace/studios/this_studio/AR-flares/data/wds_out"
+_TEAMSPACE_WDS_FLOW = "/teamspace/studios/this_studio/AR-flares/data/wds_flow"
+_TEAMSPACE_RESULTS = "/teamspace/studios/this_studio/AR-flares/results"
 
 CFG = {
     # paths
-    "wds_base": '/scratch/dgarmaev/AR-flares/wds_out' if IS_COMPUTE_CANADA else '/teamspace/studios/this_studio/AR-flares/data/wds_out',
-    "wds_flow_base": '/scratch/dgarmaev/AR-flares/wds_flow' if IS_COMPUTE_CANADA else '/teamspace/studios/this_studio/AR-flares/data/wds_flow',
-    "results_base": '/scratch/dgarmaev/AR-flares/results' if IS_COMPUTE_CANADA else '/teamspace/studios/this_studio/AR-flares/results',
+    "wds_base": _first_existing_dir(
+        ENV_WDS_BASE,
+        _SCRATCH_WDS,
+        _SCRATCH_WDS_LEGACY,
+        _REPO_WDS,
+        _TEAMSPACE_WDS,
+    )
+    or _REPO_WDS,
+    "wds_flow_base": _first_existing_dir(
+        ENV_WDS_FLOW_BASE,
+        _SCRATCH_WDS_FLOW,
+        _SCRATCH_WDS_FLOW_LEGACY,
+        _REPO_WDS_FLOW,
+        _TEAMSPACE_WDS_FLOW,
+    )
+    or _REPO_WDS_FLOW,
+    "results_base": _first_writable_parent(
+        ENV_RESULTS_BASE,
+        _SCRATCH_RESULTS,
+        _REPO_RESULTS,
+        _TEAMSPACE_RESULTS,
+    )
+    or _REPO_RESULTS,
 
     "use_flow": False,   # set False to ignore optical flow, True to use it
     "use_diff": False,  # use pixel-intensity difference instead of optical flow
@@ -20,7 +110,10 @@ CFG = {
 
     # sequence settings (only if use_seq=True)
     "seq_T": 3,                      # number of frames per sequence (e.g. last 3 hours)
-    "seq_stride_steps": 8,           # spacing between frames (8 * 12min = 96min)
+    # IMPORTANT: most of the codebase expects `seq_stride` (not `seq_stride_steps`).
+    # Keep both for backwards compatibility.
+    "seq_stride": 8,                 # spacing between frames (k * 12min)
+    "seq_stride_steps": 8,           # deprecated alias of seq_stride
     "seq_offsets": [-16, -8, 0],     # past-only temporal offsets
     "seq_aggregate": "mean",         # "mean" or "attn" for temporal aggregation
 
@@ -42,6 +135,10 @@ CFG = {
     "pin_memory": True,
     "persistent_workers": False,
     "prefetch_factor": 2,
+
+    # augmentation controls (used by datasets.py)
+    # Keep defaults identical to historical behavior.
+    "vertical_flip_prob": 0.5,
 
     # model / training
     # backbone options:
@@ -121,9 +218,13 @@ SPLIT_FLOW_DIRS = {
 
 # Label map path
 intensity_labels_path = (
-    "/scratch/dgarmaev/AR-flares/data"
-    if IS_COMPUTE_CANADA
-    else "/teamspace/studios/this_studio/AR-flares/data"
+    ENV_INTENSITY_LABELS_ROOT
+    or _first_existing_dir(
+        "/scratch/dgarmaev/AR-flares/data",
+        str(_PROJECT_ROOT / "data"),
+        "/teamspace/studios/this_studio/AR-flares/data",
+    )
+    or str(_PROJECT_ROOT / "data")
 )
 
 

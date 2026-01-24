@@ -137,11 +137,12 @@ def _build_aug_transform(img_size: int):
         ])
 
     # Default: robust augmentation
+    vflip_prob = float(CFG.get("vertical_flip_prob", 0.5))
     return transforms.Compose([
         transforms.Resize((ds, ds), interpolation=transforms.InterpolationMode.NEAREST if factor > 1 else transforms.InterpolationMode.BILINEAR),
         transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
         transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.5),
+        transforms.RandomVerticalFlip(p=vflip_prob),
         transforms.RandomRotation(30),  # limit to ±30°
         PolarityInversion(),            # magnetic polarity inversion
         AddIntegerNoise(max_abs_noise=5),  # ±5 noise with clamping
@@ -311,7 +312,7 @@ class TarShardDataset(IterableDataset):
                 # generating highly-overlapping windows (which can blow up
                 # the effective number of training samples and steps/epoch
                 # for long sequences like T=16 or T=32).
-                seq_stride = CFG.get("seq_stride", 1)
+                seq_stride = CFG.get("seq_stride", CFG.get("seq_stride_steps", 1))
 
                 # For sequence/diff modes we cannot shuffle `entries` (it would
                 # destroy temporal ordering required by offsets). Instead we
