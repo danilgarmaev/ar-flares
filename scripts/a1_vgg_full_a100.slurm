@@ -24,6 +24,11 @@ export AR_FLARES_WDS_FLOW_BASE=/home/dgarmaev/scratch/ar-flares/data/wds_flow
 export AR_FLARES_RESULTS_BASE=/home/dgarmaev/scratch/ar-flares/results
 export AR_FLARES_INTENSITY_LABELS_ROOT=/home/dgarmaev/scratch/ar-flares/data
 
+# Offline safety switches: fail fast instead of hanging on network retries.
+export HF_DATASETS_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_HUB_OFFLINE=1
+
 export HF_HOME=/home/dgarmaev/scratch/ar-flares/.cache/hf
 export TORCH_HOME=/home/dgarmaev/scratch/ar-flares/.cache/torch
 mkdir -p "$HF_HOME" "$TORCH_HOME"
