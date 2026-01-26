@@ -108,6 +108,9 @@ mlruns/
 *.temp
 .cache/*.log
 
+# Local caches (HF/torch/timm)
+.cache/
+
 # Compute Canada / SLURM smoke test artifacts
 arfl-smoke-*.out
 arfl-smoke-*.err

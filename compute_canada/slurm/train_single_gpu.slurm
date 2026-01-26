@@ -19,7 +19,7 @@ set -euo pipefail
 echo "Job started on $(hostname) at $(date)"
 echo "SLURM_JOB_ID=${SLURM_JOB_ID}"
 
-cd /home/${USER}/ar-flares
+cd "${SLURM_SUBMIT_DIR:-$PWD}"
 
 module load python/3.11
 module load cuda/12.2

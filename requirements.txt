@@ -1,14 +1,30 @@
+
+# Minimal runtime deps for `python -m classifier_NN.smoke_test`
+# (kept compatible with Compute Canada wheelhouse builds when available)
 torch>=2.1.0
 torchvision>=0.16.0
 timm>=0.9.12
-numpy>=1.24.0
-scikit-learn>=1.3.0
-matplotlib>=3.7.0
+
+# LoRA / PEFT stack (models.py imports peft)
+peft>=0.8.0
+transformers>=4.36.0
+accelerate>=0.25.0
+safetensors>=0.4.0
+huggingface_hub>=0.20.0
+
+# Torch runtime deps that have bitten us in fresh envs
+numpy>=1.24.0,<2.0
+sympy>=1.12
+typing_extensions>=4.8
+
+# Common utilities used across the repo
 pillow>=10.0.0
-pytz>=2023.3
+pyyaml>=6.0
 tqdm>=4.66.0
+
+# Training/eval metrics
+scikit-learn>=1.3.0
+
+# Optional (only needed for data-backed loader smoke / training)
 webdataset>=0.2.86
-fvcore
-iopath
-pytorchvideo
-peft
+
