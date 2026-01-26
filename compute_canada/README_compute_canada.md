@@ -4,13 +4,23 @@ This repo is designed to run on Compute Canada style clusters (no GUI, SLURM, sc
 
 ### 1) Where training looks for data/results
 
-`classifier_NN/config.py` automatically switches to Compute Canada paths when `/scratch` exists:
+`classifier_NN/config.py` resolves paths in this order (most explicit wins):
 
-- `wds_base`: `/scratch/<user>/AR-flares/wds_out/{train,val,test}`
-- `wds_flow_base`: `/scratch/<user>/AR-flares/wds_flow/{train,val,test}` (optional)
-- `results_base`: `/scratch/<user>/AR-flares/results`
+1) Environment variables (recommended on clusters)
+	- `AR_FLARES_WDS_BASE` (expected to contain `train/`, `val/`, `test/`)
+	- `AR_FLARES_WDS_FLOW_BASE` (optional; also contains `train/`, `val/`, `test/`)
+	- `AR_FLARES_RESULTS_BASE`
+	- `AR_FLARES_INTENSITY_LABELS_ROOT`
+2) Common locations that already exist (including `/scratch/$USER/...`)
+3) Repo-relative fallbacks under `data/` and `results/`
 
-If your username is not `dgarmaev`, edit those paths in `classifier_NN/config.py` (or better: set them via env vars in a later refactor).
+Practical default on Compute Canada is to keep large data + results on scratch, e.g.:
+
+```bash
+export AR_FLARES_WDS_BASE=/scratch/$USER/ar-flares/data/wds_out
+export AR_FLARES_WDS_FLOW_BASE=/scratch/$USER/ar-flares/data/wds_flow   # optional
+export AR_FLARES_RESULTS_BASE=/scratch/$USER/ar-flares/results
+```
 
 ### 2) Environment setup (recommended: modules + venv)
 

@@ -16,6 +16,7 @@ To keep things reproducible and portable, we resolve paths in this order:
 from __future__ import annotations
 
 import os
+import getpass
 from pathlib import Path
 
 
@@ -41,10 +42,9 @@ def _first_writable_parent(*candidates: str | os.PathLike | None) -> str | None:
         if not c:
             continue
         p = Path(c).expanduser()
+        # If it's a directory-like path (no suffix), check it directly;
+        # if it's a file-like path, check its parent directory.
         parent = p if p.suffix == "" else p.parent
-        # If it's a directory path, check its parent; if it's a file-like path,
-        # still check parent.
-        parent = p.parent
         if parent.exists() and os.access(str(parent), os.W_OK):
             return str(p)
     return None
@@ -64,11 +64,14 @@ _REPO_WDS = str(_PROJECT_ROOT / "data" / "wds_out")
 _REPO_WDS_FLOW = str(_PROJECT_ROOT / "data" / "wds_flow")
 _REPO_RESULTS = str(_PROJECT_ROOT / "results")
 
-_SCRATCH_WDS = "/scratch/dgarmaev/ar-flares/data/wds_out"
-_SCRATCH_WDS_LEGACY = "/scratch/dgarmaev/ar-flares-legacy/data/wds_out"
-_SCRATCH_WDS_FLOW = "/scratch/dgarmaev/ar-flares/data/wds_flow"
-_SCRATCH_WDS_FLOW_LEGACY = "/scratch/dgarmaev/ar-flares-legacy/data/wds_flow"
-_SCRATCH_RESULTS = "/scratch/dgarmaev/ar-flares/results"
+_USER = os.environ.get("USER") or getpass.getuser() or Path.home().name
+_SCRATCH_USER = str(Path("/scratch") / _USER)
+
+_SCRATCH_WDS = str(Path(_SCRATCH_USER) / "ar-flares" / "data" / "wds_out")
+_SCRATCH_WDS_LEGACY = str(Path(_SCRATCH_USER) / "ar-flares-legacy" / "data" / "wds_out")
+_SCRATCH_WDS_FLOW = str(Path(_SCRATCH_USER) / "ar-flares" / "data" / "wds_flow")
+_SCRATCH_WDS_FLOW_LEGACY = str(Path(_SCRATCH_USER) / "ar-flares-legacy" / "data" / "wds_flow")
+_SCRATCH_RESULTS = str(Path(_SCRATCH_USER) / "ar-flares" / "results")
 
 _TEAMSPACE_WDS = "/teamspace/studios/this_studio/AR-flares/data/wds_out"
 _TEAMSPACE_WDS_FLOW = "/teamspace/studios/this_studio/AR-flares/data/wds_flow"
@@ -220,7 +223,8 @@ SPLIT_FLOW_DIRS = {
 intensity_labels_path = (
     ENV_INTENSITY_LABELS_ROOT
     or _first_existing_dir(
-        "/scratch/dgarmaev/AR-flares/data",
+        str(Path(_SCRATCH_USER) / "AR-flares" / "data"),
+        str(Path(_SCRATCH_USER) / "ar-flares" / "data"),
         str(_PROJECT_ROOT / "data"),
         "/teamspace/studios/this_studio/AR-flares/data",
     )

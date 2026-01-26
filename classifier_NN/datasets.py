@@ -258,7 +258,8 @@ class TarShardDataset(IterableDataset):
 
                     # Sample geometric decisions once per sequence
                     hflip = random.random() < 0.5
-                    vflip = random.random() < 0.5
+                    vflip_prob = float(CFG.get("vertical_flip_prob", 0.5))
+                    vflip = random.random() < vflip_prob
                     angle = random.uniform(-30.0, 30.0)
                     polarity = True  # always apply in aug mode
 
