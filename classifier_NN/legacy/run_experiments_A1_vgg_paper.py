@@ -86,10 +86,11 @@ EXPS = [
     ("A1paper-224_vgg16bn", 1),
     ("A1paper-112_vgg16bn", 2),
     ("A1paper-56_vgg16bn", 4),
+    ("A1paper-28_vgg16bn", 8),
 ]
 
 
-def run_all(*, smoke: bool, epochs: int | None, pretrained: bool | None):
+def run_all(*, smoke: bool, epochs: int | None, pretrained: bool | None, only: list[str] | None):
     common = dict(PAPER_VGG_COMMON)
     if epochs is not None:
         common["epochs"] = int(epochs)
@@ -114,7 +115,11 @@ def run_all(*, smoke: bool, epochs: int | None, pretrained: bool | None):
             }
         )
 
+    allowed = set(only) if only else None
+
     for name, factor in EXPS:
+        if allowed is not None and name not in allowed:
+            continue
         print("\n" + "=" * 80)
         print(f"Launching: {name} | spatial_downsample_factor={factor}")
         print("=" * 80 + "\n")
@@ -136,6 +141,16 @@ def run_all(*, smoke: bool, epochs: int | None, pretrained: bool | None):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true", help="Run a tiny 1-epoch shard-limited smoke test")
+    ap.add_argument(
+        "--only",
+        action="append",
+        default=None,
+        help=(
+            "Run only the specified experiment name(s). "
+            "Repeat --only multiple times for multiple runs. "
+            "Example: --only A1paper-28_vgg16bn"
+        ),
+    )
     ap.add_argument("--epochs", type=int, default=None, help="Override epochs for all runs")
     ap.add_argument(
         "--pretrained",
@@ -153,4 +168,4 @@ if __name__ == "__main__":
     )
     args = ap.parse_args()
 
-    run_all(smoke=bool(args.smoke), epochs=args.epochs, pretrained=args.pretrained)
+    run_all(smoke=bool(args.smoke), epochs=args.epochs, pretrained=args.pretrained, only=args.only)

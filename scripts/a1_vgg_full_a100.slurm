@@ -41,4 +41,13 @@ if [ "$PRETRAINED" = "1" ]; then
 	EXTRA_PRETRAINED_ARGS="--pretrained"
 fi
 
-python -m classifier_NN.legacy.run_experiments_A1_vgg_paper $EXTRA_PRETRAINED_ARGS
+# Optionally run only a single experiment name (avoid re-running all resolutions)
+# Example:
+#   sbatch --export=ALL,ONLY=A1paper-28_vgg16bn scripts/a1_vgg_full_a100.slurm
+ONLY=${ONLY:-}
+EXTRA_ONLY_ARGS=""
+if [ -n "$ONLY" ]; then
+	EXTRA_ONLY_ARGS="--only $ONLY"
+fi
+
+python -m classifier_NN.legacy.run_experiments_A1_vgg_paper $EXTRA_PRETRAINED_ARGS $EXTRA_ONLY_ARGS
