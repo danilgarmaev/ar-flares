@@ -9,11 +9,12 @@ Constraints
 -----------
 - Evaluation-only: do NOT retrain.
 - Use existing Test dataloader that yields (x, label, meta).
-- Bucket by SRS Location longitude using a fixed threshold=0.5.
+- Bucket by SRS Location longitude using a fixed decision threshold.
+    By default we use the model's Best_TSS threshold from the experiment outputs.
 
 Usage
 -----
-python -m classifier_NN.run_experiments_A2 \
+python -m classifier_NN.legacy.run_experiments_A2 \
   --exp-dir "/path/to/experiment_dir" \
   --checkpoint best_tss.pt
 
@@ -33,6 +34,7 @@ import argparse
 import json
 import os
 import re
+from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Iterable, Optional, Tuple
@@ -40,11 +42,23 @@ from typing import Any, Dict, Iterable, Optional, Tuple
 import torch
 
 from tqdm import tqdm
-from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve, precision_recall_curve
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+try:
+    from sklearn.metrics import (
+        average_precision_score,
+        precision_recall_curve,
+        roc_auc_score,
+        roc_curve,
+    )
+except Exception:  # pragma: no cover
+    roc_auc_score = None
+    average_precision_score = None
+    roc_curve = None
+    precision_recall_curve = None
 
 from ..config import CFG
 from ..datasets import create_dataloaders
@@ -55,6 +69,15 @@ LocationKey = Tuple[int, str]  # (ar_number, YYYYMMDD)
 
 
 _LOCATION_RE = re.compile(r"\b[NS](\d{1,2})([EW])(\d{1,2})\b")
+
+
+def _normalize_yyyymmdd(value: Any) -> Optional[str]:
+    """Return a YYYYMMDD string extracted from value, or None if unavailable."""
+    if value is None:
+        return None
+    s = str(value)
+    m = re.search(r"(\d{8})", s)
+    return m.group(1) if m else None
 
 
 def _parse_longitude_from_location_token(token: str) -> Optional[int]:
@@ -150,13 +173,9 @@ def _to_prob_positive(outputs: torch.Tensor) -> torch.Tensor:
     - probabilities already in [0, 1]
     """
     if outputs.ndim == 2 and outputs.shape[1] == 2:
-        # Heuristic: if values aren't in [0,1] or rows don't sum ~1, treat as logits.
-        if outputs.min().item() < 0.0 or outputs.max().item() > 1.0:
-            return torch.softmax(outputs, dim=1)[:, 1]
-        row_sums = outputs.sum(dim=1)
-        if torch.any(torch.abs(row_sums - 1.0) > 1e-2):
-            return torch.softmax(outputs, dim=1)[:, 1]
-        return outputs[:, 1]
+        # In this codebase we train with CrossEntropy-style 2-class logits.
+        # Always apply softmax to get P(y=1).
+        return torch.softmax(outputs, dim=1)[:, 1]
 
     if outputs.ndim == 2 and outputs.shape[1] == 1:
         outputs = outputs[:, 0]
@@ -254,6 +273,8 @@ def _compute_auc_metrics(labels: np.ndarray, probs: np.ndarray) -> dict[str, flo
     out: dict[str, float] = {"ROC_AUC": float("nan"), "PR_AUC": float("nan")}
     if labels.size == 0:
         return out
+    if roc_auc_score is None or average_precision_score is None:
+        return out
     try:
         out["ROC_AUC"] = float(roc_auc_score(labels, probs))
     except Exception:
@@ -271,6 +292,17 @@ def _plot_curves(out_dir: str, curves: dict[str, tuple[np.ndarray, np.ndarray]],
     curves: name -> (labels, probs)
     """
     if not curves:
+        return
+
+    if roc_curve is None or precision_recall_curve is None or roc_auc_score is None or average_precision_score is None:
+        return
+
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except Exception:
         return
 
     fig, (ax_roc, ax_pr) = plt.subplots(1, 2, figsize=(14, 6))
@@ -314,16 +346,61 @@ def _plot_curves(out_dir: str, curves: dict[str, tuple[np.ndarray, np.ndarray]],
 
 
 def _plot_bucket_tss(out_dir: str, buckets: dict[str, BucketStats]) -> None:
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except Exception:
+        return
     names = list(buckets.keys())
     tss_vals = [buckets[n].tss() for n in names]
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.bar(names, tss_vals)
     ax.set_ylabel("TSS")
-    ax.set_title("A2 Longitude Buckets (threshold=0.5)")
+    ax.set_title("A2 Longitude Buckets")
     ax.grid(True, axis="y", linestyle="--", alpha=0.3)
     fig.tight_layout()
     fig.savefig(os.path.join(out_dir, "bucket_tss.png"), dpi=200)
     plt.close(fig)
+
+
+def _try_read_best_threshold_from_exp_dir(exp_dir: str) -> Optional[float]:
+    """Try to infer best decision threshold from prior experiment artifacts.
+
+    Expected sources:
+    - metrics.json with key Best_threshold
+    - log.txt with line like: Best TSS: ... @ threshold=0.350
+    """
+    # 1) metrics.json
+    metrics_path = os.path.join(exp_dir, "metrics.json")
+    try:
+        if os.path.exists(metrics_path):
+            with open(metrics_path, "r") as f:
+                metrics = json.load(f)
+            for k in ("Best_threshold", "best_threshold", "best_tss_threshold"):
+                if k in metrics:
+                    val = float(metrics[k])
+                    if 0.0 <= val <= 1.0:
+                        return val
+    except Exception:
+        pass
+
+    # 2) log.txt
+    log_path = os.path.join(exp_dir, "log.txt")
+    try:
+        if os.path.exists(log_path):
+            with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+                text = f.read()
+            m = re.search(r"Best TSS:.*?threshold=([0-9]*\.?[0-9]+)", text)
+            if m:
+                val = float(m.group(1))
+                if 0.0 <= val <= 1.0:
+                    return val
+    except Exception:
+        pass
+
+    return None
 
 
 def evaluate_longitude_buckets(
@@ -379,22 +456,21 @@ def evaluate_longitude_buckets(
             if ars is None:
                 raise KeyError("meta must contain key 'ar'")
 
+            # Normalize/derive YYYYMMDD date strings.
             if dates is None:
                 if basenames is None:
                     raise KeyError("meta must contain keys 'date' or 'basename' to extract date")
-                # Normalize basenames into python list of strings
                 if torch.is_tensor(basenames):
                     basenames_list = [b.decode() if isinstance(b, bytes) else str(b) for b in basenames.detach().cpu().tolist()]
                 else:
                     basenames_list = list(basenames)
-
-                import re
-                def _extract_date_from_basename(bname: str) -> Optional[str]:
-                    m = re.search(r"(\d{8})", str(bname))
-                    return m.group(1) if m else None
-
-                dates_list = [_extract_date_from_basename(b) for b in basenames_list]
-                dates = dates_list
+                dates = [_normalize_yyyymmdd(b) for b in basenames_list]
+            else:
+                if torch.is_tensor(dates):
+                    dates_list = dates.detach().cpu().tolist()
+                else:
+                    dates_list = list(dates)
+                dates = [_normalize_yyyymmdd(d) for d in dates_list]
 
             # Normalize to python lists for per-sample lookup
             if torch.is_tensor(ars):
@@ -402,12 +478,7 @@ def evaluate_longitude_buckets(
             else:
                 ars_list = list(ars)
 
-            if torch.is_tensor(dates):
-                # unlikely, but handle if date encoded as ints
-                dates_list: Iterable = dates.detach().cpu().tolist()
-                dates_list = [str(d) for d in dates_list]
-            else:
-                dates_list = list(dates)
+            dates_list = list(dates)
 
             for i, (ar, date) in enumerate(zip(ars_list, dates_list)):
                 try:
@@ -415,7 +486,10 @@ def evaluate_longitude_buckets(
                 except Exception:
                     skipped_missing_srs += 1
                     continue
-                date_s = str(date)
+                date_s = str(date) if date is not None else ""
+                if not date_s:
+                    skipped_missing_srs += 1
+                    continue
                 key = (ar_i, date_s)
                 lon = srs_lookup.get(key)
                 if lon is None:
@@ -469,10 +543,31 @@ def main() -> None:
     )
     parser.add_argument(
         "--srs-root",
-        default=os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "SRS"),
+        default=str(Path(__file__).resolve().parents[2] / "data" / "SRS"),
         help="Root directory containing YYYY_SRS folders",
     )
-    parser.add_argument("--threshold", type=float, default=0.5, help="Fixed decision threshold")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=None,
+        help="Optional override for evaluation batch size (useful for CPU-only runs)",
+    )
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=None,
+        help="Optional override for DataLoader num_workers (useful for clusters / CPUs)",
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help=(
+            "Decision threshold for positive class. "
+            "If omitted, will try to use Best_threshold from exp_dir/metrics.json (or exp_dir/log.txt); "
+            "falls back to 0.5."
+        ),
+    )
     parser.add_argument(
         "--out-dir",
         default=None,
@@ -488,6 +583,21 @@ def main() -> None:
             cfg = json.load(f)
     else:
         cfg = _load_cfg_from_exp_dir(args.exp_dir)
+
+    # Threshold: default to the experiment's best-TSS threshold when available.
+    if args.threshold is None:
+        inferred = None
+        if args.exp_dir is not None:
+            inferred = _try_read_best_threshold_from_exp_dir(args.exp_dir)
+        threshold = float(inferred) if inferred is not None else 0.5
+    else:
+        threshold = float(args.threshold)
+
+    # Optional overrides for evaluation convenience
+    if args.batch_size is not None:
+        cfg["batch_size"] = int(args.batch_size)
+    if args.num_workers is not None:
+        cfg["num_workers"] = int(args.num_workers)
 
     CFG.update(cfg)
 
@@ -518,7 +628,7 @@ def main() -> None:
         test_loader=test_loader,
         device=device,
         srs_lookup=srs_lookup,
-        threshold=float(args.threshold),
+        threshold=threshold,
     )
 
     print(lon_in_30.report())
@@ -527,7 +637,7 @@ def main() -> None:
 
     # Save outputs under results/
     if args.out_dir is None:
-        base = CFG.get("results_base", os.path.join(os.path.dirname(os.path.dirname(__file__)), "results"))
+        base = CFG.get("results_base", str(Path(__file__).resolve().parents[2] / "results"))
         tag = "A2_longitude_eval"
         if args.exp_dir:
             tag += "_" + os.path.basename(args.exp_dir)
@@ -543,7 +653,7 @@ def main() -> None:
         "lon_30_60": lon_out_30,
     }
     metrics: dict[str, Any] = {
-        "threshold": float(args.threshold),
+        "threshold": float(threshold),
         "skipped_missing_srs": int(skipped),
         "checkpoint_path": ckpt_path,
         "exp_dir": args.exp_dir,
@@ -574,6 +684,7 @@ def main() -> None:
         f.write(lon_out_30.report() + "\n")
         f.write(f"skipped_missing_srs={skipped}\n")
         f.write("\n")
+        f.write(f"threshold={threshold:.6f}\n")
         f.write(f"ROC_AUC(all)={metrics['all']['ROC_AUC']:.4f} PR_AUC(all)={metrics['all']['PR_AUC']:.4f}\n")
     print(f"Saved A2 outputs to: {out_dir}")
 
