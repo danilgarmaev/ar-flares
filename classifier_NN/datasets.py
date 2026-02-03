@@ -686,12 +686,31 @@ def create_dataloaders():
     img_size = CFG.get("image_size", 224)
     use_aug = CFG.get("use_aug", False)
 
-    train_ds = make_dataset("Train", shuffle_shards=True, shuffle_samples=True,
-                            img_size=img_size, use_aug=use_aug)
-    val_ds = make_dataset("Validation", shuffle_shards=False, shuffle_samples=False,
-                          img_size=img_size, use_aug=False)
-    test_ds = make_dataset("Test", shuffle_shards=False, shuffle_samples=False,
-                           img_size=img_size, use_aug=False)
+    seed = int(CFG.get("seed", 42))
+    train_ds = make_dataset(
+        "Train",
+        shuffle_shards=True,
+        shuffle_samples=True,
+        seed=seed,
+        img_size=img_size,
+        use_aug=use_aug,
+    )
+    val_ds = make_dataset(
+        "Validation",
+        shuffle_shards=False,
+        shuffle_samples=False,
+        seed=seed,
+        img_size=img_size,
+        use_aug=False,
+    )
+    test_ds = make_dataset(
+        "Test",
+        shuffle_shards=False,
+        shuffle_samples=False,
+        seed=seed,
+        img_size=img_size,
+        use_aug=False,
+    )
 
     common = dict(
         batch_size=CFG["batch_size"],

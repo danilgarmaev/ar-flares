@@ -153,6 +153,12 @@ CFG = {
     "freeze_backbone": False,   # allow full fine-tuning of convnext_base
     "lr": 1e-4,
     "epochs": 5,
+    "seed": 42,
+
+    # early stopping (validation TSS)
+    # Set to an int (e.g., 5) to enable early stopping; None disables.
+    "early_stopping_patience": None,
+    "early_stopping_min_delta": 0.0,
 
     # loss
     "use_focal": False,
