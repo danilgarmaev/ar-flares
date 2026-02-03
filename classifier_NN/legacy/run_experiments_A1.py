@@ -56,6 +56,11 @@ COMMON_A1_OVERRIDES = {
     "lr": 1e-3,
     "epochs": 50,
 
+    # model
+    # Default to pretrained transfer learning; override with --no-pretrained or --smoke.
+    "pretrained": True,
+    "freeze_backbone": True,
+
     # imbalance handling
     "balance_classes": False,
     "loss_type": "ce_weighted",
@@ -78,8 +83,6 @@ def run_single(*, backbone: str, resolution: int, seed: int, epochs: int | None 
     name = f"A1-{resolution}_{backbone}_seed{seed}"
     overrides = {
         "backbone": backbone,
-        "pretrained": True,
-        "freeze_backbone": True,
         "spatial_downsample_factor": factor,
         "seed": seed,
         "notes": (
@@ -106,6 +109,7 @@ def run_sweep(
     seeds: list[int] | None = None,
     epochs: int | None = None,
     common_overrides: dict | None = None,
+    write_summary: bool = True,
 ):
     backbones = backbones or list(BACKBONES)
     resolutions = resolutions or list(RESOLUTIONS)
@@ -162,15 +166,17 @@ def run_sweep(
                 f"\n[{backbone} | {resolution}] TSS = {tss_mean:.4f} ± {tss_std:.4f} (n={len(tss_values)})\n"
             )
 
-    # Save summary to results directory
-    cfg = get_default_cfg()
-    out_dir = cfg.get("results_base", ".")
-    os.makedirs(out_dir, exist_ok=True)
-    summary_path = os.path.join(out_dir, "summary_a1_resolution_sweep.json")
-    with open(summary_path, "w") as f:
-        json.dump(summary, f, indent=2)
-    print(f"Summary written to {summary_path}")
-    return summary_path
+    if write_summary:
+        # Save summary to results directory
+        cfg = get_default_cfg()
+        out_dir = cfg.get("results_base", ".")
+        os.makedirs(out_dir, exist_ok=True)
+        summary_path = os.path.join(out_dir, "summary_a1_resolution_sweep.json")
+        with open(summary_path, "w") as f:
+            json.dump(summary, f, indent=2)
+        print(f"Summary written to {summary_path}")
+        return summary_path
+    return None
 
 
 if __name__ == "__main__":
@@ -204,6 +210,11 @@ if __name__ == "__main__":
     )
     ap.add_argument("--epochs", type=int, default=None, help="Override epochs for all runs")
     ap.add_argument("--smoke", action="store_true", help="Tiny smoke run (1 epoch, shard/batch limits, no pretrained)")
+    ap.add_argument(
+        "--single",
+        action="store_true",
+        help="Run exactly one (backbone,resolution,seed) config and do not write the sweep summary JSON",
+    )
     ap.add_argument(
         "--pretrained",
         dest="pretrained",
@@ -244,10 +255,25 @@ if __name__ == "__main__":
             common_overrides = {}
         common_overrides["pretrained"] = bool(args.pretrained)
 
-    run_sweep(
-        backbones=backbones,
-        resolutions=resolutions,
-        seeds=seeds,
-        epochs=args.epochs,
-        common_overrides=common_overrides,
-    )
+    if args.single:
+        if not backbones or len(backbones) != 1:
+            raise SystemExit("--single requires exactly one --backbone")
+        if not resolutions or len(resolutions) != 1:
+            raise SystemExit("--single requires exactly one --resolution")
+        if args.seed is None or len(args.seed) != 1:
+            raise SystemExit("--single requires exactly one --seed")
+        run_single(
+            backbone=backbones[0],
+            resolution=int(resolutions[0]),
+            seed=int(args.seed[0]),
+            epochs=args.epochs,
+        )
+    else:
+        run_sweep(
+            backbones=backbones,
+            resolutions=resolutions,
+            seeds=seeds,
+            epochs=args.epochs,
+            common_overrides=common_overrides,
+            write_summary=True,
+        )
