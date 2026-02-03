@@ -5,6 +5,7 @@ Modular design with separate files for config, models, data, losses, and metrics
 import os
 import sys
 import json
+import random
 import numpy as np
 import torch
 import torch.optim as optim
@@ -406,6 +407,15 @@ def main(cfg=None):
         # (e.g., image_size, use_seq, etc.).
         CFG.update(cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    seed = cfg.get("seed", None)
+    if seed is not None:
+        seed = int(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+        print(f"Using seed: {seed}")
     print(f"Using device: {device}")
     
     # Setup experiment directory
@@ -553,6 +563,14 @@ def main(cfg=None):
     save_best_f1 = bool(cfg.get("save_best_f1", False))
     if save_best_f1:
         best_val_f1 = -1.0  # track best validation F1
+    best_tss_epoch = -1
+    patience = cfg.get("early_stopping_patience", None)
+    min_delta = float(cfg.get("early_stopping_min_delta", 0.0))
+    if patience is not None:
+        patience = int(patience)
+        if patience <= 0:
+            patience = None
+    epochs_since_improve = 0
     epoch_metrics_path = os.path.join(exp_dir, "epoch_metrics.jsonl")
     for epoch in range(cfg["epochs"]):
         print(f"\nEpoch {epoch+1}/{cfg['epochs']}")
@@ -621,11 +639,18 @@ def main(cfg=None):
         
         # Update best checkpoints every epoch (no minimum epoch constraint)
         # Best TSS checkpoint
-        if val_metrics["val_best_tss"] > best_val_tss:
+        improved_tss = val_metrics["val_best_tss"] > (best_val_tss + min_delta)
+        if improved_tss:
             best_val_tss = val_metrics["val_best_tss"]
             best_tss_epoch = epoch
             torch.save(model.state_dict(), os.path.join(exp_dir, "best_tss.pt"))
             print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} @ epoch={epoch} -> Saved to best_tss.pt")
+            if patience is not None:
+                epochs_since_improve = 0
+        else:
+            if patience is not None:
+                epochs_since_improve += 1
+                print(f"Early-stopping watch: no TSS improvement for {epochs_since_improve}/{patience} epochs")
         # Best F1 checkpoint (optional; disabled by default to save space)
         if save_best_f1:
             if val_metrics["val_f1"] > best_val_f1:
@@ -633,6 +658,11 @@ def main(cfg=None):
                 best_f1_epoch = epoch
                 torch.save(model.state_dict(), os.path.join(exp_dir, "best_f1.pt"))
                 print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
+        if patience is not None and epochs_since_improve >= patience:
+            print(
+                f"⏹️ Early stopping triggered: best Val TSS={best_val_tss:.4f} at epoch={best_tss_epoch}"
+            )
+            break
     if str(cfg.get("model_selection", "tss")).lower() in ["val_loss", "loss"] and "best_loss_epoch" in locals():
         print(f"Best Val Loss checkpoint: epoch {best_loss_epoch}, loss={best_val_loss:.4f}")
     print(f"Best TSS checkpoint: epoch {best_tss_epoch}, TSS={best_val_tss:.4f}")
@@ -723,6 +753,7 @@ def main(cfg=None):
     save_summary(exp_dir, tag, results, cfg)
     
     print(f"\n✅ Training complete! Results saved to: {exp_dir}\n")
+    return exp_dir, results
 
 
 if __name__ == "__main__":
