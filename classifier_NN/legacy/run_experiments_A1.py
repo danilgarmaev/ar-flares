@@ -1,23 +1,41 @@
-"""Experiment A1: Spatial resolution ablation with VGG16 transfer learning.
+"""Experiment A1: Spatial resolution sweep for single-frame models.
 
-Runs three configurations:
-  - A1-224: original resolution (224x224)
-  - A1-112: downsample to 112 then upsample to 224
-  - A1-56:  downsample to 56 then upsample to 224
+Backbones: ResNet-50, EfficientNet-B0
+Resolutions: 224, 112, 56, 28 (downsample->upsample into 224x224)
 
-This isolates the effect of spatial resolution while keeping VGG16 unchanged.
+Runs each configuration for N seeds and reports mean±std TSS.
 """
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from datetime import datetime
+from statistics import mean, stdev
 
 from ..config import get_default_cfg
 from ..train import main
 
 
-def build_experiment_cfg(name: str, overrides: dict, common_overrides: dict | None = None):
+RESOLUTIONS = [224, 112, 56, 28]
+BACKBONES = ["resnet50", "efficientnet_b0"]
+N_RUNS_DEFAULT = 5
+
+
+def _resolution_factor(resolution: int) -> int:
+    if resolution not in RESOLUTIONS:
+        raise ValueError(f"Unsupported resolution: {resolution}")
+    return 224 // resolution
+
+
+def _build_cfg(name: str, overrides: dict, common_overrides: dict | None = None) -> dict:
     cfg = get_default_cfg()
     if common_overrides:
         cfg.update(common_overrides)
     cfg.update(overrides)
     cfg["model_name"] = name
+    cfg["run_id"] = name
     return cfg
 
 
@@ -29,19 +47,14 @@ COMMON_A1_OVERRIDES = {
     "use_diff": False,
     "use_diff_attention": False,
 
-    # model
-    "backbone": "vgg16_tv",          # torchvision VGG16
-    "pretrained": True,
-    "freeze_backbone": True,         # transfer learning: train classifier head
-
-    # input resolution (always feed 224x224 into VGG16)
+    # input resolution (always feed 224x224 into model)
     "image_size": 224,
 
     # training
     "batch_size": 64,
     "optimizer": "adam_paper",
     "lr": 1e-3,
-    "epochs": 20,
+    "epochs": 50,
 
     # imbalance handling
     "balance_classes": False,
@@ -50,40 +63,191 @@ COMMON_A1_OVERRIDES = {
     # no augmentation
     "use_aug": False,
 
-    # model selection
+    # model selection / logging
     "model_selection": "tss",
-
-    # logging
     "redirect_log": True,
+
+    # early stopping
+    "early_stopping_patience": 5,
+    "early_stopping_min_delta": 0.0,
 }
 
 
-def run_experiment(name: str, overrides: dict):
-    print(f"\n{'='*40}")
-    print(f"🚀 Launching Experiment: {name}")
-    print(f"{'='*40}\n")
+def run_single(*, backbone: str, resolution: int, seed: int, epochs: int | None = None):
+    factor = _resolution_factor(resolution)
+    name = f"A1-{resolution}_{backbone}_seed{seed}"
+    overrides = {
+        "backbone": backbone,
+        "pretrained": True,
+        "freeze_backbone": True,
+        "spatial_downsample_factor": factor,
+        "seed": seed,
+        "notes": (
+            "A1 resolution sweep (single-frame): downsample->upsample before backbone. "
+            f"Backbone={backbone}, resolution={resolution}, seed={seed}."
+        ),
+    }
+    if epochs is not None:
+        overrides["epochs"] = int(epochs)
 
-    cfg = build_experiment_cfg(name, overrides, COMMON_A1_OVERRIDES)
-    try:
-        main(cfg)
-    except Exception as e:
-        print(f"❌ Experiment {name} failed: {e}")
+    print("\n" + "=" * 80)
+    print(f"Launching: {name} | spatial_downsample_factor={factor}")
+    print("=" * 80 + "\n")
+
+    cfg = _build_cfg(name, overrides, COMMON_A1_OVERRIDES)
+    exp_dir, results = main(cfg)
+    return exp_dir, results
+
+
+def run_sweep(
+    *,
+    backbones: list[str] | None = None,
+    resolutions: list[int] | None = None,
+    seeds: list[int] | None = None,
+    epochs: int | None = None,
+    common_overrides: dict | None = None,
+):
+    backbones = backbones or list(BACKBONES)
+    resolutions = resolutions or list(RESOLUTIONS)
+    seeds = seeds or list(range(N_RUNS_DEFAULT))
+
+    summary = {
+        "metric": "TSS",
+        "resolutions": resolutions,
+        "backbones": {},
+        "n_runs": len(seeds),
+        "created": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    for backbone in backbones:
+        summary["backbones"][backbone] = {}
+        for resolution in resolutions:
+            tss_values = []
+            for seed in seeds:
+                try:
+                    if common_overrides:
+                        old_common = dict(COMMON_A1_OVERRIDES)
+                        try:
+                            COMMON_A1_OVERRIDES.update(common_overrides)
+                            _, results = run_single(
+                                backbone=backbone,
+                                resolution=resolution,
+                                seed=seed,
+                                epochs=epochs,
+                            )
+                        finally:
+                            COMMON_A1_OVERRIDES.clear()
+                            COMMON_A1_OVERRIDES.update(old_common)
+                    else:
+                        _, results = run_single(
+                            backbone=backbone,
+                            resolution=resolution,
+                            seed=seed,
+                            epochs=epochs,
+                        )
+                    tss_values.append(float(results["TSS"]))
+                except Exception as e:
+                    print(f"❌ Run failed: backbone={backbone}, res={resolution}, seed={seed} -> {e}")
+            if not tss_values:
+                continue
+            tss_mean = mean(tss_values)
+            tss_std = stdev(tss_values) if len(tss_values) > 1 else 0.0
+            summary["backbones"][backbone][str(resolution)] = {
+                "tss_values": tss_values,
+                "mean_tss": tss_mean,
+                "std_tss": tss_std,
+                "n": len(tss_values),
+            }
+            print(
+                f"\n[{backbone} | {resolution}] TSS = {tss_mean:.4f} ± {tss_std:.4f} (n={len(tss_values)})\n"
+            )
+
+    # Save summary to results directory
+    cfg = get_default_cfg()
+    out_dir = cfg.get("results_base", ".")
+    os.makedirs(out_dir, exist_ok=True)
+    summary_path = os.path.join(out_dir, "summary_a1_resolution_sweep.json")
+    with open(summary_path, "w") as f:
+        json.dump(summary, f, indent=2)
+    print(f"Summary written to {summary_path}")
+    return summary_path
 
 
 if __name__ == "__main__":
-    # A1-224: original resolution
-    run_experiment("A1-224_vgg16", {
-        "spatial_downsample_factor": 1,
-    })
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--backbone",
+        action="append",
+        choices=BACKBONES,
+        default=None,
+        help="Backbone(s) to run. Repeat for multiple backbones.",
+    )
+    ap.add_argument(
+        "--resolution",
+        action="append",
+        type=int,
+        default=None,
+        help="Resolution(s) to run (224, 112, 56, 28). Repeat for multiple.",
+    )
+    ap.add_argument(
+        "--runs",
+        type=int,
+        default=N_RUNS_DEFAULT,
+        help="Number of runs per config (used to generate seeds 0..N-1).",
+    )
+    ap.add_argument(
+        "--seed",
+        action="append",
+        type=int,
+        default=None,
+        help="Explicit seed(s) to use. Overrides --runs if provided.",
+    )
+    ap.add_argument("--epochs", type=int, default=None, help="Override epochs for all runs")
+    ap.add_argument("--smoke", action="store_true", help="Tiny smoke run (1 epoch, shard/batch limits, no pretrained)")
+    ap.add_argument(
+        "--pretrained",
+        dest="pretrained",
+        action="store_true",
+        default=None,
+        help="Use pretrained weights (requires cached weights or network access)",
+    )
+    ap.add_argument(
+        "--no-pretrained",
+        dest="pretrained",
+        action="store_false",
+        default=None,
+        help="Do not use pretrained weights (safe default on compute nodes)",
+    )
+    args = ap.parse_args()
 
-    # A1-112: downsample (nearest) to 112 then upsample (bilinear) to 224
-    run_experiment("A1-112_vgg16", {
-        "spatial_downsample_factor": 2,
-    })
+    resolutions = args.resolution if args.resolution else None
+    backbones = args.backbone if args.backbone else None
+    seeds = args.seed if args.seed is not None else list(range(int(args.runs)))
 
-    # A1-56: downsample (nearest) to 56 then upsample (bilinear) to 224
-    run_experiment("A1-56_vgg16", {
-        "spatial_downsample_factor": 4,
-    })
+    common_overrides = None
+    if args.smoke:
+        common_overrides = {
+            "epochs": 1,
+            "batch_size": 16,
+            "num_workers": 0,
+            "persistent_workers": False,
+            "redirect_log": False,
+            "val_max_batches": 5,
+            "max_train_shards": 2,
+            "max_val_shards": 1,
+            "max_test_shards": 1,
+            "early_stopping_patience": 2,
+            "pretrained": False,
+        }
+    if args.pretrained is not None:
+        if common_overrides is None:
+            common_overrides = {}
+        common_overrides["pretrained"] = bool(args.pretrained)
 
-    print("\n✅ Experiment A1 completed!")
+    run_sweep(
+        backbones=backbones,
+        resolutions=resolutions,
+        seeds=seeds,
+        epochs=args.epochs,
+        common_overrides=common_overrides,
+    )
