@@ -26,7 +26,7 @@ export AR_FLARES_RESULTS_BASE=/home/dgarmaev/scratch/ar-flares/results
 export AR_FLARES_INTENSITY_LABELS_ROOT=/home/dgarmaev/scratch/ar-flares/data
 
 # Optional offline mode (OFFLINE=1 forces no-download)
-OFFLINE="${OFFLINE:-0}"
+OFFLINE="${OFFLINE:-1}"
 if [[ "$OFFLINE" == "1" ]]; then
   export HF_DATASETS_OFFLINE=1
   export TRANSFORMERS_OFFLINE=1
@@ -58,12 +58,22 @@ bb_idx=$(( tmp / ${#RESOLUTIONS[@]} ))
 BACKBONE="${BACKBONES[$bb_idx]}"
 RESOLUTION="${RESOLUTIONS[$res_idx]}"
 EPOCHS="${EPOCHS:-50}"
+PRETRAINED="${PRETRAINED:-0}"
 
-echo "Task ${SLURM_ARRAY_TASK_ID}: backbone=${BACKBONE} resolution=${RESOLUTION} seed=${seed}"
+echo "Task ${SLURM_ARRAY_TASK_ID}: backbone=${BACKBONE} resolution=${RESOLUTION} seed=${seed} offline=${OFFLINE} pretrained=${PRETRAINED}"
 
-python -m classifier_NN.legacy.run_experiments_A1 \
+cmd=(python -m classifier_NN.legacy.run_experiments_A1 \
   --single \
   --backbone "$BACKBONE" \
   --resolution "$RESOLUTION" \
   --seed "$seed" \
-  --epochs "$EPOCHS"
+  --epochs "$EPOCHS")
+
+if [[ "$PRETRAINED" == "1" ]]; then
+  cmd+=(--pretrained)
+else
+  cmd+=(--no-pretrained)
+fi
+
+echo "Running: ${cmd[*]}"
+"${cmd[@]}"

@@ -98,6 +98,10 @@ def run_single(*, backbone: str, resolution: int, seed: int, epochs: int | None 
     print("=" * 80 + "\n")
 
     cfg = _build_cfg(name, overrides, COMMON_A1_OVERRIDES)
+    # If we're not using pretrained weights, freezing the backbone would make
+    # training ineffective (random frozen features). Flip to full finetune.
+    if not bool(cfg.get("pretrained", True)):
+        cfg["freeze_backbone"] = False
     exp_dir, results = main(cfg)
     return exp_dir, results
 
