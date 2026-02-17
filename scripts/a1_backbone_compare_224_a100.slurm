@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=arfl-a1res-arr
+#SBATCH --job-name=arfl-a1bb224
 #SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
@@ -7,7 +7,7 @@
 #SBATCH --account=def-jeandiro
 #SBATCH --output=logs/%x_%A_%a.out
 #SBATCH --error=logs/%x_%A_%a.err
-#SBATCH --array=0-39
+#SBATCH --array=0-2
 
 set -euo pipefail
 
@@ -43,51 +43,48 @@ export TORCH_HOME=/home/dgarmaev/scratch/ar-flares/.cache/torch
 mkdir -p "$HF_HOME" "$TORCH_HOME"
 
 # ---------------------------
-# A1 sweep grid (2 backbones x 4 resolutions x 5 seeds = 40 tasks)
+# 224x224 backbone compare (single seed)
 # ---------------------------
-BACKBONES=(resnet50 efficientnet_b0)
-RESOLUTIONS=(224 112 56 28)
-N_SEEDS=5
-
+BACKBONES=(convnext_tiny swin_tiny_patch4_window7_224 resnet50)
 idx=${SLURM_ARRAY_TASK_ID}
-seed=$(( idx % N_SEEDS ))
-tmp=$(( idx / N_SEEDS ))
-res_idx=$(( tmp % ${#RESOLUTIONS[@]} ))
-bb_idx=$(( tmp / ${#RESOLUTIONS[@]} ))
+BACKBONE="${BACKBONES[$idx]}"
 
-BACKBONE="${BACKBONES[$bb_idx]}"
-RESOLUTION="${RESOLUTIONS[$res_idx]}"
+RESOLUTION=224
+seed=0
+
 EPOCHS="${EPOCHS:-50}"
-PRETRAINED="${PRETRAINED:-0}"
-SMOKE="${SMOKE:-0}"
-FREEZE_BACKBONE="${FREEZE_BACKBONE:-1}"
-LR="${LR:-}"
+LR="${LR:-1e-4}"
+PRETRAINED="${PRETRAINED:-1}"
+FREEZE_BACKBONE="${FREEZE_BACKBONE:-0}"
+USE_AUG="${USE_AUG:-1}"
+AUG_PRESET="${AUG_PRESET:-robust}"
+
+# Optional speed controls
 MAX_TRAIN_SHARDS="${MAX_TRAIN_SHARDS:-}"
 MAX_VAL_SHARDS="${MAX_VAL_SHARDS:-}"
 MAX_TEST_SHARDS="${MAX_TEST_SHARDS:-}"
 STEPS_PER_EPOCH="${STEPS_PER_EPOCH:-}"
 
-echo "Task ${SLURM_ARRAY_TASK_ID}: backbone=${BACKBONE} resolution=${RESOLUTION} seed=${seed} offline=${OFFLINE} pretrained=${PRETRAINED} smoke=${SMOKE}"
+echo "Task ${SLURM_ARRAY_TASK_ID}: backbone=${BACKBONE} res=${RESOLUTION} seed=${seed} offline=${OFFLINE} pretrained=${PRETRAINED} freeze_backbone=${FREEZE_BACKBONE} use_aug=${USE_AUG} aug_preset=${AUG_PRESET} lr=${LR}"
 
 cmd=(python -m classifier_NN.legacy.run_experiments_A1 \
   --single \
   --backbone "$BACKBONE" \
   --resolution "$RESOLUTION" \
   --seed "$seed" \
-  --epochs "$EPOCHS")
+  --epochs "$EPOCHS" \
+  --lr "$LR")
 
-if [[ -n "$LR" ]]; then
-  cmd+=(--lr "$LR")
+if [[ "$USE_AUG" == "1" ]]; then
+  cmd+=(--use-aug --aug-preset "$AUG_PRESET")
+else
+  cmd+=(--no-aug)
 fi
 
 if [[ "$FREEZE_BACKBONE" == "1" ]]; then
   cmd+=(--freeze-backbone)
 else
   cmd+=(--no-freeze-backbone)
-fi
-
-if [[ "$SMOKE" == "1" ]]; then
-  cmd+=(--smoke)
 fi
 
 if [[ -n "$MAX_TRAIN_SHARDS" ]]; then

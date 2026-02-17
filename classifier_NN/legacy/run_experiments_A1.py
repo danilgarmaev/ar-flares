@@ -19,7 +19,12 @@ from ..train import main
 
 
 RESOLUTIONS = [224, 112, 56, 28]
-BACKBONES = ["resnet50", "efficientnet_b0"]
+BACKBONES = [
+    "resnet50",
+    "efficientnet_b0",
+    "convnext_tiny",
+    "swin_tiny_patch4_window7_224",
+]
 N_RUNS_DEFAULT = 5
 
 
@@ -188,9 +193,8 @@ if __name__ == "__main__":
     ap.add_argument(
         "--backbone",
         action="append",
-        choices=BACKBONES,
         default=None,
-        help="Backbone(s) to run. Repeat for multiple backbones.",
+        help="Backbone(s) to run (timm model names). Repeat for multiple backbones.",
     )
     ap.add_argument(
         "--resolution",
@@ -213,6 +217,45 @@ if __name__ == "__main__":
         help="Explicit seed(s) to use. Overrides --runs if provided.",
     )
     ap.add_argument("--epochs", type=int, default=None, help="Override epochs for all runs")
+    ap.add_argument("--lr", type=float, default=None, help="Override learning rate for all runs")
+    ap.add_argument(
+        "--use-aug",
+        dest="use_aug",
+        action="store_true",
+        default=None,
+        help="Enable training augmentation",
+    )
+    ap.add_argument(
+        "--no-aug",
+        dest="use_aug",
+        action="store_false",
+        default=None,
+        help="Disable training augmentation",
+    )
+    ap.add_argument(
+        "--aug-preset",
+        type=str,
+        default=None,
+        help="Augmentation preset (e.g. 'robust', 'paper_vgg')",
+    )
+    ap.add_argument(
+        "--freeze-backbone",
+        dest="freeze_backbone",
+        action="store_true",
+        default=None,
+        help="Freeze backbone (train linear head only)",
+    )
+    ap.add_argument(
+        "--no-freeze-backbone",
+        dest="freeze_backbone",
+        action="store_false",
+        default=None,
+        help="Unfreeze backbone (fine-tune all weights)",
+    )
+    ap.add_argument("--max-train-shards", type=int, default=None, help="Limit number of train shards")
+    ap.add_argument("--max-val-shards", type=int, default=None, help="Limit number of val shards")
+    ap.add_argument("--max-test-shards", type=int, default=None, help="Limit number of test shards")
+    ap.add_argument("--steps-per-epoch", type=int, default=None, help="Override steps/epoch (sanity runs)")
     ap.add_argument("--smoke", action="store_true", help="Tiny smoke run (1 epoch, shard/batch limits, no pretrained)")
     ap.add_argument(
         "--single",
@@ -239,12 +282,34 @@ if __name__ == "__main__":
     backbones = args.backbone if args.backbone else None
     seeds = args.seed if args.seed is not None else list(range(int(args.runs)))
 
-    common_overrides = None
+    common_overrides = {}
+
+    if args.max_train_shards is not None:
+        common_overrides["max_train_shards"] = int(args.max_train_shards)
+    if args.max_val_shards is not None:
+        common_overrides["max_val_shards"] = int(args.max_val_shards)
+    if args.max_test_shards is not None:
+        common_overrides["max_test_shards"] = int(args.max_test_shards)
+    if args.steps_per_epoch is not None:
+        common_overrides["steps_per_epoch"] = int(args.steps_per_epoch)
+
+    if args.lr is not None:
+        common_overrides["lr"] = float(args.lr)
+
+    if args.use_aug is not None:
+        common_overrides["use_aug"] = bool(args.use_aug)
+
+    if args.aug_preset is not None:
+        common_overrides["aug_preset"] = str(args.aug_preset)
+
+    if args.freeze_backbone is not None:
+        common_overrides["freeze_backbone"] = bool(args.freeze_backbone)
+
     if args.smoke:
-        common_overrides = {
+        common_overrides.update({
             "epochs": 1,
             "batch_size": 16,
-            "num_workers": 0,
+            "num_workers": 2,
             "persistent_workers": False,
             "redirect_log": False,
             "val_max_batches": 5,
@@ -253,11 +318,15 @@ if __name__ == "__main__":
             "max_test_shards": 1,
             "early_stopping_patience": 2,
             "pretrained": False,
-        }
+            # Critical: dataset shard limiting does NOT affect our global
+            # sample-count estimate, so cap steps explicitly for sanity.
+            "steps_per_epoch": 50,
+        })
     if args.pretrained is not None:
-        if common_overrides is None:
-            common_overrides = {}
         common_overrides["pretrained"] = bool(args.pretrained)
+
+    if not common_overrides:
+        common_overrides = None
 
     if args.single:
         if not backbones or len(backbones) != 1:
@@ -266,12 +335,27 @@ if __name__ == "__main__":
             raise SystemExit("--single requires exactly one --resolution")
         if args.seed is None or len(args.seed) != 1:
             raise SystemExit("--single requires exactly one --seed")
-        run_single(
-            backbone=backbones[0],
-            resolution=int(resolutions[0]),
-            seed=int(args.seed[0]),
-            epochs=args.epochs,
-        )
+        if common_overrides:
+            # Apply common overrides for single-run mode (sanity runs, etc.)
+            old_common = dict(COMMON_A1_OVERRIDES)
+            try:
+                COMMON_A1_OVERRIDES.update(common_overrides)
+                run_single(
+                    backbone=backbones[0],
+                    resolution=int(resolutions[0]),
+                    seed=int(args.seed[0]),
+                    epochs=args.epochs,
+                )
+            finally:
+                COMMON_A1_OVERRIDES.clear()
+                COMMON_A1_OVERRIDES.update(old_common)
+        else:
+            run_single(
+                backbone=backbones[0],
+                resolution=int(resolutions[0]),
+                seed=int(args.seed[0]),
+                epochs=args.epochs,
+            )
     else:
         run_sweep(
             backbones=backbones,

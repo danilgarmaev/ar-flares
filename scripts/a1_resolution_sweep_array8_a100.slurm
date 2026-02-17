@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=arfl-a1res-arr
+#SBATCH --job-name=arfl-a1res-arr8
 #SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
@@ -7,7 +7,7 @@
 #SBATCH --account=def-jeandiro
 #SBATCH --output=logs/%x_%A_%a.out
 #SBATCH --error=logs/%x_%A_%a.err
-#SBATCH --array=0-39
+#SBATCH --array=0-7
 
 set -euo pipefail
 
@@ -43,25 +43,25 @@ export TORCH_HOME=/home/dgarmaev/scratch/ar-flares/.cache/torch
 mkdir -p "$HF_HOME" "$TORCH_HOME"
 
 # ---------------------------
-# A1 sweep grid (2 backbones x 4 resolutions x 5 seeds = 40 tasks)
+# A1 sanity grid (2 backbones x 4 resolutions = 8 tasks)
+# Seed fixed to 0 (no multi-seed runs)
 # ---------------------------
 BACKBONES=(resnet50 efficientnet_b0)
 RESOLUTIONS=(224 112 56 28)
-N_SEEDS=5
 
 idx=${SLURM_ARRAY_TASK_ID}
-seed=$(( idx % N_SEEDS ))
-tmp=$(( idx / N_SEEDS ))
-res_idx=$(( tmp % ${#RESOLUTIONS[@]} ))
-bb_idx=$(( tmp / ${#RESOLUTIONS[@]} ))
+res_idx=$(( idx % ${#RESOLUTIONS[@]} ))
+bb_idx=$(( idx / ${#RESOLUTIONS[@]} ))
 
 BACKBONE="${BACKBONES[$bb_idx]}"
 RESOLUTION="${RESOLUTIONS[$res_idx]}"
-EPOCHS="${EPOCHS:-50}"
-PRETRAINED="${PRETRAINED:-0}"
-SMOKE="${SMOKE:-0}"
+seed=0
+
+EPOCHS="${EPOCHS:-10}"
+PRETRAINED="${PRETRAINED:-1}"
 FREEZE_BACKBONE="${FREEZE_BACKBONE:-1}"
 LR="${LR:-}"
+SMOKE="${SMOKE:-0}"
 MAX_TRAIN_SHARDS="${MAX_TRAIN_SHARDS:-}"
 MAX_VAL_SHARDS="${MAX_VAL_SHARDS:-}"
 MAX_TEST_SHARDS="${MAX_TEST_SHARDS:-}"

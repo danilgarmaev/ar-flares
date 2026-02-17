@@ -441,6 +441,8 @@ def main(cfg=None):
         else:
             effective_train = total_train_raw
     steps_per_epoch = max(1, effective_train // cfg["batch_size"])
+    if cfg.get("steps_per_epoch", None) is not None:
+        steps_per_epoch = max(1, int(cfg["steps_per_epoch"]))
     print(f"Train samples (raw): {total_train_raw:,} | effective (est): {effective_train:,} | steps/epoch: {steps_per_epoch:,}")
     
     # Build model using this run's config
