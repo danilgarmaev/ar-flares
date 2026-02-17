@@ -219,6 +219,24 @@ if __name__ == "__main__":
     ap.add_argument("--epochs", type=int, default=None, help="Override epochs for all runs")
     ap.add_argument("--lr", type=float, default=None, help="Override learning rate for all runs")
     ap.add_argument(
+        "--optimizer",
+        type=str,
+        default=None,
+        help="Optimizer name (e.g. 'adamw', 'adam_paper')",
+    )
+    ap.add_argument(
+        "--weight-decay",
+        type=float,
+        default=None,
+        help="Weight decay for AdamW/AdamW-like optimizers",
+    )
+    ap.add_argument(
+        "--scheduler",
+        type=str,
+        default=None,
+        help="LR scheduler ('onecycle', 'cosine', 'none')",
+    )
+    ap.add_argument(
         "--use-aug",
         dest="use_aug",
         action="store_true",
@@ -295,6 +313,15 @@ if __name__ == "__main__":
 
     if args.lr is not None:
         common_overrides["lr"] = float(args.lr)
+
+    if args.optimizer is not None:
+        common_overrides["optimizer"] = str(args.optimizer)
+
+    if args.weight_decay is not None:
+        common_overrides["weight_decay"] = float(args.weight_decay)
+
+    if args.scheduler is not None:
+        common_overrides["scheduler"] = str(args.scheduler)
 
     if args.use_aug is not None:
         common_overrides["use_aug"] = bool(args.use_aug)

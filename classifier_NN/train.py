@@ -99,6 +99,7 @@ def train_epoch(
     scaler,
     device,
     steps_per_epoch,
+    scheduler_step_per_batch: bool = True,
     mixup_fn=None,
     cfg: dict | None = None,
 ):
@@ -173,8 +174,8 @@ def train_epoch(
         scaler.step(optimizer)
         scaler.update()
 
-        # Per-batch LR update for OneCycleLR
-        if scheduler is not None:
+        # Per-batch LR update (e.g., OneCycleLR)
+        if scheduler is not None and scheduler_step_per_batch:
             scheduler.step()
 
         running_loss += loss.item()
@@ -524,7 +525,8 @@ def main(cfg=None):
     # Setup optimizer
     # For VGG-style paper replication, allow opting into plain Adam with
     # the original hyperparameters (lr=1e-3, betas=(0.9,0.999), eps=1e-7, amsgrad=False).
-    if cfg.get("optimizer", "adamw") == "adam_paper":
+    opt_name = str(cfg.get("optimizer", "adamw")).lower()
+    if opt_name == "adam_paper":
         print("Using Adam optimizer (paper-style)")
         optimizer = torch.optim.Adam(
             model.parameters(),
@@ -534,25 +536,51 @@ def main(cfg=None):
             amsgrad=cfg.get("adam_amsgrad", False),
             weight_decay=0.0,
         )
+    elif opt_name in ["adamw", "torch_adamw"]:
+        weight_decay = float(cfg.get("weight_decay", 0.05))
+        print(f"Using AdamW optimizer (torch) | weight_decay={weight_decay}")
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=cfg["lr"],
+            betas=(cfg.get("beta1", 0.9), cfg.get("beta2", 0.999)),
+            eps=cfg.get("adam_eps", 1e-8),
+            weight_decay=weight_decay,
+        )
     else:
         optimizer = create_optimizer_v2(
             model,
             opt='adamw',
             lr=cfg["lr"],
-            weight_decay=0.05,
-            layer_decay=0.75
+            weight_decay=float(cfg.get("weight_decay", 0.05)),
+            layer_decay=float(cfg.get("layer_decay", 0.75)),
         )
     
     # Setup gradient scaler for mixed precision
     scaler = torch.GradScaler('cuda', enabled=torch.cuda.is_available())
     
-    # Restore OneCycleLR scheduler (per-batch scheduling)
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer,
-    max_lr=cfg["lr"],
-    epochs=cfg["epochs"],
-        steps_per_epoch=steps_per_epoch,
-    )
+    # Scheduler
+    scheduler_name = str(cfg.get("scheduler", "onecycle")).lower()
+    scheduler = None
+    scheduler_step_per_batch = False
+    if scheduler_name in ["onecycle", "onecyclelr"]:
+        scheduler_step_per_batch = True
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=cfg["lr"],
+            epochs=cfg["epochs"],
+            steps_per_epoch=steps_per_epoch,
+        )
+    elif scheduler_name in ["cosine", "cosineannealing", "cosineannealinglr"]:
+        scheduler_step_per_batch = False
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=int(cfg["epochs"]),
+        )
+    elif scheduler_name in ["none", "off", "constant"]:
+        scheduler_step_per_batch = False
+        scheduler = None
+    else:
+        raise ValueError(f"Unknown scheduler: {scheduler_name}")
 
     # Training loop
     print("\n" + "="*80)
@@ -561,6 +589,7 @@ def main(cfg=None):
     
     history = []
     best_val_tss = -1.0  # track best validation TSS
+    best_val_threshold = 0.5  # track threshold at best validation TSS
     best_val_loss = float("inf")  # track best (lowest) validation loss
     save_best_f1 = bool(cfg.get("save_best_f1", False))
     if save_best_f1:
@@ -588,6 +617,7 @@ def main(cfg=None):
             scaler,
             device,
             steps_per_epoch,
+            scheduler_step_per_batch=scheduler_step_per_batch,
             mixup_fn=mixup_fn,
             cfg=cfg,
         )
@@ -603,7 +633,10 @@ def main(cfg=None):
         print(f"Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} | Train Acc: {train_metrics['train_acc']:.2f}% | Val Acc: {val_metrics['val_acc']:.2f}%")
         print(f"Train P/R/F1: {train_metrics['train_precision']:.3f}/{train_metrics['train_recall']:.3f}/{train_metrics['train_f1']:.3f} | Val P/R/F1: {val_metrics['val_precision']:.3f}/{val_metrics['val_recall']:.3f}/{val_metrics['val_f1']:.3f}")
         print(f"Train AUC: {train_metrics['train_auc']:.3f} | Val AUC: {val_metrics['val_auc']:.3f}")
-        print(f"Current LR: {scheduler.get_last_lr()[0]:.2e}")
+        if scheduler is not None and hasattr(scheduler, "get_last_lr"):
+            print(f"Current LR: {scheduler.get_last_lr()[0]:.2e}")
+        else:
+            print(f"Current LR: {optimizer.param_groups[0]['lr']:.2e}")
         print(f"Val Best TSS: {val_metrics['val_best_tss']:.4f} @ threshold={val_metrics['val_best_threshold']:.3f}")
         epoch_record = {
             "epoch": epoch + 1,
@@ -644,6 +677,7 @@ def main(cfg=None):
         improved_tss = val_metrics["val_best_tss"] > (best_val_tss + min_delta)
         if improved_tss:
             best_val_tss = val_metrics["val_best_tss"]
+            best_val_threshold = float(val_metrics.get("val_best_threshold", best_val_threshold))
             best_tss_epoch = epoch
             torch.save(model.state_dict(), os.path.join(exp_dir, "best_tss.pt"))
             print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} @ epoch={epoch} -> Saved to best_tss.pt")
@@ -665,6 +699,10 @@ def main(cfg=None):
                 f"⏹️ Early stopping triggered: best Val TSS={best_val_tss:.4f} at epoch={best_tss_epoch}"
             )
             break
+
+        # Per-epoch scheduler step (e.g., CosineAnnealingLR)
+        if scheduler is not None and not scheduler_step_per_batch:
+            scheduler.step()
     if str(cfg.get("model_selection", "tss")).lower() in ["val_loss", "loss"] and "best_loss_epoch" in locals():
         print(f"Best Val Loss checkpoint: epoch {best_loss_epoch}, loss={best_val_loss:.4f}")
     print(f"Best TSS checkpoint: epoch {best_tss_epoch}, TSS={best_val_tss:.4f}")
@@ -693,10 +731,16 @@ def main(cfg=None):
         model,
         dls["Test"],
         device,
-    plot_dir,
-    cfg["backbone"],
-    save_pr_curve=cfg["save_pr_curve"]
+        plot_dir,
+        cfg["backbone"],
+        save_pr_curve=cfg["save_pr_curve"],
+        fixed_threshold=best_val_threshold,
     )
+
+    # Alias: keep best-on-test metrics, but also report test TSS at best-val threshold
+    if "fixed_TSS" in results:
+        results["test_tss_at_val_threshold"] = float(results["fixed_TSS"])
+        results["val_threshold_for_test"] = float(results.get("fixed_threshold", best_val_threshold))
     
     # Add metadata to results
     results.update({

@@ -182,7 +182,16 @@ def plot_confusion_matrix(y_true, y_pred, save_path, model_name="Model", thresho
     plt.close()
 
 
-def evaluate_model(model, dataloader, device, save_dir, model_name, save_pr_curve=True):
+def evaluate_model(
+    model,
+    dataloader,
+    device,
+    save_dir,
+    model_name,
+    save_pr_curve=True,
+    *,
+    fixed_threshold: float | None = None,
+):
     """Comprehensive model evaluation with all metrics and plots.
 
     Args:
@@ -242,7 +251,7 @@ def evaluate_model(model, dataloader, device, save_dir, model_name, save_pr_curv
         pr_path = f"{save_dir}/pr.png"
         pr_auc = plot_pr_curve(all_labels, all_probs, pr_path, model_name)
     
-    # Find best threshold by TSS
+    # Find best threshold by TSS (NOTE: this is best-on-test; optimistic)
     best_tss, best_t = find_best_threshold_tss(all_labels, all_probs)
     
     # Confusion matrix at 0.5 threshold (legacy view)
@@ -258,6 +267,16 @@ def evaluate_model(model, dataloader, device, save_dir, model_name, save_pr_curv
     metrics_calc_best = MetricsCalculator()
     metrics_calc_best.update(all_labels, preds_best)
     final_metrics = metrics_calc_best.compute()
+
+    fixed_metrics = None
+    if fixed_threshold is not None:
+        fixed_t = float(fixed_threshold)
+        preds_fixed = (all_probs >= fixed_t).astype(int)
+        metrics_calc_fixed = MetricsCalculator()
+        metrics_calc_fixed.update(all_labels, preds_fixed)
+        fixed_metrics = metrics_calc_fixed.compute()
+        cmfixed_path = f"{save_dir}/confusion_matrix_fixed.png"
+        plot_confusion_matrix(all_labels, preds_fixed, cmfixed_path, model_name, threshold=fixed_t)
     
     results = {
         "AUC": float(roc_auc),
@@ -277,5 +296,20 @@ def evaluate_model(model, dataloader, device, save_dir, model_name, save_pr_curv
         "FP": int(final_metrics["FP"]),
         "FN": int(final_metrics["FN"]),
     }
+
+    if fixed_metrics is not None:
+        results.update(
+            {
+                "fixed_threshold": float(fixed_threshold),
+                "fixed_TSS": float(fixed_metrics["TSS"]),
+                "fixed_TPR": float(fixed_metrics["TPR"]),
+                "fixed_TNR": float(fixed_metrics["TNR"]),
+                "fixed_HSS": float(fixed_metrics["HSS"]),
+                "fixed_Precision": float(fixed_metrics["Precision"]),
+                "fixed_Recall": float(fixed_metrics["Recall"]),
+                "fixed_F1": float(fixed_metrics["F1"]),
+                "fixed_Accuracy": float(fixed_metrics["Accuracy"]),
+            }
+        )
     
     return results

@@ -54,6 +54,9 @@ seed=0
 
 EPOCHS="${EPOCHS:-50}"
 LR="${LR:-1e-4}"
+OPTIMIZER="${OPTIMIZER:-}"
+WEIGHT_DECAY="${WEIGHT_DECAY:-}"
+SCHEDULER="${SCHEDULER:-}"
 PRETRAINED="${PRETRAINED:-1}"
 FREEZE_BACKBONE="${FREEZE_BACKBONE:-0}"
 USE_AUG="${USE_AUG:-1}"
@@ -74,6 +77,16 @@ cmd=(python -m classifier_NN.legacy.run_experiments_A1 \
   --seed "$seed" \
   --epochs "$EPOCHS" \
   --lr "$LR")
+
+if [[ -n "$OPTIMIZER" ]]; then
+  cmd+=(--optimizer "$OPTIMIZER")
+fi
+if [[ -n "$WEIGHT_DECAY" ]]; then
+  cmd+=(--weight-decay "$WEIGHT_DECAY")
+fi
+if [[ -n "$SCHEDULER" ]]; then
+  cmd+=(--scheduler "$SCHEDULER")
+fi
 
 if [[ "$USE_AUG" == "1" ]]; then
   cmd+=(--use-aug --aug-preset "$AUG_PRESET")
