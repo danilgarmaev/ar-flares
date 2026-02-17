@@ -155,6 +155,10 @@ CFG = {
     "epochs": 5,
     "seed": 42,
 
+    # Optional override for quick sanity runs.
+    # If set, training loop will run only this many steps per epoch.
+    "steps_per_epoch": None,
+
     # early stopping (validation TSS)
     # Set to an int (e.g., 5) to enable early stopping; None disables.
     "early_stopping_patience": None,
