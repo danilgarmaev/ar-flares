@@ -108,6 +108,67 @@ def reevaluate(exp_dir: str, checkpoint_name: str, suffix: str) -> dict:
     }
 
 
+def reevaluate_with_fixed_threshold(exp_dir: str, checkpoint_name: str, suffix: str, fixed_threshold: float) -> dict:
+    config_path = os.path.join(exp_dir, "config.json")
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Missing config.json in {exp_dir}")
+
+    with open(config_path, "r") as f:
+        cfg = json.load(f)
+
+    checkpoint_path = os.path.join(exp_dir, checkpoint_name)
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Missing checkpoint: {checkpoint_path}")
+
+    CFG.update(cfg)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model = build_model(cfg=cfg, num_classes=2).to(device)
+    state = torch.load(checkpoint_path, map_location=device)
+    model.load_state_dict(state)
+
+    dls = create_dataloaders()
+
+    plots_dir = os.path.join(exp_dir, f"plots_{suffix}")
+    os.makedirs(plots_dir, exist_ok=True)
+
+    model_name = f"{cfg.get('model_name', os.path.basename(exp_dir))}_{suffix}"
+    results = evaluate_model(
+        model,
+        dls["Test"],
+        device,
+        plots_dir,
+        model_name,
+        save_pr_curve=bool(cfg.get("save_pr_curve", True)),
+        fixed_threshold=float(fixed_threshold),
+    )
+
+    results.update(
+        {
+            "reeval": True,
+            "checkpoint": checkpoint_name,
+            "suffix": suffix,
+            "exp_dir": exp_dir,
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
+    metrics_path = os.path.join(exp_dir, f"metrics_{suffix}.json")
+    with open(metrics_path, "w") as f:
+        json.dump(results, f, indent=2)
+
+    summary_path = os.path.join(exp_dir, f"{cfg.get('model_name', 'experiment')}_{suffix}_summary.md")
+    _write_summary_md(summary_path, exp_dir, cfg, checkpoint_path, results)
+
+    return {
+        "metrics_path": metrics_path,
+        "summary_path": summary_path,
+        "plots_dir": plots_dir,
+        **results,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("exp_dirs", nargs="+", help="One or more experiment directories")
@@ -117,10 +178,24 @@ def main() -> None:
         default="best_tss",
         help="Suffix used for output files/folders (e.g. best_tss -> metrics_best_tss.json)",
     )
+    parser.add_argument(
+        "--fixed-threshold",
+        type=float,
+        default=None,
+        help="Optional fixed threshold to evaluate at (in addition to best-TSS threshold metrics).",
+    )
     args = parser.parse_args()
 
     for exp_dir in args.exp_dirs:
-        out = reevaluate(exp_dir, args.checkpoint, args.suffix)
+        if args.fixed_threshold is None:
+            out = reevaluate(exp_dir, args.checkpoint, args.suffix)
+        else:
+            out = reevaluate_with_fixed_threshold(
+                exp_dir,
+                args.checkpoint,
+                args.suffix,
+                fixed_threshold=float(args.fixed_threshold),
+            )
         print(f"Re-evaluated: {exp_dir}")
         print(f"  metrics: {out['metrics_path']}")
         print(f"  summary: {out['summary_path']}")
