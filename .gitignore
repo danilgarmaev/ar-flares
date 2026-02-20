@@ -78,6 +78,9 @@ venv.bak/
 # VSCode
 .vscode/
 
+# Copilot Chat local instructions (keep local-only)
+copilot-instructions.md
+
 # Spyder
 .spyderproject
 .spyproject

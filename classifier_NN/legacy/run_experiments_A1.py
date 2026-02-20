@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from datetime import datetime
 from statistics import mean, stdev
 
@@ -42,6 +43,14 @@ def _build_cfg(name: str, overrides: dict, common_overrides: dict | None = None)
     cfg["model_name"] = name
     cfg["run_id"] = name
     return cfg
+
+
+def _sanitize_name_suffix(value: str) -> str:
+    value = str(value).strip()
+    value = re.sub(r"\s+", "-", value)
+    value = re.sub(r"[^A-Za-z0-9_-]+", "-", value)
+    value = re.sub(r"-+", "-", value)
+    return value.strip("-")
 
 
 COMMON_A1_OVERRIDES = {
@@ -83,9 +92,18 @@ COMMON_A1_OVERRIDES = {
 }
 
 
-def run_single(*, backbone: str, resolution: int, seed: int, epochs: int | None = None):
+def run_single(
+    *,
+    backbone: str,
+    resolution: int,
+    seed: int,
+    epochs: int | None = None,
+    name_suffix: str | None = None,
+):
     factor = _resolution_factor(resolution)
     name = f"A1-{resolution}_{backbone}_seed{seed}"
+    if name_suffix:
+        name = f"{name}_{_sanitize_name_suffix(name_suffix)}"
     overrides = {
         "backbone": backbone,
         "spatial_downsample_factor": factor,
@@ -118,6 +136,7 @@ def run_sweep(
     seeds: list[int] | None = None,
     epochs: int | None = None,
     common_overrides: dict | None = None,
+    name_suffix: str | None = None,
     write_summary: bool = True,
 ):
     backbones = backbones or list(BACKBONES)
@@ -147,6 +166,7 @@ def run_sweep(
                                 resolution=resolution,
                                 seed=seed,
                                 epochs=epochs,
+                                name_suffix=name_suffix,
                             )
                         finally:
                             COMMON_A1_OVERRIDES.clear()
@@ -157,6 +177,7 @@ def run_sweep(
                             resolution=resolution,
                             seed=seed,
                             epochs=epochs,
+                            name_suffix=name_suffix,
                         )
                     tss_values.append(float(results["TSS"]))
                 except Exception as e:
@@ -294,6 +315,12 @@ if __name__ == "__main__":
         default=None,
         help="Do not use pretrained weights (safe default on compute nodes)",
     )
+    ap.add_argument(
+        "--name-suffix",
+        type=str,
+        default=None,
+        help="Optional suffix appended to run_id/model_name (helps avoid collisions in parallel runs)",
+    )
     args = ap.parse_args()
 
     resolutions = args.resolution if args.resolution else None
@@ -372,6 +399,7 @@ if __name__ == "__main__":
                     resolution=int(resolutions[0]),
                     seed=int(args.seed[0]),
                     epochs=args.epochs,
+                    name_suffix=args.name_suffix,
                 )
             finally:
                 COMMON_A1_OVERRIDES.clear()
@@ -382,6 +410,7 @@ if __name__ == "__main__":
                 resolution=int(resolutions[0]),
                 seed=int(args.seed[0]),
                 epochs=args.epochs,
+                name_suffix=args.name_suffix,
             )
     else:
         run_sweep(
@@ -390,5 +419,6 @@ if __name__ == "__main__":
             seeds=seeds,
             epochs=args.epochs,
             common_overrides=common_overrides,
+            name_suffix=args.name_suffix,
             write_summary=True,
         )
