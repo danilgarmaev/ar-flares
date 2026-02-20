@@ -54,6 +54,7 @@ EPOCHS="${EPOCHS:-50}"
 LR="${LR:-1e-4}"
 PRETRAINED="${PRETRAINED:-1}"
 AUG_PRESET="${AUG_PRESET:-robust}"
+NAME_SUFFIX="${NAME_SUFFIX:-repro}"
 
 # Optional speed controls
 MAX_TRAIN_SHARDS="${MAX_TRAIN_SHARDS:-}"
@@ -68,6 +69,7 @@ cmd=(python -m classifier_NN.legacy.run_experiments_A1 \
   --backbone "$BACKBONE" \
   --resolution "$RESOLUTION" \
   --seed "$seed" \
+  --name-suffix "$NAME_SUFFIX" \
   --epochs "$EPOCHS" \
   --lr "$LR" \
   --optimizer adam_paper \
