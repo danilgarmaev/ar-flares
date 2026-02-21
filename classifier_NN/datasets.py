@@ -46,6 +46,13 @@ def _parse_longitude_from_location_token(token: str) -> Optional[int]:
 
 @lru_cache(maxsize=4)
 def _build_srs_longitude_lookup_cached(srs_root: str) -> Dict[LocationKey, int]:
+    """Build (AR, YYYYMMDD) -> longitude_deg lookup from SRS text files.
+
+    This intentionally mirrors the parsing approach in `legacy/run_experiments_A2.py`:
+    - scan line-by-line (SRS formats vary)
+    - find a location token like N15E42
+    - infer the AR number from the first integer token in the same line
+    """
     lookup: Dict[LocationKey, int] = {}
     if not os.path.isdir(srs_root):
         raise FileNotFoundError(f"SRS root not found: {srs_root}")
@@ -66,20 +73,34 @@ def _build_srs_longitude_lookup_cached(srs_root: str) -> Dict[LocationKey, int]:
                 continue
             try:
                 with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
-                    text = f.read()
-            except Exception:
+                    lines = f.readlines()
+            except OSError:
                 continue
 
-            for m in re.finditer(r"NOAA\s+(\d{4,6}).*?\b([NS]\d{1,2}[EW]\d{1,2})\b", text, flags=re.IGNORECASE | re.DOTALL):
-                try:
-                    ar = int(m.group(1))
-                except Exception:
+            for line in lines:
+                loc_match = _LOCATION_RE.search(line)
+                if not loc_match:
                     continue
-                loc = m.group(2)
-                lon = _parse_longitude_from_location_token(loc)
+                lon = _parse_longitude_from_location_token(loc_match.group(0))
                 if lon is None:
                     continue
-                lookup[(ar, date)] = int(lon)
+
+                tokens = line.strip().split()
+                ar_num: Optional[int] = None
+                for tok in tokens:
+                    if tok.isdigit():
+                        ar_num = int(tok)
+                        break
+                if ar_num is None:
+                    m = re.search(r"\b(\d{4,6})\b", line)
+                    if m:
+                        ar_num = int(m.group(1))
+                if ar_num is None:
+                    continue
+
+                key = (ar_num, date)
+                if key not in lookup:
+                    lookup[key] = int(lon)
 
     return lookup
 
