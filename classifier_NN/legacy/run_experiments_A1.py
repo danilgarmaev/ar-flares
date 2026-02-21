@@ -19,7 +19,7 @@ from ..config import get_default_cfg
 from ..train import main
 
 
-RESOLUTIONS = [224, 112, 56, 28]
+RESOLUTIONS = [224, 128, 56, 28]
 BACKBONES = [
     "resnet50",
     "efficientnet_b0",
@@ -29,10 +29,10 @@ BACKBONES = [
 N_RUNS_DEFAULT = 5
 
 
-def _resolution_factor(resolution: int) -> int:
+def _resolution_downsample_size(resolution: int) -> int:
     if resolution not in RESOLUTIONS:
         raise ValueError(f"Unsupported resolution: {resolution}")
-    return 224 // resolution
+    return int(resolution)
 
 
 def _build_cfg(name: str, overrides: dict, common_overrides: dict | None = None) -> dict:
@@ -100,13 +100,13 @@ def run_single(
     epochs: int | None = None,
     name_suffix: str | None = None,
 ):
-    factor = _resolution_factor(resolution)
+    ds = _resolution_downsample_size(resolution)
     name = f"A1-{resolution}_{backbone}_seed{seed}"
     if name_suffix:
         name = f"{name}_{_sanitize_name_suffix(name_suffix)}"
     overrides = {
         "backbone": backbone,
-        "spatial_downsample_factor": factor,
+        "spatial_downsample_size": ds,
         "seed": seed,
         "notes": (
             "A1 resolution sweep (single-frame): downsample->upsample before backbone. "
@@ -117,7 +117,7 @@ def run_single(
         overrides["epochs"] = int(epochs)
 
     print("\n" + "=" * 80)
-    print(f"Launching: {name} | spatial_downsample_factor={factor}")
+    print(f"Launching: {name} | spatial_downsample_size={ds}")
     print("=" * 80 + "\n")
 
     cfg = _build_cfg(name, overrides, COMMON_A1_OVERRIDES)
@@ -222,7 +222,7 @@ if __name__ == "__main__":
         action="append",
         type=int,
         default=None,
-        help="Resolution(s) to run (224, 112, 56, 28). Repeat for multiple.",
+        help="Resolution(s) to run (224, 128, 56, 28). Repeat for multiple.",
     )
     ap.add_argument(
         "--runs",

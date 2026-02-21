@@ -46,7 +46,7 @@ mkdir -p "$HF_HOME" "$TORCH_HOME"
 # A1 sweep grid (2 backbones x 4 resolutions x 5 seeds = 40 tasks)
 # ---------------------------
 BACKBONES=(resnet50 efficientnet_b0)
-RESOLUTIONS=(224 112 56 28)
+RESOLUTIONS=(224 128 56 28)
 N_SEEDS=5
 
 idx=${SLURM_ARRAY_TASK_ID}

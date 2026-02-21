@@ -5,7 +5,10 @@ import glob
 import json
 import tarfile
 import random
-from typing import Iterable, List, Dict
+import re
+from functools import lru_cache
+from pathlib import Path
+from typing import Iterable, List, Dict, Optional, Tuple
 from contextlib import nullcontext
 from collections import Counter
 
@@ -16,6 +19,84 @@ import numpy as np
 from PIL import Image
 
 from .config import CFG, SPLIT_DIRS, SPLIT_FLOW_DIRS, intensity_labels_path
+
+
+LocationKey = Tuple[int, str]  # (ar_number, YYYYMMDD)
+
+
+_LOCATION_RE = re.compile(r"\b[NS](\d{1,2})([EW])(\d{1,2})\b")
+
+
+def _normalize_yyyymmdd(value: object) -> Optional[str]:
+    if value is None:
+        return None
+    s = str(value)
+    m = re.search(r"(\d{8})", s)
+    return m.group(1) if m else None
+
+
+def _parse_longitude_from_location_token(token: str) -> Optional[int]:
+    m = _LOCATION_RE.search(token.strip())
+    if not m:
+        return None
+    hemisphere = m.group(2)
+    deg = int(m.group(3))
+    return deg if hemisphere == "E" else -deg
+
+
+@lru_cache(maxsize=4)
+def _build_srs_longitude_lookup_cached(srs_root: str) -> Dict[LocationKey, int]:
+    lookup: Dict[LocationKey, int] = {}
+    if not os.path.isdir(srs_root):
+        raise FileNotFoundError(f"SRS root not found: {srs_root}")
+
+    for year_dir in sorted(os.listdir(srs_root)):
+        if not year_dir.endswith("_SRS"):
+            continue
+        full_year_dir = os.path.join(srs_root, year_dir)
+        if not os.path.isdir(full_year_dir):
+            continue
+
+        for fname in sorted(os.listdir(full_year_dir)):
+            if not fname.lower().endswith(".txt"):
+                continue
+            full_path = os.path.join(full_year_dir, fname)
+            date = _normalize_yyyymmdd(fname)
+            if not date:
+                continue
+            try:
+                with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
+                    text = f.read()
+            except Exception:
+                continue
+
+            for m in re.finditer(r"NOAA\s+(\d{4,6}).*?\b([NS]\d{1,2}[EW]\d{1,2})\b", text, flags=re.IGNORECASE | re.DOTALL):
+                try:
+                    ar = int(m.group(1))
+                except Exception:
+                    continue
+                loc = m.group(2)
+                lon = _parse_longitude_from_location_token(loc)
+                if lon is None:
+                    continue
+                lookup[(ar, date)] = int(lon)
+
+    return lookup
+
+
+def _resolve_spatial_downsample_size(img_size: int) -> int:
+    """Return the intermediate downsample size (ds). If ds==img_size, no ablation."""
+    size = CFG.get("spatial_downsample_size", None)
+    if size is not None:
+        ds = int(size)
+        if ds <= 0:
+            raise ValueError(f"spatial_downsample_size must be > 0, got {size}")
+        return min(ds, img_size)
+
+    factor = int(CFG.get("spatial_downsample_factor", 1) or 1)
+    if factor <= 1:
+        return img_size
+    return max(1, img_size // factor)
 
 
 # --- flare label remapping ---
@@ -56,14 +137,13 @@ def _build_basic_transform(img_size: int):
 
     This reduces spatial information while keeping the network input size fixed.
     """
-    factor = int(CFG.get("spatial_downsample_factor", 1) or 1)
-    if factor <= 1:
+    ds = _resolve_spatial_downsample_size(img_size)
+    if ds >= img_size:
         return transforms.Compose([
             transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
             transforms.ToTensor(),
         ])
 
-    ds = max(1, img_size // factor)
     return transforms.Compose([
         transforms.Resize((ds, ds), interpolation=transforms.InterpolationMode.NEAREST),
         transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
@@ -114,8 +194,8 @@ def _build_aug_transform(img_size: int):
         frames in a sequence. See `_apply_seq_augment` in `TarShardDataset`.
     """
     aug_preset = str(CFG.get("aug_preset", "robust")).lower()
-    factor = int(CFG.get("spatial_downsample_factor", 1) or 1)
-    ds = max(1, img_size // factor) if factor > 1 else img_size
+    ds = _resolve_spatial_downsample_size(img_size)
+    use_nearest = ds < img_size
 
     # Apply spatial ablation before aug ops so augmentation doesn't re-inject
     # fine-grained detail. For factor==1 this is just an identity resize.
@@ -127,7 +207,7 @@ def _build_aug_transform(img_size: int):
             transforms.Resize(
                 (ds, ds),
                 interpolation=(
-                    transforms.InterpolationMode.NEAREST if factor > 1 else transforms.InterpolationMode.BILINEAR
+                    transforms.InterpolationMode.NEAREST if use_nearest else transforms.InterpolationMode.BILINEAR
                 ),
             ),
             transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
@@ -139,7 +219,7 @@ def _build_aug_transform(img_size: int):
     # Default: robust augmentation
     vflip_prob = float(CFG.get("vertical_flip_prob", 0.5))
     return transforms.Compose([
-        transforms.Resize((ds, ds), interpolation=transforms.InterpolationMode.NEAREST if factor > 1 else transforms.InterpolationMode.BILINEAR),
+        transforms.Resize((ds, ds), interpolation=transforms.InterpolationMode.NEAREST if use_nearest else transforms.InterpolationMode.BILINEAR),
         transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=vflip_prob),
@@ -148,6 +228,50 @@ def _build_aug_transform(img_size: int):
         AddIntegerNoise(max_abs_noise=5),  # ±5 noise with clamping
         transforms.ToTensor(),
     ])
+
+
+def _should_apply_lon_filter(split_name: str) -> bool:
+    abs_max = CFG.get("lon_filter_abs_max", None)
+    if abs_max is None:
+        return False
+    splits = CFG.get("lon_filter_splits", ["Train", "Validation"])
+    try:
+        splits_list = [str(s) for s in splits]
+    except Exception:
+        splits_list = [str(splits)]
+    split_name_norm = str(split_name)
+    # allow aliases
+    if split_name_norm == "Val":
+        split_name_norm = "Validation"
+    return split_name_norm in set(splits_list)
+
+
+def _lon_filter_keep(meta: dict) -> bool:
+    abs_max = CFG.get("lon_filter_abs_max", None)
+    if abs_max is None:
+        return True
+    abs_max_v = float(abs_max)
+    srs_root = CFG.get("lon_filter_srs_root", None)
+    if not srs_root:
+        # default to repo data/SRS
+        srs_root = str(Path(__file__).resolve().parents[1] / "data" / "SRS")
+    lookup = _build_srs_longitude_lookup_cached(str(srs_root))
+
+    ar = meta.get("ar")
+    date = meta.get("date")
+    if date is None:
+        date = meta.get("basename")
+    date_s = _normalize_yyyymmdd(date)
+    try:
+        ar_i = int(ar)
+    except Exception:
+        return False
+    if not date_s:
+        return False
+    lon = lookup.get((ar_i, date_s))
+    if lon is None:
+        return False
+    return abs(float(lon)) <= abs_max_v
 
 
 class TarShardDataset(IterableDataset):
@@ -192,6 +316,9 @@ class TarShardDataset(IterableDataset):
         if use_aug is None:
             use_aug = CFG.get("use_aug", False)
         self.use_aug = (self.split_name == "Train" and use_aug)
+
+        # Optional longitude-based filtering (for experiments like A2 low-lon training)
+        self._apply_lon_filter = _should_apply_lon_filter(self.split_name)
 
         # Base (non-aug) transform is always available, and we keep the
         # original aug transform for single-frame mode. For sequences we
@@ -386,6 +513,8 @@ class TarShardDataset(IterableDataset):
                     else:
                         label = int(meta["label"])
 
+                    if self._apply_lon_filter and not _lon_filter_keep(meta):
+                        continue
                     yield x_out, label, meta
         else:
             # SINGLE-FRAME MODE: Load individual images
@@ -432,6 +561,9 @@ class TarShardDataset(IterableDataset):
                         label = LABEL_MAP.get(fname, 0)
                     else:
                         label = int(meta["label"])
+
+                    if self._apply_lon_filter and not _lon_filter_keep(meta):
+                        continue
 
                     # Load image
                     png_bytes = tf_img.extractfile(parts["png"]).read()

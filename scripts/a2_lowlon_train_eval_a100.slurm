@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=arfl-a2lon-eval
+#SBATCH --job-name=arfl-a2lon-train
 #SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
-#SBATCH --time=00:20:00
+#SBATCH --time=08:00:00
 #SBATCH --account=def-jeandiro
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
@@ -38,65 +38,36 @@ export TORCH_HOME=/home/dgarmaev/scratch/ar-flares/.cache/torch
 mkdir -p "$HF_HOME" "$TORCH_HOME"
 
 # ---------------------------
-# A2 configuration
+# A2 low-longitude train+eval
 # ---------------------------
-# Provide either EXP_DIR (must contain config.json) or CFG_JSON.
-# Optionally provide CHECKPOINT_PATH to point directly to a .pt file.
+# Required:
+#   EXP_DIR: baseline experiment directory (must contain config.json and metrics.json)
+# Optional:
+#   CHECKPOINT: checkpoint filename inside EXP_DIR (default: best_tss.pt)
+#   SRS_ROOT: path to SRS text files
+#   TRAIN_LON_ABS_MAX: default 30
+#   TRAIN_SEED: seed for the low-lon training run
 #
-# Typical usage:
-#   sbatch --export=ALL,EXP_DIR="/path/to/exp",CHECKPOINT="best_tss.pt" scripts/a2_longitude_eval_a100.slurm
+# Example:
+#   sbatch --export=ALL,EXP_DIR="/path/to/best_run" scripts/a2_lowlon_train_eval_a100.slurm
 
 EXP_DIR="${EXP_DIR:-}"
-CFG_JSON="${CFG_JSON:-}"
 CHECKPOINT="${CHECKPOINT:-best_tss.pt}"
-CHECKPOINT_PATH="${CHECKPOINT_PATH:-}"
 SRS_ROOT="${SRS_ROOT:-/home/dgarmaev/scratch/ar-flares/data/SRS}"
-THRESHOLD="${THRESHOLD:-}"
-TRAIN_LON_ABS_MAX="${TRAIN_LON_ABS_MAX:-}"
-TRAIN_SEED="${TRAIN_SEED:-}"
+TRAIN_LON_ABS_MAX="${TRAIN_LON_ABS_MAX:-30}"
+TRAIN_SEED="${TRAIN_SEED:-0}"
 
-# Optional convenience overrides
-BATCH_SIZE="${BATCH_SIZE:-}"
-NUM_WORKERS="${NUM_WORKERS:-}"
-OUT_DIR="${OUT_DIR:-}"
-
-if [[ -z "$EXP_DIR" && -z "$CFG_JSON" ]]; then
-  echo "ERROR: Provide EXP_DIR or CFG_JSON via sbatch --export." >&2
+if [[ -z "$EXP_DIR" ]]; then
+  echo "ERROR: Provide EXP_DIR via sbatch --export=ALL,EXP_DIR=..." >&2
   exit 2
 fi
 
 cmd=(python -m classifier_NN.legacy.run_experiments_A2 \
-  --srs-root "$SRS_ROOT")
-
-if [[ -n "$THRESHOLD" ]]; then
-  cmd+=(--threshold "$THRESHOLD")
-fi
-
-if [[ -n "$TRAIN_LON_ABS_MAX" ]]; then
-  cmd+=(--train-lon-abs-max "$TRAIN_LON_ABS_MAX")
-fi
-if [[ -n "$TRAIN_SEED" ]]; then
-  cmd+=(--train-seed "$TRAIN_SEED")
-fi
-
-if [[ -n "$EXP_DIR" ]]; then
-  cmd+=(--exp-dir "$EXP_DIR" --checkpoint "$CHECKPOINT")
-fi
-if [[ -n "$CFG_JSON" ]]; then
-  cmd+=(--cfg-json "$CFG_JSON")
-fi
-if [[ -n "$CHECKPOINT_PATH" ]]; then
-  cmd+=(--checkpoint-path "$CHECKPOINT_PATH")
-fi
-if [[ -n "$BATCH_SIZE" ]]; then
-  cmd+=(--batch-size "$BATCH_SIZE")
-fi
-if [[ -n "$NUM_WORKERS" ]]; then
-  cmd+=(--num-workers "$NUM_WORKERS")
-fi
-if [[ -n "$OUT_DIR" ]]; then
-  cmd+=(--out-dir "$OUT_DIR")
-fi
+  --exp-dir "$EXP_DIR" \
+  --checkpoint "$CHECKPOINT" \
+  --srs-root "$SRS_ROOT" \
+  --train-lon-abs-max "$TRAIN_LON_ABS_MAX" \
+  --train-seed "$TRAIN_SEED")
 
 echo "Running: ${cmd[*]}"
 "${cmd[@]}"

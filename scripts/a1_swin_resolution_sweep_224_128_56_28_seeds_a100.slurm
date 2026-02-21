@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=arfl-a1res-arr8
+#SBATCH --job-name=arfl-a1swin-res
 #SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
@@ -7,7 +7,7 @@
 #SBATCH --account=def-jeandiro
 #SBATCH --output=logs/%x_%A_%a.out
 #SBATCH --error=logs/%x_%A_%a.err
-#SBATCH --array=0-7
+#SBATCH --array=0-11
 
 set -euo pipefail
 
@@ -15,6 +15,9 @@ export PYTHONUNBUFFERED=1
 
 cd /home/dgarmaev/scratch/ar-flares
 mkdir -p logs results
+
+# Matches what worked in your other project; harmless if unused.
+module load gcc opencv
 
 # Project venv
 source /home/dgarmaev/envs/ar-flares/bin/activate
@@ -25,7 +28,7 @@ export AR_FLARES_WDS_FLOW_BASE=/home/dgarmaev/scratch/ar-flares/data/wds_flow
 export AR_FLARES_RESULTS_BASE=/home/dgarmaev/scratch/ar-flares/results
 export AR_FLARES_INTENSITY_LABELS_ROOT=/home/dgarmaev/scratch/ar-flares/data
 
-# Optional offline mode (OFFLINE=1 forces no-download)
+# Offline safety switches: fail fast instead of hanging on network retries.
 OFFLINE="${OFFLINE:-1}"
 if [[ "$OFFLINE" == "1" ]]; then
   export HF_DATASETS_OFFLINE=1
@@ -37,70 +40,54 @@ else
   export HF_HUB_OFFLINE=0
 fi
 
-# Put caches on scratch
+# Put caches on scratch so they can be reused across jobs.
 export HF_HOME=/home/dgarmaev/scratch/ar-flares/.cache/hf
 export TORCH_HOME=/home/dgarmaev/scratch/ar-flares/.cache/torch
 mkdir -p "$HF_HOME" "$TORCH_HOME"
 
 # ---------------------------
-# A1 sanity grid (2 backbones x 4 resolutions = 8 tasks)
-# Seed fixed to 0 (no multi-seed runs)
+# Swin-Tiny resolution sweep grid (4 resolutions x 3 seeds = 12 tasks)
+# Uses the same training recipe as the best Swin run:
+# - pretrained=True
+# - full fine-tuning (freeze_backbone=False)
+# - robust augmentation
+# - lr=1e-4
 # ---------------------------
-BACKBONES=(resnet50 efficientnet_b0)
+BACKBONE="swin_tiny_patch4_window7_224"
 RESOLUTIONS=(224 128 56 28)
+N_SEEDS=3
 
 idx=${SLURM_ARRAY_TASK_ID}
-res_idx=$(( idx % ${#RESOLUTIONS[@]} ))
-bb_idx=$(( idx / ${#RESOLUTIONS[@]} ))
+seed=$(( idx % N_SEEDS ))
+res_idx=$(( idx / N_SEEDS ))
 
-BACKBONE="${BACKBONES[$bb_idx]}"
 RESOLUTION="${RESOLUTIONS[$res_idx]}"
-seed=0
-
-EPOCHS="${EPOCHS:-10}"
+EPOCHS="${EPOCHS:-50}"
+LR="${LR:-1e-4}"
+OPTIMIZER="${OPTIMIZER:-adam_paper}"
+SCHEDULER="${SCHEDULER:-}"
+WEIGHT_DECAY="${WEIGHT_DECAY:-}"
 PRETRAINED="${PRETRAINED:-1}"
-FREEZE_BACKBONE="${FREEZE_BACKBONE:-1}"
-LR="${LR:-}"
-SMOKE="${SMOKE:-0}"
-MAX_TRAIN_SHARDS="${MAX_TRAIN_SHARDS:-}"
-MAX_VAL_SHARDS="${MAX_VAL_SHARDS:-}"
-MAX_TEST_SHARDS="${MAX_TEST_SHARDS:-}"
-STEPS_PER_EPOCH="${STEPS_PER_EPOCH:-}"
 
-echo "Task ${SLURM_ARRAY_TASK_ID}: backbone=${BACKBONE} resolution=${RESOLUTION} seed=${seed} offline=${OFFLINE} pretrained=${PRETRAINED} smoke=${SMOKE}"
+echo "Task ${SLURM_ARRAY_TASK_ID}: backbone=${BACKBONE} resolution=${RESOLUTION} seed=${seed} offline=${OFFLINE} pretrained=${PRETRAINED}"
 
 cmd=(python -m classifier_NN.legacy.run_experiments_A1 \
   --single \
   --backbone "$BACKBONE" \
   --resolution "$RESOLUTION" \
   --seed "$seed" \
-  --epochs "$EPOCHS")
+  --epochs "$EPOCHS" \
+  --lr "$LR" \
+  --optimizer "$OPTIMIZER" \
+  --use-aug \
+  --aug-preset robust \
+  --no-freeze-backbone)
 
-if [[ -n "$LR" ]]; then
-  cmd+=(--lr "$LR")
+if [[ -n "$SCHEDULER" ]]; then
+  cmd+=(--scheduler "$SCHEDULER")
 fi
-
-if [[ "$FREEZE_BACKBONE" == "1" ]]; then
-  cmd+=(--freeze-backbone)
-else
-  cmd+=(--no-freeze-backbone)
-fi
-
-if [[ "$SMOKE" == "1" ]]; then
-  cmd+=(--smoke)
-fi
-
-if [[ -n "$MAX_TRAIN_SHARDS" ]]; then
-  cmd+=(--max-train-shards "$MAX_TRAIN_SHARDS")
-fi
-if [[ -n "$MAX_VAL_SHARDS" ]]; then
-  cmd+=(--max-val-shards "$MAX_VAL_SHARDS")
-fi
-if [[ -n "$MAX_TEST_SHARDS" ]]; then
-  cmd+=(--max-test-shards "$MAX_TEST_SHARDS")
-fi
-if [[ -n "$STEPS_PER_EPOCH" ]]; then
-  cmd+=(--steps-per-epoch "$STEPS_PER_EPOCH")
+if [[ -n "$WEIGHT_DECAY" ]]; then
+  cmd+=(--weight-decay "$WEIGHT_DECAY")
 fi
 
 if [[ "$PRETRAINED" == "1" ]]; then

@@ -55,6 +55,8 @@ CHECKPOINT="${CHECKPOINT:-best_tss.pt}"
 CHECKPOINT_PATH="${CHECKPOINT_PATH:-}"
 SRS_ROOT="${SRS_ROOT:-/home/dgarmaev/scratch/ar-flares/data/SRS}"
 THRESHOLD="${THRESHOLD:-}"
+TRAIN_LON_ABS_MAX="${TRAIN_LON_ABS_MAX:-}"
+TRAIN_SEED="${TRAIN_SEED:-}"
 
 # Optional convenience overrides
 BATCH_SIZE="${BATCH_SIZE:-}"
@@ -71,6 +73,13 @@ cmd=(python -m classifier_NN.legacy.run_experiments_A2 \
 
 if [[ -n "$THRESHOLD" ]]; then
   cmd+=(--threshold "$THRESHOLD")
+fi
+
+if [[ -n "$TRAIN_LON_ABS_MAX" ]]; then
+  cmd+=(--train-lon-abs-max "$TRAIN_LON_ABS_MAX")
+fi
+if [[ -n "$TRAIN_SEED" ]]; then
+  cmd+=(--train-seed "$TRAIN_SEED")
 fi
 
 if [[ -n "$EXP_DIR" ]]; then

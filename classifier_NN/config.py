@@ -125,6 +125,11 @@ CFG = {
     # Spatial resolution ablation for single-frame models.
     # If >1: downsample by factor using nearest-neighbor, then upsample back to image_size with bilinear.
     "spatial_downsample_factor": 1,
+    # Alternative to spatial_downsample_factor.
+    # If set to an int < image_size: downsample to (size,size) using nearest-neighbor,
+    # then upsample back to image_size with bilinear.
+    # If None or >= image_size: no spatial ablation.
+    "spatial_downsample_size": None,
     "balance_classes": True,     # subsample negatives to match positive count (Train only)
     "balance_mode": "prob",     # 'prob' = per-epoch random negatives, 'fixed' = deterministic subset
     "neg_keep_prob": 0.25,       # probability to keep a negative when balance_mode='prob'

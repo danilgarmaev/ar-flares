@@ -1,4 +1,4 @@
-"""Experiment 4.2 (A2) – High Longitude Impact (evaluation only).
+"""Experiment 4.2 (A2) – High Longitude Impact.
 
 Goal
 ----
@@ -7,7 +7,8 @@ without any projection correction.
 
 Constraints
 -----------
-- Evaluation-only: do NOT retrain.
+- Default mode is evaluation-only: do NOT retrain.
+- Optional mode can train a second model on |lon|<=K for comparison.
 - Use existing Test dataloader that yields (x, label, meta).
 - Bucket by SRS Location longitude using a fixed decision threshold.
     By default we use the model's Best_TSS threshold from the experiment outputs.
@@ -63,6 +64,7 @@ except Exception:  # pragma: no cover
 from ..config import CFG
 from ..datasets import create_dataloaders
 from ..models import build_model
+from ..train import main as train_main
 
 
 LocationKey = Tuple[int, str]  # (ar_number, YYYYMMDD)
@@ -365,6 +367,19 @@ def _plot_bucket_tss(out_dir: str, buckets: dict[str, BucketStats]) -> None:
     plt.close(fig)
 
 
+def _plot_bucket_tss_three(out_dir: str, *, names: list[str], tss_vals: list[float]) -> None:
+    if len(names) != len(tss_vals):
+        raise ValueError("names and tss_vals must have same length")
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.bar(names, tss_vals)
+    ax.set_ylabel("TSS")
+    ax.set_title("A2 Longitude Buckets (+ low-lon trained)")
+    ax.grid(True, axis="y", linestyle="--", alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out_dir, "bucket_tss.png"), dpi=200)
+    plt.close(fig)
+
+
 def _try_read_best_threshold_from_exp_dir(exp_dir: str) -> Optional[float]:
     """Try to infer best decision threshold from prior experiment artifacts.
 
@@ -573,6 +588,27 @@ def main() -> None:
         default=None,
         help="Directory to write A2 outputs (defaults to a new timestamped folder under results_base)",
     )
+    parser.add_argument(
+        "--train-lon-abs-max",
+        type=float,
+        default=None,
+        help=(
+            "Optional: train a second model using only Train/Validation samples with |lon|<=K degrees, "
+            "then evaluate it on the same test set and add its |lon|<=30 bucket TSS as a 3rd bar."
+        ),
+    )
+    parser.add_argument(
+        "--train-seed",
+        type=int,
+        default=None,
+        help="Optional seed override for the low-lon training run (defaults to cfg['seed'])",
+    )
+    parser.add_argument(
+        "--train-name-suffix",
+        type=str,
+        default=None,
+        help="Optional suffix for the low-lon training run_id/model_name",
+    )
     args = parser.parse_args()
 
     if args.exp_dir is None and args.cfg_json is None:
@@ -635,6 +671,9 @@ def main() -> None:
     print(lon_out_30.report())
     print(f"skipped_missing_srs={skipped}")
 
+    low_lon_train_info: dict[str, Any] | None = None
+    low_lon_trained_in30: BucketStats | None = None
+
     # Save outputs under results/
     if args.out_dir is None:
         base = CFG.get("results_base", str(Path(__file__).resolve().parents[2] / "results"))
@@ -646,6 +685,54 @@ def main() -> None:
     else:
         out_dir = args.out_dir
     os.makedirs(out_dir, exist_ok=True)
+
+    # Optional: train a second model only on low-longitude samples.
+    if args.train_lon_abs_max is not None:
+        base_tag = os.path.basename(args.exp_dir) if args.exp_dir else "cfg"
+        suffix = f"A2-lowLon{int(args.train_lon_abs_max)}_{base_tag}"
+        if args.train_name_suffix:
+            suffix = suffix + "_" + str(args.train_name_suffix)
+        low_cfg = dict(cfg)
+        low_cfg["model_name"] = suffix
+        low_cfg["run_id"] = suffix
+        low_cfg["lon_filter_abs_max"] = float(args.train_lon_abs_max)
+        low_cfg["lon_filter_splits"] = ["Train", "Validation"]
+        low_cfg["lon_filter_srs_root"] = str(args.srs_root)
+        if args.train_seed is not None:
+            low_cfg["seed"] = int(args.train_seed)
+
+        low_exp_dir, _ = train_main(low_cfg)
+        low_ckpt_path = os.path.join(low_exp_dir, "best_tss.pt")
+        low_threshold = _try_read_best_threshold_from_exp_dir(low_exp_dir)
+        if low_threshold is None:
+            low_threshold = 0.5
+
+        low_model = build_model(cfg=low_cfg, num_classes=2).to(device)
+        state2 = torch.load(low_ckpt_path, map_location=device)
+        if isinstance(state2, dict) and ("model_state_dict" in state2 or "state_dict" in state2):
+            low_model.load_state_dict(state2.get("model_state_dict") or state2.get("state_dict"))
+        else:
+            low_model.load_state_dict(state2)
+
+        low_in30, low_out30, low_skipped, _ = evaluate_longitude_buckets(
+            model=low_model,
+            test_loader=test_loader,
+            device=device,
+            srs_lookup=srs_lookup,
+            threshold=float(low_threshold),
+        )
+        low_lon_trained_in30 = low_in30
+        low_lon_train_info = {
+            "train_lon_abs_max": float(args.train_lon_abs_max),
+            "exp_dir": low_exp_dir,
+            "checkpoint_path": low_ckpt_path,
+            "threshold": float(low_threshold),
+            "skipped_missing_srs": int(low_skipped),
+            "buckets": {
+                "lon_le_30": low_in30.as_dict(),
+                "lon_30_60": low_out30.as_dict(),
+            },
+        }
 
     # Metrics dict
     buckets = {
@@ -659,6 +746,8 @@ def main() -> None:
         "exp_dir": args.exp_dir,
         "buckets": {k: v.as_dict() for k, v in buckets.items()},
     }
+    if low_lon_train_info is not None:
+        metrics["low_lon_training"] = low_lon_train_info
 
     # Add AUC metrics (overall + per bucket)
     curves = {}
@@ -676,7 +765,12 @@ def main() -> None:
 
     # Plots
     _plot_curves(out_dir, curves)
-    _plot_bucket_tss(out_dir, buckets)
+    if low_lon_trained_in30 is None:
+        _plot_bucket_tss(out_dir, buckets)
+    else:
+        names3 = ["|lon|≤30° (baseline)", "30°<|lon|≤60° (baseline)", "|lon|≤30° (trained low-lon)"]
+        vals3 = [float(lon_in_30.tss()), float(lon_out_30.tss()), float(low_lon_trained_in30.tss())]
+        _plot_bucket_tss_three(out_dir, names=names3, tss_vals=vals3)
 
     # Human-readable report
     with open(os.path.join(out_dir, "a2_report.txt"), "w") as f:
@@ -686,6 +780,13 @@ def main() -> None:
         f.write("\n")
         f.write(f"threshold={threshold:.6f}\n")
         f.write(f"ROC_AUC(all)={metrics['all']['ROC_AUC']:.4f} PR_AUC(all)={metrics['all']['PR_AUC']:.4f}\n")
+        if low_lon_train_info is not None:
+            f.write("\n")
+            f.write("[Low-lon trained model]\n")
+            f.write(f"train_lon_abs_max={low_lon_train_info['train_lon_abs_max']}\n")
+            f.write(f"exp_dir={low_lon_train_info['exp_dir']}\n")
+            f.write(f"threshold={low_lon_train_info['threshold']:.6f}\n")
+            f.write(f"TSS(|lon|≤30)={low_lon_train_info['buckets']['lon_le_30']['tss']:.4f}\n")
     print(f"Saved A2 outputs to: {out_dir}")
 
 
