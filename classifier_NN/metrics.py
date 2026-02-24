@@ -87,8 +87,22 @@ def find_best_threshold_tss(y_true, y_probs):
         Tuple of (best_tss, best_threshold)
     """
     best_tss, best_t = -1.0, 0.5
-    
-    for t in np.linspace(0.05, 0.95, 181):
+
+    # Important: do not artificially clip the search range.
+    # Some models (esp. with class weighting) can produce probabilities that
+    # live almost entirely below 0.05; restricting thresholds to [0.05, 0.95]
+    # makes TSS appear stuck at ~0 even when ranking (AUC) is decent.
+    y_probs = np.asarray(y_probs)
+    lo = float(np.nanmin(y_probs)) if y_probs.size else 0.0
+    hi = float(np.nanmax(y_probs)) if y_probs.size else 1.0
+    lo = max(0.0, min(1.0, lo))
+    hi = max(0.0, min(1.0, hi))
+
+    # Include the full [0,1] endpoints plus a dense grid over observed range.
+    grid = np.linspace(lo, hi, 1001) if hi > lo else np.array([lo])
+    thresholds = np.unique(np.concatenate(([0.0], grid, [1.0])))
+
+    for t in thresholds:
         pred = (y_probs >= t).astype(int)
         TP = int(((y_true == 1) & (pred == 1)).sum())
         TN = int(((y_true == 0) & (pred == 0)).sum())

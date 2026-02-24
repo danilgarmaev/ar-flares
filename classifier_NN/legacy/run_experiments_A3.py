@@ -283,6 +283,13 @@ def main() -> None:
     ap.add_argument("--pretrained-3d", action="store_true", default=None, help="Use pretrained weights for 3D backbones")
     ap.add_argument("--no-pretrained-3d", dest="pretrained_3d", action="store_false", default=None)
 
+    # Data / loss knobs (optional)
+    ap.add_argument("--balance-classes", action="store_true", default=None)
+    ap.add_argument("--neg-keep-prob", type=float, default=None)
+    ap.add_argument("--loss-type", type=str, default=None)
+    ap.add_argument("--use-aug", action="store_true", default=None)
+    ap.add_argument("--no-use-aug", dest="use_aug", action="store_false", default=None)
+
     args = ap.parse_args()
 
     backbones = args.backbone or ["r3d_18", "r2plus1d_18"]
@@ -297,6 +304,10 @@ def main() -> None:
         "optimizer": args.optimizer,
         "weight_decay": args.weight_decay,
         "scheduler": args.scheduler,
+        "balance_classes": args.balance_classes,
+        "neg_keep_prob": args.neg_keep_prob,
+        "loss_type": args.loss_type,
+        "use_aug": args.use_aug,
     }.items():
         if v is not None:
             common_overrides[k] = v
