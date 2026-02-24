@@ -476,10 +476,34 @@ class TarShardDataset(IterableDataset):
                     key0, png0, jm0 = entries[i]
                     meta0 = get_meta(jm0)
 
+                    # Variable-length handling: when requested past offsets extend
+                    # earlier than the available history for this AR, we pad by
+                    # repeating the earliest available frame for that AR.
+                    def _earliest_index_same_ar(start_i: int, ar_value: object) -> int:
+                        j0 = start_i
+                        # Walk backwards while the AR id matches. This assumes entries
+                        # are grouped by AR in time order (true for our shard naming).
+                        while j0 - 1 >= 0:
+                            try:
+                                _, _, jm_prev = entries[j0 - 1]
+                                m_prev = get_meta(jm_prev)
+                                if ("ar" in m_prev) and (m_prev.get("ar") != ar_value):
+                                    break
+                            except Exception:
+                                break
+                            j0 -= 1
+                        return j0
+
+                    ar0 = meta0.get("ar")
+                    earliest_i = _earliest_index_same_ar(i, ar0)
+
                     idxes = []
                     ok = True
                     for off in offsets:
                         j = i + off
+                        if j < earliest_i:
+                            # Pad with earliest available frame for this AR
+                            j = earliest_i
                         if j < 0 or j >= len(entries):
                             ok = False
                             break
