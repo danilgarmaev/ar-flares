@@ -48,6 +48,7 @@ LR="${LR:-1e-4}"
 OPTIMIZER="${OPTIMIZER:-adam_paper}"
 SCHEDULER="${SCHEDULER:-}"
 WEIGHT_DECAY="${WEIGHT_DECAY:-}"
+NAME_SUFFIX="${NAME_SUFFIX:-scratch}"
 
 cmd=(python -m classifier_NN.legacy.run_experiments_A1 \
   --single \
@@ -61,7 +62,7 @@ cmd=(python -m classifier_NN.legacy.run_experiments_A1 \
   --aug-preset robust \
   --no-freeze-backbone \
   --no-pretrained \
-  --name-suffix scratch)
+  --name-suffix "$NAME_SUFFIX")
 
 if [[ -n "$SCHEDULER" ]]; then
   cmd+=(--scheduler "$SCHEDULER")
