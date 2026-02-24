@@ -5,6 +5,10 @@ torch>=2.1.0
 torchvision>=0.16.0
 timm>=0.9.12
 
+# Needed for torch.hub facebookresearch/pytorchvideo SlowFast
+fvcore>=0.1.5
+iopath>=0.1.9
+
 # LoRA / PEFT stack (models.py imports peft)
 peft>=0.8.0
 transformers>=4.36.0

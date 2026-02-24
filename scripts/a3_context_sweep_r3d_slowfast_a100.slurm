@@ -7,8 +7,7 @@
 #SBATCH --account=def-jeandiro
 #SBATCH --output=logs/%x_%A_%a.out
 #SBATCH --error=logs/%x_%A_%a.err
-#SBATCH --array=0-23
-
+#SBATCH --array=0-47
 set -euo pipefail
 
 export PYTHONUNBUFFERED=1
@@ -41,8 +40,8 @@ export HF_HOME=/home/dgarmaev/scratch/ar-flares/.cache/hf
 export TORCH_HOME=/home/dgarmaev/scratch/ar-flares/.cache/torch
 mkdir -p "$HF_HOME" "$TORCH_HOME"
 
-# Grid: 2 backbones x 4 intervals x 3 seeds = 24 tasks
-BACKBONES=(r3d_18 slowfast)
+# Grid: 4 backbones x 4 intervals x 3 seeds = 48 tasks
+BACKBONES=(r3d_18 r2plus1d_18 slowfast timesformer)
 INTERVALS=(12 24 48 96)
 N_SEEDS=3
 
@@ -57,7 +56,7 @@ INTERVAL_MIN="${INTERVALS[$int_idx]}"
 
 # Defaults tuned conservatively for video models (override as needed)
 EPOCHS="${EPOCHS:-50}"
-BATCH_SIZE="${BATCH_SIZE:-16}"
+BATCH_SIZE="${BATCH_SIZE:-8}"
 LR="${LR:-1e-4}"
 OPTIMIZER="${OPTIMIZER:-adamw}"
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.01}"

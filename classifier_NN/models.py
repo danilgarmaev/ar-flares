@@ -3,7 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import timm
-from torchvision.models.video import r3d_18
+from torchvision.models.video import r3d_18, r2plus1d_18
+import os
+from pathlib import Path
 from peft import LoraConfig, get_peft_model, TaskType
 
 from .config import CFG
@@ -324,7 +326,15 @@ class ResNet3DSimple(nn.Module):
         # 1x1x1 conv to map 1ch -> 3ch instead of repeating.
         self.input_proj = nn.Conv3d(1, 3, kernel_size=1)
 
-        self.backbone = r3d_18(pretrained=pretrained)
+        try:
+            # Newer torchvision
+            from torchvision.models.video import R3D_18_Weights
+
+            weights = R3D_18_Weights.DEFAULT if pretrained else None
+            self.backbone = r3d_18(weights=weights)
+        except Exception:
+            # Older torchvision fallback
+            self.backbone = r3d_18(pretrained=pretrained)
         in_feats = self.backbone.fc.in_features
         # Replace classification head
         self.backbone.fc = nn.Linear(in_feats, num_classes)
@@ -339,6 +349,118 @@ class ResNet3DSimple(nn.Module):
         x = x.permute(0, 2, 1, 3, 4).contiguous()  # (B,1,T,H,W)
         x = self.input_proj(x)                     # (B,3,T,H,W)
         return self.backbone(x)
+
+
+class R2Plus1D18Simple(nn.Module):
+    """Wrapper around torchvision r2plus1d_18 for sequence magnetograms.
+
+    Expects input of shape (B, T, 1, H, W). Internally permutes to
+    (B, 1, T, H, W) and maps single-channel input to 3 channels via a
+    learnable 1x1x1 Conv before feeding into r2plus1d_18.
+    """
+
+    def __init__(self, num_frames: int = 3, num_classes: int = 2, pretrained: bool = False):
+        super().__init__()
+        self.num_frames = num_frames
+        self.input_proj = nn.Conv3d(1, 3, kernel_size=1)
+
+        try:
+            # Newer torchvision
+            from torchvision.models.video import R2Plus1D_18_Weights
+
+            weights = R2Plus1D_18_Weights.DEFAULT if pretrained else None
+            self.backbone = r2plus1d_18(weights=weights)
+        except Exception:
+            # Older torchvision fallback
+            self.backbone = r2plus1d_18(pretrained=pretrained)
+        in_feats = self.backbone.fc.in_features
+        self.backbone.fc = nn.Linear(in_feats, num_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dim() != 5:
+            raise ValueError(f"R2Plus1D18Simple expects (B,T,1,H,W), got {x.shape}")
+        B, T, C, H, W = x.shape
+        assert C == 1, "R2Plus1D18Simple currently assumes 1-channel input"
+        x = x.permute(0, 2, 1, 3, 4).contiguous()
+        x = self.input_proj(x)
+        return self.backbone(x)
+
+
+class TimeSformerHF(nn.Module):
+    """TimeSformer via HuggingFace Transformers.
+
+    Expects input (B, T, 1, H, W). Transformers TimeSformer expects
+    pixel_values shaped (B, T, C, H, W).
+    """
+
+    def __init__(
+        self,
+        *,
+        num_frames: int = 16,
+        image_size: int = 224,
+        num_classes: int = 2,
+        pretrained: bool = False,
+        pretrained_model_id: str = "facebook/timesformer-base-finetuned-k400",
+    ) -> None:
+        super().__init__()
+        self.num_frames = int(num_frames)
+        self.image_size = int(image_size)
+        self.pretrained_model_id = str(pretrained_model_id)
+
+        self.input_proj = nn.Conv3d(1, 3, kernel_size=1)
+
+        from transformers import TimesformerConfig, TimesformerForVideoClassification
+
+        if pretrained:
+            self.model = TimesformerForVideoClassification.from_pretrained(
+                self.pretrained_model_id,
+                num_labels=int(num_classes),
+                ignore_mismatched_sizes=True,
+                local_files_only=_is_offline_env(),
+            )
+        else:
+            cfg = TimesformerConfig(
+                image_size=self.image_size,
+                num_frames=self.num_frames,
+                num_channels=3,
+                num_labels=int(num_classes),
+            )
+            self.model = TimesformerForVideoClassification(cfg)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dim() != 5:
+            raise ValueError(f"TimeSformerHF expects (B,T,1,H,W), got {x.shape}")
+        B, T, C, H, W = x.shape
+        if C != 1:
+            raise ValueError(f"TimeSformerHF currently assumes 1-channel input, got C={C}")
+
+        # (B,T,1,H,W) -> (B,1,T,H,W) -> (B,3,T,H,W) -> (B,T,3,H,W)
+        x = x.permute(0, 2, 1, 3, 4).contiguous()
+        x = self.input_proj(x)
+        x = x.permute(0, 2, 1, 3, 4).contiguous()
+
+        out = self.model(pixel_values=x)
+        return out.logits
+
+
+def _is_offline_env() -> bool:
+    return os.environ.get("OFFLINE", "0") == "1" or os.environ.get("HF_HUB_OFFLINE", "0") == "1"
+
+
+def _torch_hub_cache_has_repo(repo: str) -> bool:
+    """Best-effort check that torch.hub's cached repo sources exist."""
+    try:
+        import torch
+
+        hub_dir = Path(torch.hub.get_dir())
+        if not hub_dir.exists():
+            return False
+        # torch.hub typically expands to folders like: owner_repo_branch
+        owner_repo = repo.replace("/", "_")
+        matches = list(hub_dir.glob(f"{owner_repo}*"))
+        return any(p.is_dir() for p in matches)
+    except Exception:
+        return False
 
 
 class SlowFastWrapper(nn.Module):
@@ -360,6 +482,7 @@ class SlowFastWrapper(nn.Module):
         pretrained: bool = True,
         freeze_backbone: bool = False,
         alpha: int = 4,
+        hub_repo: str = "facebookresearch/pytorchvideo",
     ) -> None:
         super().__init__()
         self.num_frames = num_frames
@@ -369,8 +492,15 @@ class SlowFastWrapper(nn.Module):
         self.input_proj = nn.Conv3d(1, 3, kernel_size=1)
 
         # Base SlowFast backbone (use torch.hub.load)
+        if _is_offline_env() and not _torch_hub_cache_has_repo(hub_repo):
+            raise RuntimeError(
+                "SlowFast requested but torch.hub repo cache is missing in offline mode. "
+                "Run `python scripts/prefetch_a3_video_backbones.py --slowfast` on a login node with internet "
+                "with TORCH_HOME pointed at scratch, then re-run." \
+            )
+
         self.backbone = torch.hub.load(
-            'facebookresearch/pytorchvideo',
+            hub_repo,
             'slowfast_r50',
             pretrained=pretrained,
         )
@@ -744,7 +874,15 @@ def build_model(cfg=None, num_classes=2):
         return model
 
     # Explicit 3D CNN video backbone
-    if backbone.lower() in ["simple3dcnn", "3d_cnn", "resnet3d_simple", "r3d_18", "r3d18"]:
+    if backbone.lower() in [
+        "simple3dcnn",
+        "3d_cnn",
+        "resnet3d_simple",
+        "r3d_18",
+        "r3d18",
+        "r2plus1d_18",
+        "r2plus1d18",
+    ]:
         if backbone.lower() in ["simple3dcnn", "3d_cnn"]:
             model = Simple3DCNN(
                 in_chans=1,
@@ -755,7 +893,16 @@ def build_model(cfg=None, num_classes=2):
             n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
             print(f"Built Simple3DCNN with T={cfg.get('seq_T', 3)} | trainable={n_train:,}")
             return model
-        else:  # "resnet3d_simple" / "r3d_18"
+        else:
+            if backbone.lower() in ["r2plus1d_18", "r2plus1d18"]:
+                model = R2Plus1D18Simple(
+                    num_frames=cfg.get("seq_T", 3),
+                    num_classes=num_classes,
+                    pretrained=cfg.get("pretrained_3d", False),
+                )
+                n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+                print(f"Built R2Plus1D18Simple (r2plus1d_18) with T={cfg.get('seq_T', 3)} | trainable={n_train:,}")
+                return model
             model = ResNet3DSimple(
                 num_frames=cfg.get("seq_T", 3),
                 num_classes=num_classes,
@@ -797,6 +944,22 @@ def build_model(cfg=None, num_classes=2):
         print(
             f"Built VideoTransformer over {cfg.get('video_backbone', cfg.get('backbone', 'convnext_tiny'))} "
             f"with T={cfg.get('seq_T', 3)} | trainable={n_train:,}"
+        )
+        return model
+
+    # Explicit TimeSformer backbone (HuggingFace Transformers)
+    if backbone_lower in ["timesformer", "timeformer_hf", "timesformer_hf"]:
+        model = TimeSformerHF(
+            num_frames=cfg.get("seq_T", 16),
+            image_size=cfg.get("image_size", IMG_SIZE),
+            num_classes=num_classes,
+            pretrained=cfg.get("pretrained_3d", False),
+            pretrained_model_id=cfg.get("timesformer_model_id", "facebook/timesformer-base-finetuned-k400"),
+        )
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(
+            f"Built TimeSformerHF ({cfg.get('timesformer_model_id', 'facebook/timesformer-base-finetuned-k400')}) "
+            f"with T={cfg.get('seq_T', 16)} | trainable={n_train:,}"
         )
         return model
 

@@ -10,7 +10,9 @@ Two studies:
 
 Models: use existing sequence-capable backbones in `classifier_NN.models`:
 - r3d_18 (torchvision r3d_18 wrapper)
-- slowfast (torch.hub facebookresearch/pytorchvideo slowfast_r50)
+- r2plus1d_18 (torchvision r2plus1d_18 wrapper)
+- slowfast (torch.hub facebookresearch/pytorchvideo slowfast_r50)  # supported, not default (offline fragile)
+- timesformer (HuggingFace transformers TimeSformer)  # supported
 - video_transformer (2D backbone + temporal transformer)
 
 Notes
@@ -256,7 +258,12 @@ def run_sweep(
 def main() -> None:
     ap = argparse.ArgumentParser(description="Experiment A3: temporal sampling interval study")
     ap.add_argument("--study", choices=["context", "cadence"], default="context")
-    ap.add_argument("--backbone", action="append", default=None, help="Backbone(s): r3d_18, slowfast, video_transformer")
+    ap.add_argument(
+        "--backbone",
+        action="append",
+        default=None,
+        help="Backbone(s): r3d_18, r2plus1d_18, slowfast, timesformer, video_transformer",
+    )
     ap.add_argument("--interval-min", action="append", type=int, default=None, help="Intervals (min): 12/24/48/96")
     ap.add_argument("--runs", type=int, default=3, help="Number of seeds (0..runs-1)")
     ap.add_argument("--seed", action="append", type=int, default=None, help="Explicit seed(s); overrides --runs")
@@ -278,7 +285,7 @@ def main() -> None:
 
     args = ap.parse_args()
 
-    backbones = args.backbone or ["r3d_18", "slowfast"]
+    backbones = args.backbone or ["r3d_18", "r2plus1d_18"]
     intervals = args.interval_min or list(INTERVALS_MIN)
     seeds = args.seed if args.seed is not None else list(range(int(args.runs)))
 
