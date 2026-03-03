@@ -55,6 +55,7 @@ LR="${LR:-1e-4}"
 PRETRAINED="${PRETRAINED:-1}"
 AUG_PRESET="${AUG_PRESET:-robust}"
 NAME_SUFFIX="${NAME_SUFFIX:-repro}"
+MIN_FLARE_CLASS="${MIN_FLARE_CLASS:-C}"
 
 # Optional speed controls
 MAX_TRAIN_SHARDS="${MAX_TRAIN_SHARDS:-}"
@@ -70,6 +71,7 @@ cmd=(python -m classifier_NN.legacy.run_experiments_A1 \
   --resolution "$RESOLUTION" \
   --seed "$seed" \
   --name-suffix "$NAME_SUFFIX" \
+  --min-flare-class "$MIN_FLARE_CLASS" \
   --epochs "$EPOCHS" \
   --lr "$LR" \
   --optimizer adam_paper \

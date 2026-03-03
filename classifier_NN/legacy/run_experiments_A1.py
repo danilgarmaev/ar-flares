@@ -321,6 +321,16 @@ if __name__ == "__main__":
         default=None,
         help="Optional suffix appended to run_id/model_name (helps avoid collisions in parallel runs)",
     )
+    ap.add_argument(
+        "--min-flare-class",
+        type=str,
+        default=None,
+        choices=["C", "M", "c", "m"],
+        help=(
+            "Label threshold: 'C' uses shard JSON labels (C+ baseline). "
+            "'M' remaps labels from the intensity label file (M+/X+ positives)."
+        ),
+    )
     args = ap.parse_args()
 
     resolutions = args.resolution if args.resolution else None
@@ -358,6 +368,9 @@ if __name__ == "__main__":
 
     if args.freeze_backbone is not None:
         common_overrides["freeze_backbone"] = bool(args.freeze_backbone)
+
+    if args.min_flare_class is not None:
+        common_overrides["min_flare_class"] = str(args.min_flare_class).upper()
 
     if args.smoke:
         common_overrides.update({

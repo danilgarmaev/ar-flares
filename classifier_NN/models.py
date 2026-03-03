@@ -914,6 +914,17 @@ def build_model(cfg=None, num_classes=2):
 
     # Explicit SlowFast video backbone
     if backbone.lower() in ["slowfast", "slowfast_r50"]:
+        # NOTE: pytorchvideo SlowFast checkpoints are built for 224x224 inputs and
+        # typically expect ~32 frames. With smaller (T, H, W), the fixed pooling
+        # kernels in the backbone can error at runtime (avg_pool3d kernel > input).
+        img_size = int(cfg.get("image_size", 224) or 224)
+        t_frames = int(cfg.get("seq_T", 32) or 32)
+        if img_size < 224 or t_frames < 32:
+            raise ValueError(
+                "SlowFast requires image_size>=224 and seq_T>=32 with the current wrapper/checkpoint; "
+                f"got image_size={img_size}, seq_T={t_frames}. "
+                "Either increase them (e.g. IMG_SIZE=224, T_FRAMES=32) or skip SlowFast for small-T sweeps."
+            )
         model = SlowFastWrapper(
             num_frames=cfg.get("seq_T", 32),
             num_classes=num_classes,
@@ -949,6 +960,14 @@ def build_model(cfg=None, num_classes=2):
 
     # Explicit TimeSformer backbone (HuggingFace Transformers)
     if backbone_lower in ["timesformer", "timeformer_hf", "timesformer_hf"]:
+        # HF TimeSformer checkpoints are trained at 224x224 with fixed patch geometry.
+        # Feeding other sizes often triggers embedding reshape errors.
+        img_size = int(cfg.get("image_size", IMG_SIZE) or IMG_SIZE)
+        if img_size != 224:
+            raise ValueError(
+                "TimeSformerHF currently requires image_size=224 to match pretrained patch geometry; "
+                f"got image_size={img_size}. Set IMG_SIZE=224 (or implement a custom resized positional embedding)."
+            )
         model = TimeSformerHF(
             num_frames=cfg.get("seq_T", 16),
             image_size=cfg.get("image_size", IMG_SIZE),

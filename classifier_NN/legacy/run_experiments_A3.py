@@ -280,6 +280,18 @@ def main() -> None:
     ap.add_argument("--optimizer", type=str, default=None)
     ap.add_argument("--weight-decay", type=float, default=None)
     ap.add_argument("--scheduler", type=str, default=None)
+    ap.add_argument(
+        "--steps-per-epoch",
+        type=int,
+        default=None,
+        help="Cap training steps per epoch (useful when shorter T explodes the number of sequences).",
+    )
+    ap.add_argument(
+        "--val-max-batches",
+        type=int,
+        default=None,
+        help="Cap validation batches (useful for quick runs with expensive models).",
+    )
     ap.add_argument("--pretrained-3d", action="store_true", default=None, help="Use pretrained weights for 3D backbones")
     ap.add_argument("--no-pretrained-3d", dest="pretrained_3d", action="store_false", default=None)
 
@@ -304,6 +316,8 @@ def main() -> None:
         "optimizer": args.optimizer,
         "weight_decay": args.weight_decay,
         "scheduler": args.scheduler,
+        "steps_per_epoch": args.steps_per_epoch,
+        "val_max_batches": args.val_max_batches,
         "balance_classes": args.balance_classes,
         "neg_keep_prob": args.neg_keep_prob,
         "loss_type": args.loss_type,

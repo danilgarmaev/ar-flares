@@ -25,6 +25,78 @@ from .losses import get_loss_function
 from .metrics import evaluate_model, find_best_threshold_tss
 
 
+def _trim_cfg_for_logging(cfg: dict) -> dict:
+    """Return a compact config dict for human inspection.
+
+    Keeps a small set of always-relevant keys and any keys that differ from
+    the repo defaults. This does not affect training behavior; it's only
+    written to `config.min.json` next to the full `config.json`.
+    """
+    try:
+        defaults = get_default_cfg()
+    except Exception:
+        defaults = {}
+
+    always_keep = {
+        # paths / identity
+        "wds_base",
+        "wds_flow_base",
+        "results_base",
+        "run_id",
+        "model_name",
+        "notes",
+        "seed",
+        # mode / data geometry
+        "use_seq",
+        "use_flow",
+        "two_stream",
+        "use_diff",
+        "use_diff_attention",
+        "min_flare_class",
+        "image_size",
+        "seq_T",
+        "seq_stride",
+        "seq_offsets",
+        "seq_aggregate",
+        # model selection
+        "backbone",
+        "pretrained",
+        "pretrained_3d",
+        "freeze_backbone",
+        # optimization / runtime
+        "batch_size",
+        "num_workers",
+        "lr",
+        "epochs",
+        "optimizer",
+        "weight_decay",
+        "scheduler",
+        "steps_per_epoch",
+        # eval / checkpointing
+        "model_selection",
+        "early_stopping_patience",
+        "val_max_batches",
+        # loss / imbalance
+        "loss_type",
+        "balance_classes",
+        "neg_keep_prob",
+    }
+
+    trimmed: dict = {}
+    for k, v in cfg.items():
+        if k in always_keep:
+            trimmed[k] = v
+            continue
+        if k == "seq_stride_steps":
+            # deprecated alias; keep out of the compact view
+            continue
+        if k in defaults and defaults.get(k) == v:
+            continue
+        # Keep any non-default override to aid reproducibility.
+        trimmed[k] = v
+    return trimmed
+
+
 def _save_full_checkpoint(
     path: str,
     *,
@@ -64,6 +136,12 @@ def setup_experiment(cfg=None):
     print(f"Experiment directory: {exp_dir}")
     with open(os.path.join(exp_dir, "config.json"), "w") as f:
         json.dump(cfg, f, indent=2)
+    # Also write a compact version for readability.
+    try:
+        with open(os.path.join(exp_dir, "config.min.json"), "w") as f:
+            json.dump(_trim_cfg_for_logging(cfg), f, indent=2)
+    except Exception as e:
+        print(f"Warning: failed to write config.min.json: {e}")
     if cfg.get("redirect_log", True):
         log_path = os.path.join(exp_dir, "log.txt")
         sys.stdout = open(log_path, "w", buffering=1)

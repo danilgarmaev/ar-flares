@@ -45,6 +45,17 @@ mkdir -p "$HF_HOME" "$TORCH_HOME"
 BACKBONES=(r3d_18 r2plus1d_18 slowfast timesformer)
 BACKBONE="${BACKBONES[$SLURM_ARRAY_TASK_ID]}"
 
+# Backbone-specific safe defaults (can still be overridden via env)
+if [[ "$BACKBONE" == "slowfast" ]]; then
+  # pytorchvideo SlowFast uses fixed pooling kernels; small (T,H,W) will crash.
+  if [[ "${IMG_SIZE:-112}" -lt 224 ]]; then IMG_SIZE=224; fi
+  if [[ "${T_FRAMES:-16}" -lt 32 ]]; then T_FRAMES=32; fi
+fi
+if [[ "$BACKBONE" == "timesformer" ]]; then
+  # HF TimeSformer checkpoints assume 224x224 patch geometry.
+  IMG_SIZE=224
+fi
+
 # Single setting knobs
 INTERVAL_MIN="${INTERVAL_MIN:-48}"
 SEED="${SEED:-0}"
@@ -69,6 +80,10 @@ IMG_SIZE="${IMG_SIZE:-112}"
 T_FRAMES="${T_FRAMES:-16}"
 NAME_SUFFIX="${NAME_SUFFIX:-quick4}"  # optional
 
+# Optional caps (useful when short T explodes the number of sequences)
+STEPS_PER_EPOCH="${STEPS_PER_EPOCH:-}"
+VAL_MAX_BATCHES="${VAL_MAX_BATCHES:-}"
+
 echo "Task ${SLURM_ARRAY_TASK_ID}: bb=${BACKBONE} interval=${INTERVAL_MIN}min seed=${SEED} study=${STUDY} offline=${OFFLINE}"
 
 cmd=(python -m classifier_NN.legacy.run_experiments_A3 \
@@ -85,6 +100,14 @@ cmd=(python -m classifier_NN.legacy.run_experiments_A3 \
   --scheduler "$SCHEDULER" \
   --img-size "$IMG_SIZE" \
   --T "$T_FRAMES")
+
+if [[ -n "$STEPS_PER_EPOCH" ]]; then
+  cmd+=(--steps-per-epoch "$STEPS_PER_EPOCH")
+fi
+
+if [[ -n "$VAL_MAX_BATCHES" ]]; then
+  cmd+=(--val-max-batches "$VAL_MAX_BATCHES")
+fi
 
 if [[ -n "$NAME_SUFFIX" ]]; then
   cmd+=(--name-suffix "$NAME_SUFFIX")

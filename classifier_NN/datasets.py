@@ -141,13 +141,31 @@ def load_flare_label_map(label_file: str, min_class="C"):
     return flare_map
 
 
-# Initialize LABEL_MAP based on config
-LABEL_MAP = None
-if CFG["min_flare_class"].upper() == "M":
-    LABEL_MAP = load_flare_label_map(
-        os.path.join(intensity_labels_path, "C1.0_24hr_224_png_Labels.txt"),
-        min_class="M"
-    )
+def _labels_txt_path() -> str:
+    return os.path.join(intensity_labels_path, "C1.0_24hr_224_png_Labels.txt")
+
+
+@lru_cache(maxsize=4)
+def _label_map_cached(label_file: str, min_class: str) -> Optional[Dict[str, int]]:
+    return load_flare_label_map(label_file, min_class=min_class)
+
+
+def get_label_map() -> Optional[Dict[str, int]]:
+    """Return a filename->binary-label mapping if remapping is enabled.
+
+    For min_flare_class='C' (default), shard JSON already contains the correct
+    binary label, so this returns None.
+    For min_flare_class='M', load the official intensity labels file and remap
+    to M+/X+ positives.
+
+    Note: This is cached per (label_file, min_class) so experiment runners can
+    override `CFG['min_flare_class']` at runtime without needing to reload this
+    module.
+    """
+    min_class = str(CFG.get("min_flare_class", "C") or "C").upper()
+    if min_class != "M":
+        return None
+    return _label_map_cached(_labels_txt_path(), min_class)
 
 def _build_basic_transform(img_size: int):
     """Basic transform (Resize + ToTensor) parameterized by image size.
@@ -358,6 +376,7 @@ class TarShardDataset(IterableDataset):
             assert len(self.shard_paths) == len(self.flow_paths), "Image vs flow shard count mismatch"
 
     def _sample_iter_from_tar(self, img_tar: str, flow_tar: str = None):
+        label_map = get_label_map()
         # Check if sequence mode or diff attention is enabled
         use_seq = CFG.get("use_seq", False)
         use_diff_attn = CFG.get("use_diff_attention", False)
@@ -552,9 +571,9 @@ class TarShardDataset(IterableDataset):
                         meta.setdefault("basename", entries[ref_idx][0])
                     except Exception:
                         pass
-                    if LABEL_MAP is not None:
+                    if label_map is not None:
                         fname = os.path.basename(entries[ref_idx][1].name)
-                        label = LABEL_MAP.get(fname, 0)
+                        label = int(label_map.get(fname, 0))
                     else:
                         label = int(meta["label"])
 
@@ -601,9 +620,9 @@ class TarShardDataset(IterableDataset):
                         pass
 
                     # Label
-                    if LABEL_MAP is not None:
+                    if label_map is not None:
                         fname = os.path.basename(parts["png"].name)
-                        label = LABEL_MAP.get(fname, 0)
+                        label = int(label_map.get(fname, 0))
                     else:
                         label = int(meta["label"])
 
@@ -804,6 +823,7 @@ def count_raw_labels_all_shards(split_dir: str) -> Dict[int, int]:
 
 def count_labels_all_shards(split_dir: str) -> Dict[int, int]:
     """Count samples per class using LABEL_MAP if available, else use meta['label']."""
+    label_map = get_label_map()
     ctr = Counter()
     for tar_path in glob.glob(os.path.join(split_dir, "*.tar")):
         with tarfile.open(tar_path, "r") as tf:
@@ -811,8 +831,8 @@ def count_labels_all_shards(split_dir: str) -> Dict[int, int]:
                 if not (m.isfile() and m.name.endswith(".png")):
                     continue
                 fname = os.path.basename(m.name)
-                if LABEL_MAP is not None:
-                    label = LABEL_MAP.get(fname, 0)
+                if label_map is not None:
+                    label = int(label_map.get(fname, 0))
                 else:
                     # load label from corresponding JSON (already binary at C1.0)
                     json_name = m.name.replace(".png", ".json")
