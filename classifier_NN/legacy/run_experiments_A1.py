@@ -331,6 +331,79 @@ if __name__ == "__main__":
             "'M' remaps labels from the intensity label file (M+/X+ positives)."
         ),
     )
+
+    # Shard-based negative downsampling controls (no external JSON required)
+    ap.add_argument(
+        "--balance-classes",
+        dest="balance_classes",
+        action="store_true",
+        default=None,
+        help="Enable negative downsampling in Train split",
+    )
+    ap.add_argument(
+        "--no-balance-classes",
+        dest="balance_classes",
+        action="store_false",
+        default=None,
+        help="Disable negative downsampling in Train split",
+    )
+    ap.add_argument(
+        "--balance-mode",
+        type=str,
+        default=None,
+        choices=["prob", "fixed"],
+        help="Balancing mode: 'prob' random per epoch, 'fixed' deterministic subset",
+    )
+    ap.add_argument(
+        "--neg-keep-prob",
+        type=float,
+        default=None,
+        help="Default keep probability for negatives (used when subtype keep probs are not set)",
+    )
+    ap.add_argument(
+        "--neg-keep-prob-none",
+        type=float,
+        default=None,
+        help="Keep probability for NONE negatives (meta.reg_label == '0')",
+    )
+    ap.add_argument(
+        "--neg-keep-prob-c",
+        type=float,
+        default=None,
+        help="Keep probability for C-class negatives (meta.reg_label startswith 'C')",
+    )
+    ap.add_argument(
+        "--auto-set-neg-keep-probs",
+        dest="auto_set_neg_keep_probs",
+        action="store_true",
+        default=None,
+        help="Scan Train shards at startup and auto-set keep probabilities from targets",
+    )
+    ap.add_argument(
+        "--no-auto-set-neg-keep-probs",
+        dest="auto_set_neg_keep_probs",
+        action="store_false",
+        default=None,
+        help="Disable auto-setting keep probabilities from shards",
+    )
+    ap.add_argument(
+        "--target-neg-total",
+        type=int,
+        default=None,
+        help="Target total negatives to keep (auto-set uses this to compute neg_keep_prob)",
+    )
+    ap.add_argument(
+        "--target-neg-none",
+        type=int,
+        default=None,
+        help="Target NONE negatives to keep (auto-set computes neg_keep_prob_none)",
+    )
+    ap.add_argument(
+        "--target-neg-c",
+        type=int,
+        default=None,
+        help="Target C-class negatives to keep (auto-set computes neg_keep_prob_c)",
+    )
     args = ap.parse_args()
 
     resolutions = args.resolution if args.resolution else None
@@ -371,6 +444,33 @@ if __name__ == "__main__":
 
     if args.min_flare_class is not None:
         common_overrides["min_flare_class"] = str(args.min_flare_class).upper()
+
+    if args.balance_classes is not None:
+        common_overrides["balance_classes"] = bool(args.balance_classes)
+
+    if args.balance_mode is not None:
+        common_overrides["balance_mode"] = str(args.balance_mode)
+
+    if args.neg_keep_prob is not None:
+        common_overrides["neg_keep_prob"] = float(args.neg_keep_prob)
+
+    if args.neg_keep_prob_none is not None:
+        common_overrides["neg_keep_prob_none"] = float(args.neg_keep_prob_none)
+
+    if args.neg_keep_prob_c is not None:
+        common_overrides["neg_keep_prob_c"] = float(args.neg_keep_prob_c)
+
+    if args.auto_set_neg_keep_probs is not None:
+        common_overrides["auto_set_neg_keep_probs"] = bool(args.auto_set_neg_keep_probs)
+
+    if args.target_neg_total is not None:
+        common_overrides["target_neg_total"] = int(args.target_neg_total)
+
+    if args.target_neg_none is not None:
+        common_overrides["target_neg_none"] = int(args.target_neg_none)
+
+    if args.target_neg_c is not None:
+        common_overrides["target_neg_c"] = int(args.target_neg_c)
 
     if args.smoke:
         common_overrides.update({

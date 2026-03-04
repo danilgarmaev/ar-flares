@@ -54,8 +54,62 @@ EPOCHS="${EPOCHS:-50}"
 LR="${LR:-1e-4}"
 PRETRAINED="${PRETRAINED:-1}"
 AUG_PRESET="${AUG_PRESET:-robust}"
-NAME_SUFFIX="${NAME_SUFFIX:-repro}"
+EXPERIMENT_TAG="${EXPERIMENT_TAG:-repro}"
 MIN_FLARE_CLASS="${MIN_FLARE_CLASS:-C}"
+
+# Optional shard-based downsampling / balancing controls
+BALANCE_CLASSES="${BALANCE_CLASSES:-}"
+BALANCE_MODE="${BALANCE_MODE:-}"
+NEG_KEEP_PROB="${NEG_KEEP_PROB:-}"
+NEG_KEEP_PROB_NONE="${NEG_KEEP_PROB_NONE:-}"
+NEG_KEEP_PROB_C="${NEG_KEEP_PROB_C:-}"
+AUTO_SET_NEG_KEEP_PROBS="${AUTO_SET_NEG_KEEP_PROBS:-}"
+TARGET_NEG_TOTAL="${TARGET_NEG_TOTAL:-}"
+TARGET_NEG_NONE="${TARGET_NEG_NONE:-}"
+TARGET_NEG_C="${TARGET_NEG_C:-}"
+
+# Standardized dataset-regime tags (used only when NAME_SUFFIX is not provided).
+# Expected 6 regimes:
+#   C+: cplus_full | cplus_mild450k | cplus_bal
+#   M+: mplus_full | mplus_mild_none150k_c125k | mplus_bal
+if [[ -z "${NAME_SUFFIX:-}" ]]; then
+  minc=$(echo "$MIN_FLARE_CLASS" | tr '[:upper:]' '[:lower:]')
+  if [[ "$minc" == "c" ]]; then
+    if [[ "${BALANCE_CLASSES:-}" == "1" ]]; then
+      if [[ -n "$TARGET_NEG_TOTAL" ]]; then
+        # e.g. 450000 -> 450k
+        if [[ "$TARGET_NEG_TOTAL" =~ ^[0-9]+$ ]]; then
+          k=$((TARGET_NEG_TOTAL/1000))
+          DATA_TAG="cplus_mild${k}k"
+        else
+          DATA_TAG="cplus_mild"
+        fi
+      else
+        DATA_TAG="cplus_bal"
+      fi
+    else
+      DATA_TAG="cplus_full"
+    fi
+  else
+    # minc == m
+    if [[ "${BALANCE_CLASSES:-}" == "1" ]]; then
+      if [[ -n "$TARGET_NEG_NONE" || -n "$TARGET_NEG_C" ]]; then
+        nn="$TARGET_NEG_NONE"
+        nc="$TARGET_NEG_C"
+        # make it short but still explicit
+        nnk="${nn}"; nck="${nc}"
+        if [[ "$nn" =~ ^[0-9]+$ ]]; then nnk=$((nn/1000))"k"; fi
+        if [[ "$nc" =~ ^[0-9]+$ ]]; then nck=$((nc/1000))"k"; fi
+        DATA_TAG="mplus_mild_none${nnk}_c${nck}"
+      else
+        DATA_TAG="mplus_bal"
+      fi
+    else
+      DATA_TAG="mplus_full"
+    fi
+  fi
+  NAME_SUFFIX="${EXPERIMENT_TAG}__${DATA_TAG}"
+fi
 
 # Optional speed controls
 MAX_TRAIN_SHARDS="${MAX_TRAIN_SHARDS:-}"
@@ -78,6 +132,42 @@ cmd=(python -m classifier_NN.legacy.run_experiments_A1 \
   --scheduler onecycle \
   --use-aug --aug-preset "$AUG_PRESET" \
   --no-freeze-backbone)
+
+if [[ -n "$BALANCE_CLASSES" ]]; then
+  if [[ "$BALANCE_CLASSES" == "1" ]]; then
+    cmd+=(--balance-classes)
+  else
+    cmd+=(--no-balance-classes)
+  fi
+fi
+if [[ -n "$BALANCE_MODE" ]]; then
+  cmd+=(--balance-mode "$BALANCE_MODE")
+fi
+if [[ -n "$NEG_KEEP_PROB" ]]; then
+  cmd+=(--neg-keep-prob "$NEG_KEEP_PROB")
+fi
+if [[ -n "$NEG_KEEP_PROB_NONE" ]]; then
+  cmd+=(--neg-keep-prob-none "$NEG_KEEP_PROB_NONE")
+fi
+if [[ -n "$NEG_KEEP_PROB_C" ]]; then
+  cmd+=(--neg-keep-prob-c "$NEG_KEEP_PROB_C")
+fi
+if [[ -n "$AUTO_SET_NEG_KEEP_PROBS" ]]; then
+  if [[ "$AUTO_SET_NEG_KEEP_PROBS" == "1" ]]; then
+    cmd+=(--auto-set-neg-keep-probs)
+  else
+    cmd+=(--no-auto-set-neg-keep-probs)
+  fi
+fi
+if [[ -n "$TARGET_NEG_TOTAL" ]]; then
+  cmd+=(--target-neg-total "$TARGET_NEG_TOTAL")
+fi
+if [[ -n "$TARGET_NEG_NONE" ]]; then
+  cmd+=(--target-neg-none "$TARGET_NEG_NONE")
+fi
+if [[ -n "$TARGET_NEG_C" ]]; then
+  cmd+=(--target-neg-c "$TARGET_NEG_C")
+fi
 
 if [[ -n "$MAX_TRAIN_SHARDS" ]]; then
   cmd+=(--max-train-shards "$MAX_TRAIN_SHARDS")

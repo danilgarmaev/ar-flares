@@ -6,6 +6,7 @@ import json
 import tarfile
 import random
 import re
+import hashlib
 from functools import lru_cache
 from pathlib import Path
 from typing import Iterable, List, Dict, Optional, Tuple
@@ -725,28 +726,41 @@ class TarShardDataset(IterableDataset):
         balance_classes = CFG.get("balance_classes", False) and self.split_name == "Train"
         balance_mode = CFG.get("balance_mode", "prob")
         neg_keep_prob = CFG.get("neg_keep_prob", 0.25)
+        neg_keep_prob_none = CFG.get("neg_keep_prob_none", None)
+        neg_keep_prob_c = CFG.get("neg_keep_prob_c", None)
+
+        def _neg_keep_prob_for_meta(meta: dict) -> float:
+            sub = _neg_subtype_from_meta(meta)
+            if sub == "none" and neg_keep_prob_none is not None:
+                return float(neg_keep_prob_none)
+            if sub == "c" and neg_keep_prob_c is not None:
+                return float(neg_keep_prob_c)
+            return float(neg_keep_prob)
 
         if balance_classes and balance_mode == "prob":
             rng = random.Random(self.seed + (worker_info.id if worker_info else 0) + 1000)
             for sample in stream:
                 x, label, meta = sample
                 if label == 0:
-                    if rng.random() < neg_keep_prob:
+                    if rng.random() < _neg_keep_prob_for_meta(meta):
                         yield sample
                 else:
                     yield sample
         elif balance_classes and balance_mode == "fixed":
-            # Deterministic selection: hash meta JSON (sorted keys) to get a stable float in [0,1)
+            # Deterministic selection: stable hash of meta JSON (sorted keys) -> float in [0,1)
+            # NOTE: Do NOT use Python's built-in hash(); it is randomized per process by default.
             for sample in stream:
                 x, label, meta = sample
                 if label == 0:
                     try:
-                        h = hash(json.dumps(meta, sort_keys=True)) & 0xffffffff
-                        keep_val = (h % 10_000_000) / 10_000_000.0
+                        payload = json.dumps(meta, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                        digest = hashlib.blake2b(payload, digest_size=8).digest()
+                        u64 = int.from_bytes(digest, byteorder="big", signed=False)
+                        keep_val = u64 / float(2**64)
                     except Exception:
                         # Fallback: always keep if hashing fails
                         keep_val = 0.0
-                    if keep_val < neg_keep_prob:
+                    if keep_val < _neg_keep_prob_for_meta(meta):
                         yield sample
                 else:
                     yield sample
@@ -843,6 +857,76 @@ def count_labels_all_shards(split_dir: str) -> Dict[int, int]:
     return dict(ctr)
 
 
+def _neg_subtype_from_meta(meta: dict) -> str:
+    """Classify a negative subtype using shard JSON field `reg_label`.
+
+    Returns one of: 'none', 'c', 'other'.
+    Convention (see `data/make_webdataset_shards.py`):
+      - reg_label == "0" means NONE
+      - reg_label like "C4.7" means C-class flare
+    """
+    reg = meta.get("reg_label", None)
+    if reg is None:
+        return "other"
+    reg_s = str(reg).strip().upper()
+    if reg_s in ("0", "NONE"):
+        return "none"
+    if reg_s.startswith("C"):
+        return "c"
+    return "other"
+
+
+def count_neg_subtypes_all_shards(
+    split_dir: str,
+    max_tars: int | None = None,
+    *,
+    sample: bool = False,
+    seed: int = 42,
+) -> Dict[str, int]:
+    """Count positives and negative subtypes (NONE vs C) in shards.
+
+    Respects runtime label remapping via `get_label_map()` (e.g. M+).
+    """
+    label_map = get_label_map()
+    counts = Counter()
+    tar_paths = sorted(glob.glob(os.path.join(split_dir, "*.tar")))
+    if max_tars is not None:
+        max_tars_i = max(0, int(max_tars))
+        if sample and max_tars_i < len(tar_paths):
+            rng = random.Random(int(seed))
+            tar_paths = rng.sample(tar_paths, max_tars_i)
+        else:
+            tar_paths = tar_paths[:max_tars_i]
+
+    for tar_path in tar_paths:
+        with tarfile.open(tar_path, "r") as tf:
+            for m in tf.getmembers():
+                if not (m.isfile() and m.name.endswith(".json")):
+                    continue
+                try:
+                    meta = json.loads(tf.extractfile(m).read().decode("utf-8"))
+                except Exception:
+                    continue
+
+                if label_map is not None:
+                    # label_map keys are PNG basenames (with extension)
+                    bname = os.path.basename(m.name[:-5])
+                    label = int(label_map.get(bname + ".png", 0))
+                else:
+                    try:
+                        label = int(meta.get("label", 0))
+                    except Exception:
+                        label = 0
+
+                if label == 1:
+                    counts.update(["pos"])
+                else:
+                    counts.update(["neg_total"])
+                    counts.update([f"neg_{_neg_subtype_from_meta(meta)}"])
+
+    return dict(counts)
+
+
 def count_samples_all_shards(split_dir: str, estimate: bool = True) -> int:
     """
     Count total samples across all shards.
@@ -884,6 +968,50 @@ def create_dataloaders():
     use_aug = CFG.get("use_aug", False)
 
     seed = int(CFG.get("seed", 42))
+
+    # Optional: auto-compute negative keep probabilities from Train shards.
+    # This reads shard JSON sidecars and respects label remapping (e.g. M+).
+    if CFG.get("auto_set_neg_keep_probs", False) and CFG.get("balance_classes", False):
+        try:
+            max_train_shards = CFG.get("max_train_shards", None)
+            stats = count_neg_subtypes_all_shards(
+                SPLIT_DIRS["Train"],
+                max_tars=max_train_shards,
+                sample=(max_train_shards is not None),
+                seed=int(CFG.get("seed", 42)),
+            )
+            pos = int(stats.get("pos", 0))
+            neg_total = int(stats.get("neg_total", 0))
+            neg_none = int(stats.get("neg_none", 0))
+            neg_c = int(stats.get("neg_c", 0))
+
+            t_none = CFG.get("target_neg_none", None)
+            t_c = CFG.get("target_neg_c", None)
+            t_total = CFG.get("target_neg_total", None)
+
+            # Subtype-specific targets (only set if user didn't already set keep probs)
+            if t_none is not None and neg_none > 0 and CFG.get("neg_keep_prob_none", None) is None:
+                CFG["neg_keep_prob_none"] = max(0.0, min(1.0, float(int(t_none)) / float(neg_none)))
+            if t_c is not None and neg_c > 0 and CFG.get("neg_keep_prob_c", None) is None:
+                CFG["neg_keep_prob_c"] = max(0.0, min(1.0, float(int(t_c)) / float(neg_c)))
+
+            # Total-negative target (uniform) if requested.
+            if t_total is not None and neg_total > 0:
+                CFG["neg_keep_prob"] = max(0.0, min(1.0, float(int(t_total)) / float(neg_total)))
+
+            # Default to 50/50 by expected counts if no explicit targets.
+            if t_none is None and t_c is None and t_total is None and neg_total > 0 and pos > 0:
+                CFG["neg_keep_prob"] = max(0.0, min(1.0, float(pos) / float(neg_total)))
+
+            print(
+                "[auto_balance] "
+                f"pos={pos:,} neg_total={neg_total:,} neg_none={neg_none:,} neg_c={neg_c:,} "
+                f"neg_keep_prob={CFG.get('neg_keep_prob')} "
+                f"neg_keep_prob_none={CFG.get('neg_keep_prob_none')} "
+                f"neg_keep_prob_c={CFG.get('neg_keep_prob_c')}"
+            )
+        except Exception as e:
+            print(f"[auto_balance] Failed to compute keep probs from shards: {e}")
     train_ds = make_dataset(
         "Train",
         shuffle_shards=True,

@@ -134,6 +134,24 @@ CFG = {
     "balance_mode": "prob",     # 'prob' = per-epoch random negatives, 'fixed' = deterministic subset
     "neg_keep_prob": 0.25,       # probability to keep a negative when balance_mode='prob'
 
+    # Optional: per-negative-type keep probabilities based on shard JSON field `reg_label`.
+    # When set (not None), these override `neg_keep_prob` for negatives.
+    # - NONE is identified as reg_label == "0" (or "NONE").
+    # - C is identified as reg_label starting with "C".
+    # This is useful for M+ experiments where negatives include both NONE and C.
+    "neg_keep_prob_none": None,
+    "neg_keep_prob_c": None,
+
+    # Optional: auto-compute keep probabilities by scanning Train shards once at startup.
+    # If enabled, will set neg_keep_prob (and/or subtype probs) based on targets below.
+    "auto_set_neg_keep_probs": False,
+    # If provided, targets apply to negatives in the Train split.
+    # - target_neg_total: total negatives to keep (across NONE+C+...)
+    # - target_neg_none/target_neg_c: subtype-specific targets; if set, used preferentially.
+    "target_neg_total": None,
+    "target_neg_none": None,
+    "target_neg_c": None,
+
     # regularization
     "drop_rate": 0.2,            # Head dropout rate
     "drop_path_rate": 0.1,       # Stochastic depth rate (for ConvNeXt/ViT)
