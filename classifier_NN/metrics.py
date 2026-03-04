@@ -75,32 +75,50 @@ class MetricsCalculator:
         }
 
 
-def find_best_threshold_tss(y_true, y_probs):
-    """
-    Find optimal threshold by maximizing TSS (True Skill Statistic).
-    
+def find_best_threshold_tss(
+    y_true,
+    y_probs,
+    *,
+    min_recall: float = 0.5,
+    min_precision: float = 0.15,
+):
+    """Select an operating threshold using Riggi et al. (2026)-style constraints.
+
+    Search for the threshold $\tau^*$ that maximizes TSS subject to:
+      - recall >= min_recall
+      - precision >= min_precision
+
+    If no threshold satisfies the constraints, fall back to the threshold that
+    maximizes (precision + recall).
+
     Args:
-        y_true: Ground truth binary labels
+        y_true: Ground truth binary labels (0/1)
         y_probs: Predicted probabilities for positive class
-        
+        min_recall: Minimum allowed recall for constrained search
+        min_precision: Minimum allowed precision for constrained search
+
     Returns:
-        Tuple of (best_tss, best_threshold)
+        (best_tss, best_threshold)
     """
-    best_tss, best_t = -1.0, 0.5
+    y_true = np.asarray(y_true).astype(int)
+    y_probs = np.asarray(y_probs, dtype=float)
 
     # Important: do not artificially clip the search range.
     # Some models (esp. with class weighting) can produce probabilities that
-    # live almost entirely below 0.05; restricting thresholds to [0.05, 0.95]
-    # makes TSS appear stuck at ~0 even when ranking (AUC) is decent.
-    y_probs = np.asarray(y_probs)
+    # live almost entirely below 0.05; coarse grids over [0,1] can miss the
+    # narrow support, so include a dense grid over the observed range too.
     lo = float(np.nanmin(y_probs)) if y_probs.size else 0.0
     hi = float(np.nanmax(y_probs)) if y_probs.size else 1.0
     lo = max(0.0, min(1.0, lo))
     hi = max(0.0, min(1.0, hi))
 
-    # Include the full [0,1] endpoints plus a dense grid over observed range.
-    grid = np.linspace(lo, hi, 1001) if hi > lo else np.array([lo])
-    thresholds = np.unique(np.concatenate(([0.0], grid, [1.0])))
+    grid_full = np.linspace(0.0, 1.0, 1001)
+    grid_obs = np.linspace(lo, hi, 1001) if hi > lo else np.array([lo])
+    thresholds = np.unique(np.concatenate((grid_full, grid_obs, [0.0, 1.0])))
+
+    best_constrained = (-1.0, 0.5, -1.0)  # (tss, threshold, pr_sum)
+    found_constrained = False
+    best_fallback = (-1.0, 0.5, -1.0)     # (pr_sum, threshold, tss)
 
     for t in thresholds:
         pred = (y_probs >= t).astype(int)
@@ -108,15 +126,27 @@ def find_best_threshold_tss(y_true, y_probs):
         TN = int(((y_true == 0) & (pred == 0)).sum())
         FP = int(((y_true == 0) & (pred == 1)).sum())
         FN = int(((y_true == 1) & (pred == 0)).sum())
-        
-        TPR = TP / (TP + FN + 1e-7)
-        TNR = TN / (TN + FP + 1e-7)
-        TSS = TPR + TNR - 1
-        
-        if TSS > best_tss:
-            best_tss, best_t = TSS, t
-    
-    return best_tss, best_t
+
+        recall = TP / (TP + FN + 1e-7)
+        precision = TP / (TP + FP + 1e-7)
+        tnr = TN / (TN + FP + 1e-7)
+        tss = recall + tnr - 1.0
+        pr_sum = float(precision + recall)
+
+        # Always track fallback (maximize precision+recall)
+        if pr_sum > best_fallback[0] or (pr_sum == best_fallback[0] and tss > best_fallback[2]):
+            best_fallback = (pr_sum, float(t), float(tss))
+
+        # Constrained optimum: maximize TSS subject to constraints
+        if recall >= float(min_recall) and precision >= float(min_precision):
+            found_constrained = True
+            if tss > best_constrained[0] or (tss == best_constrained[0] and pr_sum > best_constrained[2]):
+                best_constrained = (float(tss), float(t), pr_sum)
+
+    if found_constrained:
+        return best_constrained[0], best_constrained[1]
+    # No feasible threshold met (recall,precision) constraints.
+    return best_fallback[2], best_fallback[1]
 
 
 def plot_roc_curve(y_true, y_probs, save_path, model_name="Model"):
