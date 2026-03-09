@@ -443,6 +443,80 @@ class TimeSformerHF(nn.Module):
         return out.logits
 
 
+class VideoMAEWrapper(nn.Module):
+    """VideoMAE via HuggingFace Transformers (SKELETON - NOT YET FULLY TESTED).
+    
+    NOTE: This is a skeleton implementation - VideoMAE is not yet fully integrated.
+    To enable VideoMAE:
+    1. Install: pip install transformers>=4.30.0
+    2. Prefetch weights on login node with internet:
+       python -c "from transformers import VideoMAEForVideoClassification; \
+                  VideoMAEForVideoClassification.from_pretrained('MCG-NJU/videomae-base')"
+    3. Test and adjust forward() for correct input format for your transformers version
+    4. Add case in build_model() function to instantiate this wrapper
+    
+    Expects input (B, T, 1, H, W). VideoMAE expects RGB video tensors.
+    """
+
+    def __init__(
+        self,
+        *,
+        num_frames: int = 16,
+        image_size: int = 224,
+        num_classes: int = 2,
+        pretrained: bool = True,
+        pretrained_model_id: str = "MCG-NJU/videomae-base",
+    ) -> None:
+        super().__init__()
+        self.num_frames = int(num_frames)
+        self.image_size = int(image_size)
+        self.pretrained_model_id = str(pretrained_model_id)
+
+        # Convert grayscale to RGB
+        self.input_proj = nn.Conv3d(1, 3, kernel_size=1)
+
+        try:
+            from transformers import VideoMAEForVideoClassification, VideoMAEConfig
+        except ImportError:
+            raise ImportError(
+                "VideoMAE requires transformers>=4.30.0. Install with: pip install transformers>=4.30.0"
+            )
+
+        if pretrained:
+            self.model = VideoMAEForVideoClassification.from_pretrained(
+                self.pretrained_model_id,
+                num_labels=int(num_classes),
+                ignore_mismatched_sizes=True,
+                local_files_only=_is_offline_env(),
+            )
+        else:
+            cfg = VideoMAEConfig(
+                image_size=self.image_size,
+                num_frames=self.num_frames,
+                num_channels=3,
+                num_labels=int(num_classes),
+            )
+            self.model = VideoMAEForVideoClassification(cfg)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dim() != 5:
+            raise ValueError(f"VideoMAEWrapper expects (B,T,1,H,W), got {x.shape}")
+        B, T, C, H, W = x.shape
+        if C != 1:
+            raise ValueError(f"VideoMAEWrapper currently assumes 1-channel input, got C={C}")
+        
+        # Convert (B, T, 1, H, W) -> (B, 1, T, H, W) for Conv3d
+        x = x.permute(0, 2, 1, 3, 4).contiguous()
+        x = self.input_proj(x)  # (B, 3, T, H, W)
+        
+        # VideoMAE may expect (B, T, 3, H, W) or similar
+        # TODO: Verify correct format for your transformers version
+        x = x.permute(0, 2, 1, 3, 4).contiguous()  # (B, T, 3, H, W)
+        
+        out = self.model(pixel_values=x)
+        return out.logits
+
+
 def _is_offline_env() -> bool:
     return os.environ.get("OFFLINE", "0") == "1" or os.environ.get("HF_HUB_OFFLINE", "0") == "1"
 
@@ -979,6 +1053,30 @@ def build_model(cfg=None, num_classes=2):
         print(
             f"Built TimeSformerHF ({cfg.get('timesformer_model_id', 'facebook/timesformer-base-finetuned-k400')}) "
             f"with T={cfg.get('seq_T', 16)} | trainable={n_train:,}"
+        )
+        return model
+
+    # Explicit VideoMAE backbone (HuggingFace Transformers) - SKELETON, NOT YET FULLY TESTED
+    if backbone_lower in ["videomae", "video_mae"]:
+        # VideoMAE checkpoints are typically trained at 224x224
+        img_size = int(cfg.get("image_size", IMG_SIZE) or IMG_SIZE)
+        if img_size != 224:
+            print(
+                f"WARNING: VideoMAE is typically trained at 224x224, but you specified {img_size}. "
+                "This may cause issues with pretrained weights."
+            )
+        model = VideoMAEWrapper(
+            num_frames=cfg.get("seq_T", 16),
+            image_size=img_size,
+            num_classes=num_classes,
+            pretrained=cfg.get("pretrained_videomae", cfg.get("pretrained_3d", True)),
+            pretrained_model_id=cfg.get("videomae_model_id", "MCG-NJU/videomae-base"),
+        )
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(
+            f"Built VideoMAEWrapper ({cfg.get('videomae_model_id', 'MCG-NJU/videomae-base')}) "
+            f"with T={cfg.get('seq_T', 16)} | trainable={n_train:,} "
+            f"[NOTE: VideoMAE is SKELETON implementation - test thoroughly!]"
         )
         return model
 
