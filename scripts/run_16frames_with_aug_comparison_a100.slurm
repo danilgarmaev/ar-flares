@@ -57,6 +57,12 @@ EPOCHS="${EPOCHS:-50}"
 BATCH_SIZE="${BATCH_SIZE:-8}"
 LR="${LR:-1e-4}"
 PRETRAINED_3D="${PRETRAINED_3D:-1}"
+IMAGE_SIZE="${IMAGE_SIZE:-112}"
+VIDEOMAE_IMAGE_SIZE="${VIDEOMAE_IMAGE_SIZE:-224}"
+
+if [[ "$MODEL" == "videomae" ]]; then
+  IMAGE_SIZE="$VIDEOMAE_IMAGE_SIZE"
+fi
 
 AUG_STR="noaug"
 if [[ "$AUG" == "1" ]]; then
@@ -64,7 +70,7 @@ if [[ "$AUG" == "1" ]]; then
 fi
 
 echo "=========================================="
-echo "Task ${SLURM_ARRAY_TASK_ID}: model=${MODEL} cadence=${CADENCE}min aug=${AUG_STR} seed=${SEED}"
+echo "Task ${SLURM_ARRAY_TASK_ID}: model=${MODEL} cadence=${CADENCE}min img=${IMAGE_SIZE} aug=${AUG_STR} seed=${SEED}"
 echo "=========================================="
 
 cmd=(python -m classifier_NN.legacy.run_experiments_16frames_cadence \
@@ -74,6 +80,7 @@ cmd=(python -m classifier_NN.legacy.run_experiments_16frames_cadence \
   --single \
   --epochs "$EPOCHS" \
   --batch-size "$BATCH_SIZE" \
+  --image-size "$IMAGE_SIZE" \
   --lr "$LR")
 
 if [[ "$PRETRAINED_3D" == "1" ]]; then

@@ -59,7 +59,7 @@ COMMON_CONFIG = {
 
     # Fixed for this experiment
     "seq_T": 16,
-    "image_size": 112,  # 112x112 works well for video models
+    "image_size": 112,  # default for R(2+1)D; VideoMAE often needs 224
 
     # Training defaults
     "batch_size": 8,  # Reduce for memory-intensive video models
@@ -287,9 +287,36 @@ def main() -> None:
     ap.add_argument("--batch-size", type=int, default=None)
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--lr", type=float, default=None)
+    ap.add_argument("--image-size", type=int, default=None, help="Input image size (e.g., 112 or 224)")
     ap.add_argument("--steps-per-epoch", type=int, default=None, help="Limit steps per epoch for quick testing")
     ap.add_argument("--val-max-batches", type=int, default=None, help="Limit validation batches")
     ap.add_argument("--pretrained-3d", action="store_true", default=False, help="Use pretrained 3D weights")
+    ap.add_argument(
+        "--loss-type",
+        choices=["ce", "ce_weighted", "focal", "skill_tss"],
+        default=None,
+        help="Loss function type",
+    )
+
+    # Labeling / class threshold
+    ap.add_argument(
+        "--min-flare-class",
+        choices=["C", "M", "c", "m"],
+        default=None,
+        help="Positive-class threshold: C+ or M+",
+    )
+
+    # Train downsampling / balancing controls
+    ap.add_argument("--balance-classes", action="store_true", default=None, help="Enable train-time negative subsampling")
+    ap.add_argument("--no-balance-classes", dest="balance_classes", action="store_false", default=None, help="Disable train-time negative subsampling")
+    ap.add_argument("--neg-keep-prob", type=float, default=None, help="Base negative keep probability")
+    ap.add_argument("--neg-keep-prob-none", type=float, default=None, help="Keep probability for NONE negatives")
+    ap.add_argument("--neg-keep-prob-c", type=float, default=None, help="Keep probability for C negatives")
+    ap.add_argument("--auto-set-neg-keep-probs", action="store_true", default=None, help="Auto-compute keep probabilities from targets")
+    ap.add_argument("--no-auto-set-neg-keep-probs", dest="auto_set_neg_keep_probs", action="store_false", default=None, help="Disable auto-compute keep probabilities")
+    ap.add_argument("--target-neg-total", type=int, default=None, help="Target total negatives to keep")
+    ap.add_argument("--target-neg-none", type=int, default=None, help="Target NONE negatives to keep")
+    ap.add_argument("--target-neg-c", type=int, default=None, help="Target C negatives to keep")
     
     # Augmentation
     ap.add_argument("--use-aug", action="store_true", default=None, help="Enable augmentation (±30° rotation, flips)")
@@ -318,6 +345,8 @@ def main() -> None:
         overrides["epochs"] = args.epochs
     if args.lr is not None:
         overrides["lr"] = args.lr
+    if args.image_size is not None:
+        overrides["image_size"] = args.image_size
     if args.steps_per_epoch is not None:
         overrides["steps_per_epoch"] = args.steps_per_epoch
     if args.use_aug is not None:
@@ -326,6 +355,32 @@ def main() -> None:
         overrides["val_max_batches"] = args.val_max_batches
     if args.pretrained_3d:
         overrides["pretrained_3d"] = True
+    if args.loss_type is not None:
+        overrides["loss_type"] = args.loss_type
+    if args.min_flare_class is not None:
+        overrides["min_flare_class"] = str(args.min_flare_class).upper()
+    if args.balance_classes is not None:
+        overrides["balance_classes"] = args.balance_classes
+    if args.neg_keep_prob is not None:
+        overrides["neg_keep_prob"] = float(args.neg_keep_prob)
+    if args.neg_keep_prob_none is not None:
+        overrides["neg_keep_prob_none"] = float(args.neg_keep_prob_none)
+    if args.neg_keep_prob_c is not None:
+        overrides["neg_keep_prob_c"] = float(args.neg_keep_prob_c)
+    if args.auto_set_neg_keep_probs is not None:
+        overrides["auto_set_neg_keep_probs"] = args.auto_set_neg_keep_probs
+    if args.target_neg_total is not None:
+        overrides["target_neg_total"] = int(args.target_neg_total)
+    if args.target_neg_none is not None:
+        overrides["target_neg_none"] = int(args.target_neg_none)
+    if args.target_neg_c is not None:
+        overrides["target_neg_c"] = int(args.target_neg_c)
+
+    # If any target is requested, default to enabling auto probability computation
+    # and balanced sampling unless explicitly overridden by flags above.
+    if any(v is not None for v in [args.target_neg_total, args.target_neg_none, args.target_neg_c]):
+        overrides.setdefault("auto_set_neg_keep_probs", True)
+        overrides.setdefault("balance_classes", True)
     
     # Print configuration
     print("\n" + "="*80)
@@ -334,7 +389,8 @@ def main() -> None:
     print(f"Backbones: {backbones}")
     print(f"Cadences: {intervals} minutes")
     print(f"Seeds: {seeds}")
-    print(f"Image size: 112x112")
+    image_size_to_print = overrides.get("image_size", COMMON_CONFIG.get("image_size", 112))
+    print(f"Image size: {image_size_to_print}x{image_size_to_print}")
     print(f"Frames per sequence: 16")
     if overrides:
         print(f"Overrides: {overrides}")
