@@ -111,14 +111,32 @@ def run_experiment(
     stride = _interval_to_stride(interval_min)
     total_hours = (len(offsets) - 1) * interval_min / 60
     
-    # Build experiment name
-    exp_name = f"16frames_cadence{interval_min}min_{backbone}_seed{seed}"
-    
     # Build config
     cfg = get_default_cfg()
     cfg.update(COMMON_CONFIG)
     if common_overrides:
         cfg.update(common_overrides)
+
+    # Build experiment name after overrides so metadata is encoded in run_id.
+    min_class = str(cfg.get("min_flare_class", "C") or "C").upper()
+    min_class_tag = f"{min_class.lower()}plus"
+    use_aug = bool(cfg.get("use_aug", False))
+    aug_tag = "aug" if use_aug else "noaug"
+    image_size = int(cfg.get("image_size", 112))
+    target_neg_none = cfg.get("target_neg_none")
+    target_neg_total = cfg.get("target_neg_total")
+    if isinstance(target_neg_none, int):
+        data_tag = f"dsnone{target_neg_none}"
+    elif isinstance(target_neg_total, int):
+        data_tag = f"dstotal{target_neg_total}"
+    elif bool(cfg.get("balance_classes", False)):
+        data_tag = "balanced"
+    else:
+        data_tag = "full"
+    exp_name = (
+        f"A3-16-cadence-{interval_min}min_{backbone}_seed{seed}_"
+        f"{min_class_tag}_{aug_tag}_{data_tag}_{image_size}"
+    )
     
     # Set experiment-specific parameters
     cfg.update({
