@@ -57,6 +57,7 @@ LR="${LR:-1e-4}"
 PRETRAINED_3D="${PRETRAINED_3D:-1}"
 USE_AUG="${USE_AUG:-1}"
 USE_MULTI_GPU="${USE_MULTI_GPU:-0}"
+USE_DDP="${USE_DDP:-0}"
 MULTI_GPU_MAX_DEVICES="${MULTI_GPU_MAX_DEVICES:-2}"
 
 # VideoMAE and VideoSwin need 224; R(2+1)D uses 112.
@@ -86,7 +87,7 @@ cmd=(python -m classifier_NN.legacy.run_experiments_16frames_cadence
   --min-flare-class M
   "$AUG_FLAG")
 
-if [[ "$USE_MULTI_GPU" == "1" ]]; then
+if [[ "$USE_MULTI_GPU" == "1" && "$USE_DDP" != "1" ]]; then
   cmd+=(--use-multi-gpu --multi-gpu-max-devices "$MULTI_GPU_MAX_DEVICES")
 fi
 
@@ -111,8 +112,19 @@ else
   )
 fi
 
-echo "Running: ${cmd[*]}"
-"${cmd[@]}"
+if [[ "$USE_DDP" == "1" ]]; then
+  if [[ "$MULTI_GPU_MAX_DEVICES" -lt 2 ]]; then
+    echo "USE_DDP=1 requires MULTI_GPU_MAX_DEVICES>=2"
+    exit 1
+  fi
+  ddp_cmd=(torchrun --standalone --nproc_per_node "$MULTI_GPU_MAX_DEVICES" -m classifier_NN.legacy.run_experiments_16frames_cadence)
+  ddp_cmd+=("${cmd[@]:3}" --use-ddp --multi-gpu-max-devices "$MULTI_GPU_MAX_DEVICES")
+  echo "Running: ${ddp_cmd[*]}"
+  "${ddp_cmd[@]}"
+else
+  echo "Running: ${cmd[*]}"
+  "${cmd[@]}"
+fi
 
 echo "=========================================="
 echo "Task ${SLURM_ARRAY_TASK_ID} complete!"

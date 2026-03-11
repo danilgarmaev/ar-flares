@@ -310,7 +310,9 @@ def main() -> None:
     ap.add_argument("--val-max-batches", type=int, default=None, help="Limit validation batches")
     ap.add_argument("--pretrained-3d", action="store_true", default=False, help="Use pretrained 3D weights")
     ap.add_argument("--use-multi-gpu", action="store_true", default=None, help="Enable DataParallel when multiple GPUs are visible")
-    ap.add_argument("--multi-gpu-max-devices", type=int, default=None, help="Cap number of GPUs for DataParallel")
+    ap.add_argument("--use-ddp", action="store_true", default=None, help="Enable DistributedDataParallel when launched under torchrun")
+    ap.add_argument("--ddp-backend", type=str, default=None, help="Distributed backend for DDP (default: nccl)")
+    ap.add_argument("--multi-gpu-max-devices", type=int, default=None, help="Cap number of GPUs for DataParallel/DDP")
     ap.add_argument("--strict-complete-history", action="store_true", default=None, help="Require complete past context (no padding)")
     ap.add_argument("--allow-padded-history", dest="strict_complete_history", action="store_false", default=None, help="Allow legacy padded past context")
     ap.add_argument("--video-backbone", type=str, default=None, help="Per-frame timm backbone for video_transformer (e.g. swin_tiny_patch4_window7_224)")
@@ -382,6 +384,10 @@ def main() -> None:
         overrides["pretrained_3d"] = True
     if args.use_multi_gpu is not None:
         overrides["use_multi_gpu"] = args.use_multi_gpu
+    if args.use_ddp is not None:
+        overrides["use_ddp"] = args.use_ddp
+    if args.ddp_backend is not None:
+        overrides["ddp_backend"] = str(args.ddp_backend)
     if args.multi_gpu_max_devices is not None:
         overrides["multi_gpu_max_devices"] = int(args.multi_gpu_max_devices)
     if args.strict_complete_history is not None:

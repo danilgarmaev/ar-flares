@@ -8,6 +8,7 @@ import json
 import random
 import numpy as np
 import torch
+import torch.distributed as dist
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -26,7 +27,8 @@ from .metrics import evaluate_model, find_best_threshold_tss
 
 
 def _unwrap_model(model: torch.nn.Module) -> torch.nn.Module:
-    return model.module if isinstance(model, torch.nn.DataParallel) else model
+    wrappers = (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)
+    return model.module if isinstance(model, wrappers) else model
 
 
 def _model_state_dict(model: torch.nn.Module) -> dict:
@@ -34,7 +36,7 @@ def _model_state_dict(model: torch.nn.Module) -> dict:
 
 
 def _load_state_dict_flexible(model: torch.nn.Module, state_dict: dict) -> None:
-    """Load state dict while handling optional DataParallel `module.` prefixes."""
+    """Load state dict while handling optional DataParallel/DDP `module.` prefixes."""
     target = _unwrap_model(model)
     try:
         target.load_state_dict(state_dict)
@@ -55,6 +57,29 @@ def _load_state_dict_flexible(model: torch.nn.Module, state_dict: dict) -> None:
         model.load_state_dict(prefixed)
     except RuntimeError:
         target.load_state_dict(state_dict)
+
+
+
+def _dist_is_ready() -> bool:
+    return dist.is_available() and dist.is_initialized()
+
+
+
+def _is_primary_process(cfg: dict | None = None) -> bool:
+    if cfg is not None and int(cfg.get("ddp_rank", 0) or 0) != 0:
+        return False
+    if _dist_is_ready() and dist.get_rank() != 0:
+        return False
+    return True
+
+
+
+def _broadcast_object(obj, src: int = 0):
+    if not _dist_is_ready():
+        return obj
+    payload = [obj]
+    dist.broadcast_object_list(payload, src=src)
+    return payload[0]
 
 
 def _trim_cfg_for_logging(cfg: dict) -> dict:
@@ -196,7 +221,8 @@ def get_class_counts():
     # else:
     #     full_counts = {0: 1, 1: 1}
     
-    print(f"Class counts (Train): {full_counts}")
+    is_primary = cfg is None or _is_primary_process(cfg)
+    pbar = tqdm(total=steps_per_epoch, desc=f"Training", leave=True, disable=not is_primary
     return full_counts
 
 
@@ -509,15 +535,36 @@ def main(cfg=None):
     overrides locally.
     """
     if cfg is None:
-        # Backwards-compatible path: use global CFG directly
         cfg = CFG
     else:
-        # When a per-run cfg is provided (from run_experiments_*.py),
-        # push overrides into the global CFG so helpers like
-        # create_dataloaders() that read CFG see the correct settings
-        # (e.g., image_size, use_seq, etc.).
         CFG.update(cfg)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    ddp_enabled = False
+    rank = 0
+    world_size = 1
+    local_rank = 0
+    if bool(cfg.get("use_ddp", False)):
+        if not torch.cuda.is_available():
+            raise RuntimeError("DDP requires CUDA")
+        rank = int(os.environ.get("RANK", "0"))
+        world_size = int(os.environ.get("WORLD_SIZE", "1"))
+        local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+        if world_size > 1 and not _dist_is_ready():
+            dist.init_process_group(backend=str(cfg.get("ddp_backend", "nccl")), init_method="env://")
+        if world_size > 1:
+            torch.cuda.set_device(local_rank)
+            ddp_enabled = True
+
+    cfg["ddp_rank"] = rank
+    cfg["ddp_world_size"] = world_size
+    cfg["ddp_local_rank"] = local_rank
+    cfg["ddp_shard_train_only"] = True
+    CFG.update(cfg)
+
+    if ddp_enabled and not _is_primary_process(cfg) and bool(cfg.get("suppress_non_primary_output", True)):
+        sys.stdout = open(os.devnull, "w", buffering=1)
+
+    device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
     seed = cfg.get("seed", None)
     if seed is not None:
         seed = int(seed)
@@ -526,37 +573,40 @@ def main(cfg=None):
         torch.manual_seed(seed)
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
-        print(f"Using seed: {seed}")
-    print(f"Using device: {device}")
-    
-    # Setup experiment directory
-    exp_dir, plot_dir = setup_experiment(cfg)
-    
-    # Get class counts for loss weighting
+        if _is_primary_process(cfg):
+            print(f"Using seed: {seed}")
+    if _is_primary_process(cfg):
+        print(f"Using device: {device}")
+
+    if _is_primary_process(cfg):
+        exp_dir, plot_dir = setup_experiment(cfg)
+    else:
+        exp_dir, plot_dir = None, None
+    if ddp_enabled:
+        exp_dir = _broadcast_object(exp_dir, src=0)
+        plot_dir = _broadcast_object(plot_dir, src=0)
+
     full_counts = get_class_counts()
     Nn, Nf = full_counts.get(0, 1), full_counts.get(1, 1)
-    
-    # Calculate training steps
+
     total_train_raw = count_samples_all_shards(SPLIT_DIRS["Train"])
     if cfg.get("balance_classes", False):
         neg_keep_prob = cfg.get("neg_keep_prob", 0.25)
         effective_train = int(Nf + Nn * neg_keep_prob)
     else:
-        # For sequence models, each training "sample" is a multi-frame
-        # clip (T frames). Approximate the number of clips as
-        # total_frames / T so steps/epoch stays in a reasonable range
-        # even when using long sequences like T=16 or T=32.
         if cfg.get("use_seq", False):
             T = max(1, cfg.get("seq_T", 1))
             effective_train = max(1, total_train_raw // T)
         else:
             effective_train = total_train_raw
+    if ddp_enabled and world_size > 1:
+        effective_train = max(1, effective_train // world_size)
     steps_per_epoch = max(1, effective_train // cfg["batch_size"])
     if cfg.get("steps_per_epoch", None) is not None:
         steps_per_epoch = max(1, int(cfg["steps_per_epoch"]))
-    print(f"Train samples (raw): {total_train_raw:,} | effective (est): {effective_train:,} | steps/epoch: {steps_per_epoch:,}")
-    
-    # Build model using this run's config
+    if _is_primary_process(cfg):
+        print(f"Train samples (raw): {total_train_raw:,} | effective (est): {effective_train:,} | steps/epoch: {steps_per_epoch:,}")
+
     model = build_model(cfg=cfg, num_classes=2)
 
     # For VGG-style experiments, optionally freeze all backbone layers and
@@ -582,18 +632,30 @@ def main(cfg=None):
 
         print("Freezing all backbone layers; training only final classifier head.")
 
-    # Optional single-process multi-GPU via DataParallel.
-    if torch.cuda.is_available() and bool(cfg.get("use_multi_gpu", False)):
-        n_visible = int(torch.cuda.device_count())
-        max_devices = cfg.get("multi_gpu_max_devices", None)
-        n_use = n_visible if max_devices is None else min(n_visible, max(1, int(max_devices)))
-        if n_use > 1:
-            model = torch.nn.DataParallel(model, device_ids=list(range(n_use)))
-            print(f"Using DataParallel on {n_use} GPUs")
-        else:
-            print("use_multi_gpu=True but only one visible GPU; running single-GPU")
+    if ddp_enabled:
+        model = model.to(device)
+        model = torch.nn.parallel.DistributedDataParallel(
+            model,
+            device_ids=[local_rank],
+            output_device=local_rank,
+        )
+        if _is_primary_process(cfg):
+            print(f"Using DistributedDataParallel on {world_size} GPUs")
+    else:
+        # Optional single-process multi-GPU via DataParallel.
+        if torch.cuda.is_available() and bool(cfg.get("use_multi_gpu", False)):
+            n_visible = int(torch.cuda.device_count())
+            max_devices = cfg.get("multi_gpu_max_devices", None)
+            n_use = n_visible if max_devices is None else min(n_visible, max(1, int(max_devices)))
+            if n_use > 1:
+                model = torch.nn.DataParallel(model, device_ids=list(range(n_use)))
+                if _is_primary_process(cfg):
+                    print(f"Using DataParallel on {n_use} GPUs")
+            else:
+                if _is_primary_process(cfg):
+                    print("use_multi_gpu=True but only one visible GPU; running single-GPU")
 
-    model = model.to(device)
+        model = model.to(device)
     
     # Create dataloaders
     print("Creating dataloaders...")
@@ -743,46 +805,54 @@ def main(cfg=None):
             cfg=cfg,
         )
         
-        # Validate
-        avg_val_loss, val_metrics = validate_epoch(
-            model,
-            dls["Validation"],
-            criterion,
-            device,
-            max_batches=cfg.get("val_max_batches", None),
-        )
-        print(f"Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} | Train Acc: {train_metrics['train_acc']:.2f}% | Val Acc: {val_metrics['val_acc']:.2f}%")
-        print(f"Train P/R/F1: {train_metrics['train_precision']:.3f}/{train_metrics['train_recall']:.3f}/{train_metrics['train_f1']:.3f} | Val P/R/F1: {val_metrics['val_precision']:.3f}/{val_metrics['val_recall']:.3f}/{val_metrics['val_f1']:.3f}")
-        print(f"Train AUC: {train_metrics['train_auc']:.3f} | Val AUC: {val_metrics['val_auc']:.3f}")
-        if scheduler is not None and hasattr(scheduler, "get_last_lr"):
-            print(f"Current LR: {scheduler.get_last_lr()[0]:.2e}")
+        # Validate on primary rank only, then broadcast results to all ranks.
+        if ddp_enabled and not _is_primary_process(cfg):
+            avg_val_loss, val_metrics = None, None
         else:
-            print(f"Current LR: {optimizer.param_groups[0]['lr']:.2e}")
-        print(f"Val Best TSS: {val_metrics['val_best_tss']:.4f} @ threshold={val_metrics['val_best_threshold']:.3f}")
-        epoch_record = {
-            "epoch": epoch + 1,
-            "train_loss": avg_train_loss,
-            "val_loss": avg_val_loss,
-            **train_metrics,
-            **val_metrics,
-        }
-        history.append(epoch_record)
-        with open(epoch_metrics_path, "a") as ef:
-            ef.write(json.dumps(epoch_record) + "\n")
-
-        # Save resumable last-epoch checkpoints (overwritten each epoch)
-        if cfg.get("save_last_checkpoint", True):
-            torch.save(_model_state_dict(model), os.path.join(exp_dir, "last.pt"))
-        if cfg.get("save_last_full_checkpoint", True):
-            _save_full_checkpoint(
-                os.path.join(exp_dir, "last_full.pt"),
-                model=model,
-                optimizer=optimizer,
-                scheduler=scheduler,
-                scaler=scaler,
-                epoch=epoch + 1,
-                cfg=cfg,
+            avg_val_loss, val_metrics = validate_epoch(
+                model,
+                dls["Validation"],
+                criterion,
+                device,
+                max_batches=cfg.get("val_max_batches", None),
             )
+        if ddp_enabled:
+            avg_val_loss = _broadcast_object(avg_val_loss, src=0)
+            val_metrics = _broadcast_object(val_metrics, src=0)
+
+        if _is_primary_process(cfg):
+            print(f"Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} | Train Acc: {train_metrics['train_acc']:.2f}% | Val Acc: {val_metrics['val_acc']:.2f}%")
+            print(f"Train P/R/F1: {train_metrics['train_precision']:.3f}/{train_metrics['train_recall']:.3f}/{train_metrics['train_f1']:.3f} | Val P/R/F1: {val_metrics['val_precision']:.3f}/{val_metrics['val_recall']:.3f}/{val_metrics['val_f1']:.3f}")
+            print(f"Train AUC: {train_metrics['train_auc']:.3f} | Val AUC: {val_metrics['val_auc']:.3f}")
+            if scheduler is not None and hasattr(scheduler, "get_last_lr"):
+                print(f"Current LR: {scheduler.get_last_lr()[0]:.2e}")
+            else:
+                print(f"Current LR: {optimizer.param_groups[0]['lr']:.2e}")
+            print(f"Val Best TSS: {val_metrics['val_best_tss']:.4f} @ threshold={val_metrics['val_best_threshold']:.3f}")
+            epoch_record = {
+                "epoch": epoch + 1,
+                "train_loss": avg_train_loss,
+                "val_loss": avg_val_loss,
+                **train_metrics,
+                **val_metrics,
+            }
+            history.append(epoch_record)
+            with open(epoch_metrics_path, "a") as ef:
+                ef.write(json.dumps(epoch_record) + "\n")
+
+            # Save resumable last-epoch checkpoints (overwritten each epoch)
+            if cfg.get("save_last_checkpoint", True):
+                torch.save(_model_state_dict(model), os.path.join(exp_dir, "last.pt"))
+            if cfg.get("save_last_full_checkpoint", True):
+                _save_full_checkpoint(
+                    os.path.join(exp_dir, "last_full.pt"),
+                    model=model,
+                    optimizer=optimizer,
+                    scheduler=scheduler,
+                    scaler=scaler,
+                    epoch=epoch + 1,
+                    cfg=cfg,
+                )
 
         # Optional: best checkpoint by validation loss (useful for ablations)
         selection = str(cfg.get("model_selection", "tss")).lower()
@@ -790,49 +860,52 @@ def main(cfg=None):
             if avg_val_loss < best_val_loss:
                 best_val_loss = avg_val_loss
                 best_loss_epoch = epoch
-                torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_val_loss.pt"))
-                print(f"🌟 New Best Val Loss: {best_val_loss:.4f} @ epoch={epoch} -> Saved to best_val_loss.pt")
-        
+                if _is_primary_process(cfg):
+                    torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_val_loss.pt"))
+                    print(f"🌟 New Best Val Loss: {best_val_loss:.4f} @ epoch={epoch} -> Saved to best_val_loss.pt")
+
         # Update best checkpoints every epoch (no minimum epoch constraint)
-        # Best TSS checkpoint
         improved_tss = val_metrics["val_best_tss"] > (best_val_tss + min_delta)
         if improved_tss:
             best_val_tss = val_metrics["val_best_tss"]
             best_val_threshold = float(val_metrics.get("val_best_threshold", best_val_threshold))
             best_tss_epoch = epoch
-            torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_tss.pt"))
-            print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} @ epoch={epoch} -> Saved to best_tss.pt")
+            if _is_primary_process(cfg):
+                torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_tss.pt"))
+                print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} @ epoch={epoch} -> Saved to best_tss.pt")
             if patience is not None:
                 epochs_since_improve = 0
         else:
             if patience is not None:
                 epochs_since_improve += 1
-                print(f"Early-stopping watch: no TSS improvement for {epochs_since_improve}/{patience} epochs")
-        # Best F1 checkpoint (optional; disabled by default to save space)
+                if _is_primary_process(cfg):
+                    print(f"Early-stopping watch: no TSS improvement for {epochs_since_improve}/{patience} epochs")
         if save_best_f1:
             if val_metrics["val_f1"] > best_val_f1:
                 best_val_f1 = val_metrics["val_f1"]
                 best_f1_epoch = epoch
-                torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_f1.pt"))
-                print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
+                if _is_primary_process(cfg):
+                    torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_f1.pt"))
+                    print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
         if patience is not None and epochs_since_improve >= patience:
-            print(
-                f"⏹️ Early stopping triggered: best Val TSS={best_val_tss:.4f} at epoch={best_tss_epoch}"
-            )
+            if _is_primary_process(cfg):
+                print(
+                    f"⏹️ Early stopping triggered: best Val TSS={best_val_tss:.4f} at epoch={best_tss_epoch}"
+                )
             break
 
         # Per-epoch scheduler step (e.g., CosineAnnealingLR)
         if scheduler is not None and not scheduler_step_per_batch:
             scheduler.step()
-    if str(cfg.get("model_selection", "tss")).lower() in ["val_loss", "loss"] and "best_loss_epoch" in locals():
-        print(f"Best Val Loss checkpoint: epoch {best_loss_epoch}, loss={best_val_loss:.4f}")
-    print(f"Best TSS checkpoint: epoch {best_tss_epoch}, TSS={best_val_tss:.4f}")
-    if save_best_f1 and "best_f1_epoch" in locals():
-        print(f"Best F1 checkpoint: epoch {best_f1_epoch}, F1={best_val_f1:.4f}")
-    # Evaluate on test set using best-TSS checkpoint
-    print("\n" + "="*80)
-    print("Evaluating on test set...")
-    print("="*80 + "\n")
+    if _is_primary_process(cfg):
+        if str(cfg.get("model_selection", "tss")).lower() in ["val_loss", "loss"] and "best_loss_epoch" in locals():
+            print(f"Best Val Loss checkpoint: epoch {best_loss_epoch}, loss={best_val_loss:.4f}")
+        print(f"Best TSS checkpoint: epoch {best_tss_epoch}, TSS={best_val_tss:.4f}")
+        if save_best_f1 and "best_f1_epoch" in locals():
+            print(f"Best F1 checkpoint: epoch {best_f1_epoch}, F1={best_val_f1:.4f}")
+        print("\n" + "="*80)
+        print("Evaluating on test set...")
+        print("="*80 + "\n")
 
     selection = str(cfg.get("model_selection", "tss")).lower()
     ckpt_name = {
@@ -842,84 +915,87 @@ def main(cfg=None):
         "loss": "best_val_loss.pt",
     }.get(selection, "best_tss.pt")
     ckpt_path = os.path.join(exp_dir, ckpt_name)
-    if os.path.exists(ckpt_path):
-        print(f"Loading checkpoint from {ckpt_path} (model_selection={selection}) for test evaluation...")
-        _load_state_dict_flexible(model, torch.load(ckpt_path, map_location=device))
+
+    if _is_primary_process(cfg):
+        if os.path.exists(ckpt_path):
+            print(f"Loading checkpoint from {ckpt_path} (model_selection={selection}) for test evaluation...")
+            _load_state_dict_flexible(model, torch.load(ckpt_path, map_location=device))
+        else:
+            print(f"Warning: No {ckpt_name} found; evaluating with current model weights (last epoch).")
+
+        results = evaluate_model(
+            model,
+            dls["Test"],
+            device,
+            plot_dir,
+            cfg["backbone"],
+            save_pr_curve=cfg["save_pr_curve"],
+            fixed_threshold=best_val_threshold,
+        )
+
+        if "fixed_TSS" in results:
+            results["test_tss_at_val_threshold"] = float(results["fixed_TSS"])
+            results["val_threshold_for_test"] = float(results.get("fixed_threshold", best_val_threshold))
+
+        results.update({
+            "seed": cfg.get("seed", None),
+            "backbone": cfg["backbone"],
+            "use_flow": cfg["use_flow"],
+            "use_seq": cfg.get("use_seq", False),
+            "epochs": cfg["epochs"],
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        })
+
+        metrics_path = os.path.join(exp_dir, "metrics.json")
+        with open(metrics_path, "w") as f:
+            json.dump(results, f, indent=2)
+        print(f"Metrics saved to {metrics_path}")
+
+        print("\n" + "="*80)
+        print("FINAL RESULTS")
+        print("="*80)
+        print(f"ROC AUC: {results['AUC']:.4f}")
+        print(f"PR-AUC: {results['PR_AUC']:.4f}")
+        print(f"Precision: {results['Precision']:.4f} | Recall: {results['Recall']:.4f} | F1: {results['F1']:.4f}")
+        print(f"TSS: {results['TSS']:.4f} | HSS: {results['HSS']:.4f}")
+        print(f"Best TSS: {results['Best_TSS']:.4f} @ threshold={results['Best_threshold']:.3f}")
+        print("="*80 + "\n")
     else:
-        print(f"Warning: No {ckpt_name} found; evaluating with current model weights (last epoch).")
-    
-    results = evaluate_model(
-        model,
-        dls["Test"],
-        device,
-        plot_dir,
-        cfg["backbone"],
-        save_pr_curve=cfg["save_pr_curve"],
-        fixed_threshold=best_val_threshold,
-    )
+        results = None
 
-    # Alias: keep best-on-test metrics, but also report test TSS at best-val threshold
-    if "fixed_TSS" in results:
-        results["test_tss_at_val_threshold"] = float(results["fixed_TSS"])
-        results["val_threshold_for_test"] = float(results.get("fixed_threshold", best_val_threshold))
-    
-    # Add metadata to results
-    results.update({
-    "seed": cfg.get("seed", None),
-    "backbone": cfg["backbone"],
-    "use_flow": cfg["use_flow"],
-    "use_seq": cfg.get("use_seq", False),
-    "epochs": cfg["epochs"],
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    })
-    
-    # Save metrics
-    metrics_path = os.path.join(exp_dir, "metrics.json")
-    with open(metrics_path, "w") as f:
-        json.dump(results, f, indent=2)
-    print(f"Metrics saved to {metrics_path}")
-    
-    # Print summary
-    print("\n" + "="*80)
-    print("FINAL RESULTS")
-    print("="*80)
-    print(f"ROC AUC: {results['AUC']:.4f}")
-    print(f"PR-AUC: {results['PR_AUC']:.4f}")
-    print(f"Precision: {results['Precision']:.4f} | Recall: {results['Recall']:.4f} | F1: {results['F1']:.4f}")
-    print(f"TSS: {results['TSS']:.4f} | HSS: {results['HSS']:.4f}")
-    print(f"Best TSS: {results['Best_TSS']:.4f} @ threshold={results['Best_threshold']:.3f}")
-    print("="*80 + "\n")
-    
-    # Save summary markdown
-    # Plot curves
-    try:
-        import matplotlib.pyplot as plt
-        epochs = [r["epoch"] for r in history]
-        tr_loss = [r["train_loss"] for r in history]
-        vl_loss = [r["val_loss"] for r in history]
-        tr_acc = [r["train_acc"] for r in history]
-        vl_acc = [r["val_acc"] for r in history]
-        plt.figure(figsize=(10,5))
-        plt.subplot(1,2,1)
-        plt.plot(epochs, tr_loss, label="Train Loss")
-        plt.plot(epochs, vl_loss, label="Val Loss")
-        plt.xlabel("Epoch"); plt.ylabel("Loss"); plt.legend(); plt.title("Loss Curves")
-        plt.subplot(1,2,2)
-        plt.plot(epochs, tr_acc, label="Train Acc")
-        plt.plot(epochs, vl_acc, label="Val Acc")
-        plt.xlabel("Epoch"); plt.ylabel("Accuracy (%)"); plt.legend(); plt.title("Accuracy Curves")
-        curves_path = os.path.join(plot_dir, "training_curves.png")
-        plt.tight_layout(); plt.savefig(curves_path, dpi=200); plt.close()
-        print(f"Training curves saved to {curves_path}")
-    except Exception as e:
-        print(f"Curve plotting failed: {e}")
+    if ddp_enabled:
+        results = _broadcast_object(results, src=0)
 
-    # Derive an experiment tag for the summary from cfg/model_name,
-    # falling back to the experiment directory name if needed.
-    tag = cfg.get("model_name", os.path.basename(exp_dir))
-    save_summary(exp_dir, tag, results, cfg)
-    
-    print(f"\n✅ Training complete! Results saved to: {exp_dir}\n")
+    if _is_primary_process(cfg):
+        try:
+            import matplotlib.pyplot as plt
+            epochs = [r["epoch"] for r in history]
+            tr_loss = [r["train_loss"] for r in history]
+            vl_loss = [r["val_loss"] for r in history]
+            tr_acc = [r["train_acc"] for r in history]
+            vl_acc = [r["val_acc"] for r in history]
+            plt.figure(figsize=(10,5))
+            plt.subplot(1,2,1)
+            plt.plot(epochs, tr_loss, label="Train Loss")
+            plt.plot(epochs, vl_loss, label="Val Loss")
+            plt.xlabel("Epoch"); plt.ylabel("Loss"); plt.legend(); plt.title("Loss Curves")
+            plt.subplot(1,2,2)
+            plt.plot(epochs, tr_acc, label="Train Acc")
+            plt.plot(epochs, vl_acc, label="Val Acc")
+            plt.xlabel("Epoch"); plt.ylabel("Accuracy (%)"); plt.legend(); plt.title("Accuracy Curves")
+            curves_path = os.path.join(plot_dir, "training_curves.png")
+            plt.tight_layout(); plt.savefig(curves_path, dpi=200); plt.close()
+            print(f"Training curves saved to {curves_path}")
+        except Exception as e:
+            print(f"Curve plotting failed: {e}")
+
+        tag = cfg.get("model_name", os.path.basename(exp_dir))
+        save_summary(exp_dir, tag, results, cfg)
+        print(f"\n✅ Training complete! Results saved to: {exp_dir}\n")
+
+    if ddp_enabled and _dist_is_ready():
+        dist.barrier()
+        dist.destroy_process_group()
     return exp_dir, results
 
 

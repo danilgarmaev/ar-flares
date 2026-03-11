@@ -693,25 +693,30 @@ class TarShardDataset(IterableDataset):
 
     def __iter__(self):
         worker_info = torch.utils.data.get_worker_info()
-        if worker_info is None:
-            img_shards = self.shard_paths
-            flow_shards = self.flow_paths if self.use_flow else [None] * len(img_shards)
-        else:
+        paired = list(zip(self.shard_paths, self.flow_paths if self.use_flow else [None] * len(self.shard_paths)))
+
+        if self.shuffle_shards:
+            rng = random.Random(self.seed)
+            rng.shuffle(paired)
+
+        ddp_world_size = int(CFG.get("ddp_world_size", 1) or 1)
+        ddp_rank = int(CFG.get("ddp_rank", 0) or 0)
+        shard_train_only = bool(CFG.get("ddp_shard_train_only", True))
+        if ddp_world_size > 1 and (self.split_name == "Train" or not shard_train_only):
+            paired = paired[ddp_rank::ddp_world_size]
+
+        if worker_info is not None:
             wid = worker_info.id
             num_workers = worker_info.num_workers
-            img_shards = self.shard_paths[wid::num_workers]
-            flow_shards = self.flow_paths[wid::num_workers] if self.use_flow else [None] * len(img_shards)
+            paired = paired[wid::num_workers]
 
         # IMPORTANT:
         # Do NOT open all shards concurrently.
         # Round-robin over per-shard generators keeps many tarfiles open at once
         # (one per shard per worker), which can hit the OS file-descriptor limit
         # and cause DataLoader workers to exit unexpectedly.
-        img_shards = list(img_shards)
-        flow_shards = list(flow_shards)
-        paired = list(zip(img_shards, flow_shards))
-        if self.shuffle_shards:
-            rng = random.Random(self.seed + (worker_info.id if worker_info else 0))
+        if self.shuffle_shards and worker_info is not None:
+            rng = random.Random(self.seed + worker_info.id + ddp_rank * 1000)
             rng.shuffle(paired)
 
         def _shard_stream():

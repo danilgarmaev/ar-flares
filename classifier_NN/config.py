@@ -163,9 +163,14 @@ CFG = {
     # Multi-GPU: when True and multiple CUDA devices are visible, wrap model
     # with torch.nn.DataParallel.
     "use_multi_gpu": False,
-    # Optional cap on number of GPUs to use with DataParallel.
+    # DistributedDataParallel: preferred multi-process multi-GPU path.
+    "use_ddp": False,
+    "ddp_backend": "nccl",
+    # Optional cap on number of GPUs to use with DataParallel/DDP.
     # None means use all visible GPUs.
     "multi_gpu_max_devices": None,
+    # Suppress stdout from non-primary DDP ranks to keep logs readable.
+    "suppress_non_primary_output": True,
     "num_workers": 2,
     "pin_memory": True,
     "persistent_workers": False,
