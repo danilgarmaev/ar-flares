@@ -476,6 +476,7 @@ class TarShardDataset(IterableDataset):
                 else:
                     T = CFG.get("seq_T", 3)
                     offsets = CFG.get("seq_offsets", [-16, -8, 0])
+                require_complete_history = bool(CFG.get("seq_require_complete_history", True))
 
                 # Optional stride over sequence start indices to avoid
                 # generating highly-overlapping windows (which can blow up
@@ -522,7 +523,10 @@ class TarShardDataset(IterableDataset):
                     for off in offsets:
                         j = i + off
                         if j < earliest_i:
-                            # Pad with earliest available frame for this AR
+                            if require_complete_history:
+                                ok = False
+                                break
+                            # Legacy behavior: pad missing context with earliest frame.
                             j = earliest_i
                         if j < 0 or j >= len(entries):
                             ok = False

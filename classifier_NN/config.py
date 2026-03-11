@@ -118,6 +118,9 @@ CFG = {
     "seq_stride": 8,                 # spacing between frames (k * 12min)
     "seq_stride_steps": 8,           # deprecated alias of seq_stride
     "seq_offsets": [-16, -8, 0],     # past-only temporal offsets
+    # If True, require every requested temporal offset to exist for the same AR.
+    # If False, missing past context is padded by repeating the earliest frame.
+    "seq_require_complete_history": True,
     "seq_aggregate": "mean",         # "mean" or "attn" for temporal aggregation
 
     # data loader
