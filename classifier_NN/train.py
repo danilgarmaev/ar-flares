@@ -220,9 +220,8 @@ def get_class_counts():
     #     full_counts = count_labels_all_shards(SPLIT_DIRS["Train"])
     # else:
     #     full_counts = {0: 1, 1: 1}
-    
-    is_primary = cfg is None or _is_primary_process(cfg)
-    pbar = tqdm(total=steps_per_epoch, desc=f"Training", leave=True, disable=not is_primary
+
+    print(f"Class counts (Train): {full_counts}")
     return full_counts
 
 
@@ -246,7 +245,8 @@ def train_epoch(
     seen = 0
     all_probs = []
     all_labels = []
-    pbar = tqdm(total=steps_per_epoch, desc=f"Training", leave=True)
+    is_primary = cfg is None or _is_primary_process(cfg)
+    pbar = tqdm(total=steps_per_epoch, desc=f"Training", leave=True, disable=not is_primary)
     for inputs, labels, _ in dataloader:
         if (not logged_first_batch) and (cfg is not None) and bool(cfg.get("use_seq", False)):
             if not (isinstance(inputs, torch.Tensor) and inputs.ndim == 5):
