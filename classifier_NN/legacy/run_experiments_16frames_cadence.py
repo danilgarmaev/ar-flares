@@ -309,6 +309,13 @@ def main() -> None:
     ap.add_argument("--steps-per-epoch", type=int, default=None, help="Limit steps per epoch for quick testing")
     ap.add_argument("--val-max-batches", type=int, default=None, help="Limit validation batches")
     ap.add_argument("--pretrained-3d", action="store_true", default=False, help="Use pretrained 3D weights")
+    ap.add_argument("--use-multi-gpu", action="store_true", default=None, help="Enable DataParallel when multiple GPUs are visible")
+    ap.add_argument("--multi-gpu-max-devices", type=int, default=None, help="Cap number of GPUs for DataParallel")
+    ap.add_argument("--strict-complete-history", action="store_true", default=None, help="Require complete past context (no padding)")
+    ap.add_argument("--allow-padded-history", dest="strict_complete_history", action="store_false", default=None, help="Allow legacy padded past context")
+    ap.add_argument("--video-backbone", type=str, default=None, help="Per-frame timm backbone for video_transformer (e.g. swin_tiny_patch4_window7_224)")
+    ap.add_argument("--video-heads", type=int, default=None, help="Number of temporal attention heads for video_transformer")
+    ap.add_argument("--video-layers", type=int, default=None, help="Number of temporal transformer layers for video_transformer")
     ap.add_argument(
         "--loss-type",
         choices=["ce", "ce_weighted", "focal", "skill_tss"],
@@ -373,6 +380,18 @@ def main() -> None:
         overrides["val_max_batches"] = args.val_max_batches
     if args.pretrained_3d:
         overrides["pretrained_3d"] = True
+    if args.use_multi_gpu is not None:
+        overrides["use_multi_gpu"] = args.use_multi_gpu
+    if args.multi_gpu_max_devices is not None:
+        overrides["multi_gpu_max_devices"] = int(args.multi_gpu_max_devices)
+    if args.strict_complete_history is not None:
+        overrides["seq_require_complete_history"] = bool(args.strict_complete_history)
+    if args.video_backbone is not None:
+        overrides["video_backbone"] = str(args.video_backbone)
+    if args.video_heads is not None:
+        overrides["video_heads"] = int(args.video_heads)
+    if args.video_layers is not None:
+        overrides["video_layers"] = int(args.video_layers)
     if args.loss_type is not None:
         overrides["loss_type"] = args.loss_type
     if args.min_flare_class is not None:

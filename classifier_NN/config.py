@@ -160,6 +160,12 @@ CFG = {
     "drop_path_rate": 0.1,       # Stochastic depth rate (for ConvNeXt/ViT)
     "redirect_log": True,       # if True redirect stdout to log.txt; if False keep progress bar in terminal
     "batch_size": 64,
+    # Multi-GPU: when True and multiple CUDA devices are visible, wrap model
+    # with torch.nn.DataParallel.
+    "use_multi_gpu": False,
+    # Optional cap on number of GPUs to use with DataParallel.
+    # None means use all visible GPUs.
+    "multi_gpu_max_devices": None,
     "num_workers": 2,
     "pin_memory": True,
     "persistent_workers": False,

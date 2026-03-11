@@ -386,6 +386,45 @@ class R2Plus1D18Simple(nn.Module):
         return self.backbone(x)
 
 
+class VideoSwin3DTinyWrapper(nn.Module):
+    """Wrapper around torchvision swin3d_t for sequence magnetograms.
+
+    Expects input shape (B, T, 1, H, W), maps 1 channel to 3 channels via
+    learnable 1x1x1 Conv, then feeds torchvision Video Swin-T.
+    """
+
+    def __init__(self, num_frames: int = 16, num_classes: int = 2, pretrained: bool = True):
+        super().__init__()
+        self.num_frames = int(num_frames)
+        self.input_proj = nn.Conv3d(1, 3, kernel_size=1)
+
+        try:
+            from torchvision.models.video import swin3d_t, Swin3D_T_Weights
+
+            weights = Swin3D_T_Weights.DEFAULT if pretrained else None
+            self.backbone = swin3d_t(weights=weights)
+        except Exception:
+            from torchvision.models.video import swin3d_t
+
+            # Older torchvision may not expose weights enums.
+            self.backbone = swin3d_t(pretrained=pretrained)
+
+        in_feats = self.backbone.head.in_features
+        self.backbone.head = nn.Linear(in_feats, num_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dim() != 5:
+            raise ValueError(f"VideoSwin3DTinyWrapper expects (B,T,1,H,W), got {x.shape}")
+        B, T, C, H, W = x.shape
+        if C != 1:
+            raise ValueError(f"VideoSwin3DTinyWrapper currently assumes 1-channel input, got C={C}")
+
+        # (B,T,1,H,W) -> (B,1,T,H,W) -> (B,3,T,H,W)
+        x = x.permute(0, 2, 1, 3, 4).contiguous()
+        x = self.input_proj(x)
+        return self.backbone(x)
+
+
 class TimeSformerHF(nn.Module):
     """TimeSformer via HuggingFace Transformers.
 
@@ -956,6 +995,10 @@ def build_model(cfg=None, num_classes=2):
         "r3d18",
         "r2plus1d_18",
         "r2plus1d18",
+        "videoswin",
+        "video_swin",
+        "video_swin_t",
+        "swin3d_t",
     ]:
         if backbone.lower() in ["simple3dcnn", "3d_cnn"]:
             model = Simple3DCNN(
@@ -968,6 +1011,21 @@ def build_model(cfg=None, num_classes=2):
             print(f"Built Simple3DCNN with T={cfg.get('seq_T', 3)} | trainable={n_train:,}")
             return model
         else:
+            if backbone.lower() in ["videoswin", "video_swin", "video_swin_t", "swin3d_t"]:
+                img_size = int(cfg.get("image_size", IMG_SIZE) or IMG_SIZE)
+                if img_size != 224:
+                    raise ValueError(
+                        "VideoSwin3DTinyWrapper currently requires image_size=224; "
+                        f"got image_size={img_size}."
+                    )
+                model = VideoSwin3DTinyWrapper(
+                    num_frames=cfg.get("seq_T", 16),
+                    num_classes=num_classes,
+                    pretrained=cfg.get("pretrained_3d", False),
+                )
+                n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+                print(f"Built VideoSwin3DTinyWrapper (swin3d_t) with T={cfg.get('seq_T', 16)} | trainable={n_train:,}")
+                return model
             if backbone.lower() in ["r2plus1d_18", "r2plus1d18"]:
                 model = R2Plus1D18Simple(
                     num_frames=cfg.get("seq_T", 3),

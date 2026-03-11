@@ -25,6 +25,38 @@ from .losses import get_loss_function
 from .metrics import evaluate_model, find_best_threshold_tss
 
 
+def _unwrap_model(model: torch.nn.Module) -> torch.nn.Module:
+    return model.module if isinstance(model, torch.nn.DataParallel) else model
+
+
+def _model_state_dict(model: torch.nn.Module) -> dict:
+    return _unwrap_model(model).state_dict()
+
+
+def _load_state_dict_flexible(model: torch.nn.Module, state_dict: dict) -> None:
+    """Load state dict while handling optional DataParallel `module.` prefixes."""
+    target = _unwrap_model(model)
+    try:
+        target.load_state_dict(state_dict)
+        return
+    except RuntimeError:
+        pass
+
+    if any(k.startswith("module.") for k in state_dict.keys()):
+        stripped = {
+            (k[len("module."):] if k.startswith("module.") else k): v
+            for k, v in state_dict.items()
+        }
+        target.load_state_dict(stripped)
+        return
+
+    prefixed = {f"module.{k}": v for k, v in state_dict.items()}
+    try:
+        model.load_state_dict(prefixed)
+    except RuntimeError:
+        target.load_state_dict(state_dict)
+
+
 def _trim_cfg_for_logging(cfg: dict) -> dict:
     """Return a compact config dict for human inspection.
 
@@ -108,7 +140,7 @@ def _save_full_checkpoint(
     cfg: dict,
 ) -> None:
     ckpt = {
-        "model_state_dict": model.state_dict(),
+        "model_state_dict": _model_state_dict(model),
         "optimizer_state_dict": optimizer.state_dict() if optimizer is not None else None,
         "scheduler_state_dict": scheduler.state_dict() if scheduler is not None and hasattr(scheduler, "state_dict") else None,
         "scaler_state_dict": scaler.state_dict() if scaler is not None else None,
@@ -550,6 +582,17 @@ def main(cfg=None):
 
         print("Freezing all backbone layers; training only final classifier head.")
 
+    # Optional single-process multi-GPU via DataParallel.
+    if torch.cuda.is_available() and bool(cfg.get("use_multi_gpu", False)):
+        n_visible = int(torch.cuda.device_count())
+        max_devices = cfg.get("multi_gpu_max_devices", None)
+        n_use = n_visible if max_devices is None else min(n_visible, max(1, int(max_devices)))
+        if n_use > 1:
+            model = torch.nn.DataParallel(model, device_ids=list(range(n_use)))
+            print(f"Using DataParallel on {n_use} GPUs")
+        else:
+            print("use_multi_gpu=True but only one visible GPU; running single-GPU")
+
     model = model.to(device)
     
     # Create dataloaders
@@ -729,7 +772,7 @@ def main(cfg=None):
 
         # Save resumable last-epoch checkpoints (overwritten each epoch)
         if cfg.get("save_last_checkpoint", True):
-            torch.save(model.state_dict(), os.path.join(exp_dir, "last.pt"))
+            torch.save(_model_state_dict(model), os.path.join(exp_dir, "last.pt"))
         if cfg.get("save_last_full_checkpoint", True):
             _save_full_checkpoint(
                 os.path.join(exp_dir, "last_full.pt"),
@@ -747,7 +790,7 @@ def main(cfg=None):
             if avg_val_loss < best_val_loss:
                 best_val_loss = avg_val_loss
                 best_loss_epoch = epoch
-                torch.save(model.state_dict(), os.path.join(exp_dir, "best_val_loss.pt"))
+                torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_val_loss.pt"))
                 print(f"🌟 New Best Val Loss: {best_val_loss:.4f} @ epoch={epoch} -> Saved to best_val_loss.pt")
         
         # Update best checkpoints every epoch (no minimum epoch constraint)
@@ -757,7 +800,7 @@ def main(cfg=None):
             best_val_tss = val_metrics["val_best_tss"]
             best_val_threshold = float(val_metrics.get("val_best_threshold", best_val_threshold))
             best_tss_epoch = epoch
-            torch.save(model.state_dict(), os.path.join(exp_dir, "best_tss.pt"))
+            torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_tss.pt"))
             print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} @ epoch={epoch} -> Saved to best_tss.pt")
             if patience is not None:
                 epochs_since_improve = 0
@@ -770,7 +813,7 @@ def main(cfg=None):
             if val_metrics["val_f1"] > best_val_f1:
                 best_val_f1 = val_metrics["val_f1"]
                 best_f1_epoch = epoch
-                torch.save(model.state_dict(), os.path.join(exp_dir, "best_f1.pt"))
+                torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_f1.pt"))
                 print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
         if patience is not None and epochs_since_improve >= patience:
             print(
@@ -801,7 +844,7 @@ def main(cfg=None):
     ckpt_path = os.path.join(exp_dir, ckpt_name)
     if os.path.exists(ckpt_path):
         print(f"Loading checkpoint from {ckpt_path} (model_selection={selection}) for test evaluation...")
-        model.load_state_dict(torch.load(ckpt_path, map_location=device))
+        _load_state_dict_flexible(model, torch.load(ckpt_path, map_location=device))
     else:
         print(f"Warning: No {ckpt_name} found; evaluating with current model weights (last epoch).")
     

@@ -56,10 +56,12 @@ BATCH_SIZE="${BATCH_SIZE:-8}"
 LR="${LR:-1e-4}"
 PRETRAINED_3D="${PRETRAINED_3D:-1}"
 USE_AUG="${USE_AUG:-1}"
+USE_MULTI_GPU="${USE_MULTI_GPU:-0}"
+MULTI_GPU_MAX_DEVICES="${MULTI_GPU_MAX_DEVICES:-2}"
 
-# VideoMAE needs 224; R(2+1)D uses 112.
+# VideoMAE and VideoSwin need 224; R(2+1)D uses 112.
 IMAGE_SIZE=112
-if [[ "$MODEL" == "videomae" ]]; then
+if [[ "$MODEL" == "videomae" || "$MODEL" == "videoswin" || "$MODEL" == "swin3d_t" || "$MODEL" == "video_swin" ]]; then
   IMAGE_SIZE=224
 fi
 
@@ -83,6 +85,10 @@ cmd=(python -m classifier_NN.legacy.run_experiments_16frames_cadence
   --lr "$LR"
   --min-flare-class M
   "$AUG_FLAG")
+
+if [[ "$USE_MULTI_GPU" == "1" ]]; then
+  cmd+=(--use-multi-gpu --multi-gpu-max-devices "$MULTI_GPU_MAX_DEVICES")
+fi
 
 if [[ "$PRETRAINED_3D" == "1" ]]; then
   cmd+=(--pretrained-3d)
