@@ -783,6 +783,63 @@ def list_shards(split_dir: str) -> List[str]:
     return sorted(glob.glob(os.path.join(split_dir, "*.tar")))
 
 
+class BalancedBatchDataset(IterableDataset):
+    """Wraps an IterableDataset to enforce balanced batch composition.
+
+    Maintains two in-memory queues — one for positives (label=1) and one for
+    negatives (label=0). Items are yielded in an interleaved 1:1 pattern so
+    that every consecutive pair yielded to the DataLoader consists of one
+    positive and one negative.  With an even ``batch_size`` this means each
+    DataLoader batch will have exactly ``batch_size // 2`` positives.
+
+    No synthetic data is generated.  When the negative queue would exceed
+    ``neg_buffer_max`` the incoming negative is dropped, which effectively
+    downsamples negatives at training time.  Positives are *never* dropped.
+
+    Args:
+        dataset: Underlying IterableDataset yielding ``(input, label, meta)``
+            tuples where ``label`` is a plain Python int (0 or 1).
+        neg_buffer_max: Maximum negatives to keep buffered at any time.
+            Defaults to 8192.  Increase if the typical distance between two
+            consecutive positives in the underlying stream is large.
+    """
+
+    def __init__(self, dataset: IterableDataset, neg_buffer_max: int = 8192):
+        super().__init__()
+        self.dataset = dataset
+        self.neg_buffer_max = neg_buffer_max
+
+    def __iter__(self):
+        from collections import deque
+
+        pos_q: deque = deque()
+        neg_q: deque = deque()
+
+        for item in self.dataset:
+            label = int(item[1])
+            if label == 1:
+                pos_q.append(item)
+            else:
+                if len(neg_q) < self.neg_buffer_max:
+                    neg_q.append(item)
+                # else: drop incoming negative — buffer full
+
+            # Yield matched pairs immediately so memory stays bounded
+            while pos_q and neg_q:
+                yield pos_q.popleft()
+                yield neg_q.popleft()
+
+        # Flush remaining matched pairs after the underlying stream exhausts
+        while pos_q and neg_q:
+            yield pos_q.popleft()
+            yield neg_q.popleft()
+
+        # Yield leftover positives (never discard — they are the rare class)
+        while pos_q:
+            yield pos_q.popleft()
+        # Orphaned negatives are discarded to preserve the balanced ratio
+
+
 def make_dataset(split_name: str, shuffle_shards=True, shuffle_samples=False, seed=42,
                  img_size: int | None = None, use_aug: bool | None = None):
     """Create a TarShardDataset for the given split.
@@ -1029,6 +1086,11 @@ def create_dataloaders():
         img_size=img_size,
         use_aug=use_aug,
     )
+    # Optionally wrap with BalancedBatchDataset for per-batch class balancing.
+    if CFG.get("balanced_batch_sampling", False):
+        neg_buf = int(CFG.get("balanced_batch_neg_buffer", 8192))
+        train_ds = BalancedBatchDataset(train_ds, neg_buffer_max=neg_buf)
+        print(f"[balanced_batch] Wrapping train dataset (neg_buffer_max={neg_buf})")
     val_ds = make_dataset(
         "Validation",
         shuffle_shards=False,

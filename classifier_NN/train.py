@@ -5,6 +5,7 @@ Modular design with separate files for config, models, data, losses, and metrics
 import os
 import sys
 import json
+import subprocess
 import random
 import numpy as np
 import torch
@@ -82,6 +83,42 @@ def _broadcast_object(obj, src: int = 0):
     return payload[0]
 
 
+def _auto_update_video_summary() -> None:
+    """Refresh results/summary_video*.tsv from completed run folders.
+
+    This keeps the shared video summary tables in sync automatically after
+    successful training runs, while staying best-effort if the script fails.
+    """
+    script_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "scripts",
+        "aggregate_video_summary.py",
+    )
+    if not os.path.exists(script_path):
+        print(f"Summary aggregator not found at {script_path}; skipping auto-update.")
+        return
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, script_path],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if proc.returncode == 0:
+            print("Auto-updated video summary tables.")
+            if proc.stdout.strip():
+                print(proc.stdout.strip())
+        else:
+            print("Warning: auto-update of video summary tables failed.")
+            if proc.stdout.strip():
+                print(proc.stdout.strip())
+            if proc.stderr.strip():
+                print(proc.stderr.strip())
+    except Exception as e:
+        print(f"Warning: auto-update of video summary tables errored: {e}")
+
+
 def _trim_cfg_for_logging(cfg: dict) -> dict:
     """Return a compact config dict for human inspection.
 
@@ -132,11 +169,22 @@ def _trim_cfg_for_logging(cfg: dict) -> dict:
         # eval / checkpointing
         "model_selection",
         "early_stopping_patience",
+        "early_stopping_min_epoch",
         "val_max_batches",
+        "threshold_min_recall",
+        "threshold_min_precision",
+        "threshold_min",
+        "threshold_max",
+        "threshold_min_pos_rate",
+        "threshold_max_pos_rate",
+        "threshold_fallback_mode",
         # loss / imbalance
         "loss_type",
         "balance_classes",
         "neg_keep_prob",
+        "focal_alpha",
+        "focal_gamma",
+        "balanced_batch_sampling",
     }
 
     trimmed: dict = {}
@@ -358,7 +406,14 @@ def train_epoch(
     return running_loss / max(1, seen), metrics
 
 
-def validate_epoch(model, dataloader, criterion, device, max_batches: int | None = None):
+def validate_epoch(
+    model,
+    dataloader,
+    criterion,
+    device,
+    max_batches: int | None = None,
+    threshold_cfg: dict | None = None,
+):
     """Validate for one epoch.
 
     Args:
@@ -368,6 +423,8 @@ def validate_epoch(model, dataloader, criterion, device, max_batches: int | None
         device: torch device
         max_batches: if set, only evaluate this many batches (useful for faster
             validation during large sequence experiments).
+        threshold_cfg: Optional threshold-selection settings passed to
+            find_best_threshold_tss.
 
     Returns:
         (avg_loss, metrics_dict)
@@ -439,8 +496,21 @@ def validate_epoch(model, dataloader, criterion, device, max_batches: int | None
     except ValueError:
         auc = float("nan")
 
-    # Best TSS threshold sweep
-    best_val_tss, best_val_threshold = find_best_threshold_tss(labels_np, probs_np)
+    if threshold_cfg is None:
+        threshold_cfg = {}
+
+    # Best TSS threshold sweep (configurable and robust to degenerate fallback)
+    best_val_tss, best_val_threshold = find_best_threshold_tss(
+        labels_np,
+        probs_np,
+        min_recall=float(threshold_cfg.get("min_recall", 0.5)),
+        min_precision=float(threshold_cfg.get("min_precision", 0.15)),
+        min_threshold=float(threshold_cfg.get("min_threshold", 0.0)),
+        max_threshold=float(threshold_cfg.get("max_threshold", 1.0)),
+        min_pos_rate=threshold_cfg.get("min_pos_rate", None),
+        max_pos_rate=threshold_cfg.get("max_pos_rate", None),
+        fallback_mode=str(threshold_cfg.get("fallback_mode", "tss")),
+    )
 
     # Metrics at best-TSS threshold (this is what we report as validation P/R/F1)
     preds_best = (probs_np >= best_val_threshold).astype(int)
@@ -593,6 +663,9 @@ def main(cfg=None):
     if cfg.get("balance_classes", False):
         neg_keep_prob = cfg.get("neg_keep_prob", 0.25)
         effective_train = int(Nf + Nn * neg_keep_prob)
+    elif cfg.get("balanced_batch_sampling", False):
+        # 1:1 interleaving yields ~2x positives worth of samples per epoch
+        effective_train = int(Nf * 2)
     else:
         if cfg.get("use_seq", False):
             T = max(1, cfg.get("seq_T", 1))
@@ -687,14 +760,35 @@ def main(cfg=None):
     # --- FIX END ---
 
     # Setup loss function
-    if cfg.get("balance_classes", False):
-        # Balanced data - no class weights needed
+    loss_type = str(cfg.get("loss_type", "ce")).lower()
+    balance_classes = bool(cfg.get("balance_classes", False))
+
+    if balance_classes:
+        # Balanced data: use unweighted loss.
         class_weights = None
-        print("Using balanced sampling - no class weights")
+        # For balanced sampling, default CE-like losses to explicit BCE.
+        if loss_type in ["ce", "ce_weighted"]:
+            cfg["loss_type"] = "bce"
+            loss_type = "bce"
+            print("Using balanced sampling - switched loss_type to unweighted BCE")
+        else:
+            print("Using balanced sampling - no class weights")
     else:
-        # Imbalanced data - use class weights (Nn: negatives, Nf: positives)
-        class_weights = torch.tensor([1.0, Nn / Nf], dtype=torch.float32, device=device)
-        print(f"Using class weights: {class_weights.tolist()}")
+        cw_mode = str(cfg.get("class_weight_mode", "fixed")).lower().strip()
+        if cw_mode == "dynamic":
+            try:
+                counts = count_labels_all_shards(SPLIT_DIRS["Train"])
+                Nn_dyn = max(1, int(counts.get(0, 1)))
+                Nf_dyn = max(1, int(counts.get(1, 1)))
+                class_weights = torch.tensor([1.0, Nn_dyn / Nf_dyn], dtype=torch.float32, device=device)
+                print(f"Using dynamic class weights from Train shards: counts={counts} -> {class_weights.tolist()}")
+            except Exception as e:
+                class_weights = torch.tensor([1.0, Nn / Nf], dtype=torch.float32, device=device)
+                print(f"[class_weight_mode=dynamic] Failed to scan shards ({e}); using fixed class weights: {class_weights.tolist()}")
+        else:
+            # Imbalanced data - legacy fixed weights (Nn: negatives, Nf: positives)
+            class_weights = torch.tensor([1.0, Nn / Nf], dtype=torch.float32, device=device)
+            print(f"Using class weights: {class_weights.tolist()}")
     
     criterion = get_loss_function(
         cfg=cfg,
@@ -780,11 +874,34 @@ def main(cfg=None):
     best_tss_epoch = -1
     patience = cfg.get("early_stopping_patience", None)
     min_delta = float(cfg.get("early_stopping_min_delta", 0.0))
+    min_epoch_floor = int(cfg.get("early_stopping_min_epoch", 0) or 0)
+    if min_epoch_floor < 0:
+        min_epoch_floor = 0
     if patience is not None:
         patience = int(patience)
         if patience <= 0:
             patience = None
     epochs_since_improve = 0
+    threshold_cfg = {
+        "min_recall": cfg.get("threshold_min_recall", 0.5),
+        "min_precision": cfg.get("threshold_min_precision", 0.15),
+        "min_threshold": cfg.get("threshold_min", 0.0),
+        "max_threshold": cfg.get("threshold_max", 1.0),
+        "min_pos_rate": cfg.get("threshold_min_pos_rate", None),
+        "max_pos_rate": cfg.get("threshold_max_pos_rate", None),
+        "fallback_mode": cfg.get("threshold_fallback_mode", "tss"),
+    }
+    if _is_primary_process(cfg):
+        print(
+            "Threshold tuning config: "
+            f"minP={float(threshold_cfg['min_precision']):.3f}, "
+            f"minR={float(threshold_cfg['min_recall']):.3f}, "
+            f"thr=[{float(threshold_cfg['min_threshold']):.3f}, {float(threshold_cfg['max_threshold']):.3f}], "
+            f"pos_rate=[{threshold_cfg['min_pos_rate']}, {threshold_cfg['max_pos_rate']}], "
+            f"fallback={threshold_cfg['fallback_mode']}"
+        )
+        if min_epoch_floor > 0:
+            print(f"Early-stopping/checkpoint floor: epoch >= {min_epoch_floor}")
     epoch_metrics_path = os.path.join(exp_dir, "epoch_metrics.jsonl")
     for epoch in range(cfg["epochs"]):
         print(f"\nEpoch {epoch+1}/{cfg['epochs']}")
@@ -815,6 +932,7 @@ def main(cfg=None):
                 criterion,
                 device,
                 max_batches=cfg.get("val_max_batches", None),
+                threshold_cfg=threshold_cfg,
             )
         if ddp_enabled:
             avg_val_loss = _broadcast_object(avg_val_loss, src=0)
@@ -864,22 +982,32 @@ def main(cfg=None):
                     torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_val_loss.pt"))
                     print(f"🌟 New Best Val Loss: {best_val_loss:.4f} @ epoch={epoch} -> Saved to best_val_loss.pt")
 
-        # Update best checkpoints every epoch (no minimum epoch constraint)
-        improved_tss = val_metrics["val_best_tss"] > (best_val_tss + min_delta)
-        if improved_tss:
-            best_val_tss = val_metrics["val_best_tss"]
-            best_val_threshold = float(val_metrics.get("val_best_threshold", best_val_threshold))
-            best_tss_epoch = epoch
-            if _is_primary_process(cfg):
-                torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_tss.pt"))
-                print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} @ epoch={epoch} -> Saved to best_tss.pt")
-            if patience is not None:
-                epochs_since_improve = 0
-        else:
-            if patience is not None:
-                epochs_since_improve += 1
+        epoch_1based = epoch + 1
+        is_eligible_epoch = epoch_1based >= min_epoch_floor
+
+        # Update best checkpoints only after the configured epoch floor.
+        if is_eligible_epoch:
+            improved_tss = val_metrics["val_best_tss"] > (best_val_tss + min_delta)
+            if improved_tss:
+                best_val_tss = val_metrics["val_best_tss"]
+                best_val_threshold = float(val_metrics.get("val_best_threshold", best_val_threshold))
+                best_tss_epoch = epoch
                 if _is_primary_process(cfg):
-                    print(f"Early-stopping watch: no TSS improvement for {epochs_since_improve}/{patience} epochs")
+                    torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_tss.pt"))
+                    print(f"🌟 New Best TSS (Val): {best_val_tss:.4f} @ epoch={epoch} -> Saved to best_tss.pt")
+                if patience is not None:
+                    epochs_since_improve = 0
+            else:
+                if patience is not None:
+                    epochs_since_improve += 1
+                    if _is_primary_process(cfg):
+                        print(f"Early-stopping watch: no TSS improvement for {epochs_since_improve}/{patience} epochs")
+        else:
+            if _is_primary_process(cfg):
+                print(
+                    f"Early-stopping warmup: epoch {epoch_1based}/{min_epoch_floor} "
+                    "(skipping best_tss checkpoint updates)"
+                )
         if save_best_f1:
             if val_metrics["val_f1"] > best_val_f1:
                 best_val_f1 = val_metrics["val_f1"]
@@ -887,7 +1015,7 @@ def main(cfg=None):
                 if _is_primary_process(cfg):
                     torch.save(_model_state_dict(model), os.path.join(exp_dir, "best_f1.pt"))
                     print(f"🌟 New Best F1 (Val): {best_val_f1:.4f} @ epoch={epoch} -> Saved to best_f1.pt")
-        if patience is not None and epochs_since_improve >= patience:
+        if is_eligible_epoch and patience is not None and epochs_since_improve >= patience:
             if _is_primary_process(cfg):
                 print(
                     f"⏹️ Early stopping triggered: best Val TSS={best_val_tss:.4f} at epoch={best_tss_epoch}"
@@ -991,6 +1119,7 @@ def main(cfg=None):
 
         tag = cfg.get("model_name", os.path.basename(exp_dir))
         save_summary(exp_dir, tag, results, cfg)
+        _auto_update_video_summary()
         print(f"\n✅ Training complete! Results saved to: {exp_dir}\n")
 
     if ddp_enabled and _dist_is_ready():
