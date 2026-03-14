@@ -155,6 +155,14 @@ CFG = {
     "target_neg_none": None,
     "target_neg_c": None,
 
+    # Balanced per-batch sampling (alternative / complement to probabilistic neg_keep_prob).
+    # When True, wraps the Train dataset so each DataLoader batch has approximately
+    # equal positives and negatives by buffering and interleaving streams.
+    # No synthetic data; excess negatives are dropped if buffer overflows.
+    "balanced_batch_sampling": False,
+    # Max negatives to hold in the interleaving buffer at any time.
+    "balanced_batch_neg_buffer": 8192,
+
     # regularization
     "drop_rate": 0.2,            # Head dropout rate
     "drop_path_rate": 0.1,       # Stochastic depth rate (for ConvNeXt/ViT)
@@ -200,10 +208,35 @@ CFG = {
     # Set to an int (e.g., 5) to enable early stopping; None disables.
     "early_stopping_patience": None,
     "early_stopping_min_delta": 0.0,
+    # Do not update best_tss checkpoint or early-stopping counter before this
+    # 1-based epoch index. 0 keeps historical behavior (no floor).
+    "early_stopping_min_epoch": 0,
+
+    # threshold tuning on validation set
+    "threshold_min_recall": 0.5,
+    "threshold_min_precision": 0.15,
+    "threshold_min": 0.0,
+    "threshold_max": 1.0,
+    # Optional bounds on predicted positive fraction at selected threshold.
+    # Keep as None to disable.
+    "threshold_min_pos_rate": None,
+    "threshold_max_pos_rate": None,
+    # Fallback when no threshold satisfies min precision/recall constraints.
+    # Options: "tss" (recommended), "pr_sum" (legacy-like behavior).
+    "threshold_fallback_mode": "tss",
 
     # loss
     "use_focal": False,
     "focal_gamma": 2.0,
+    "focal_alpha": 0.25,  # alpha for BinaryFocalLoss / FocalLoss (positive-class weight)
+    # Loss selection (e.g. "ce", "ce_weighted", "bce", "focal", "skill_tss").
+    # When balance_classes=True and this remains CE-like, training auto-switches
+    # to unweighted BCE for cleaner balanced-dataset behavior.
+    "loss_type": "ce",
+    # Class-weight computation for imbalanced runs (balance_classes=False):
+    # - "fixed": use hard-coded legacy counts (fast, historical behavior)
+    # - "dynamic": scan Train shards and compute weights from current labels
+    "class_weight_mode": "fixed",
 
     # evaluation
     "save_pr_curve": True,

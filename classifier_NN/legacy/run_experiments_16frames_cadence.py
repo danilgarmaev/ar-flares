@@ -73,6 +73,7 @@ COMMON_CONFIG = {
     # Imbalance handling
     "balance_classes": False,
     "loss_type": "ce_weighted",
+    "class_weight_mode": "fixed",
 
     # Augmentation (configurable via --use-aug / --no-aug)
     "use_aug": False,  # Default: no augmentation for video sequences
@@ -82,6 +83,16 @@ COMMON_CONFIG = {
     "redirect_log": True,
     "early_stopping_patience": 5,
     "early_stopping_min_delta": 0.0,
+    "early_stopping_min_epoch": 3,
+
+    # Robust threshold tuning (validation)
+    "threshold_min_recall": 0.5,
+    "threshold_min_precision": 0.15,
+    "threshold_min": 0.0,
+    "threshold_max": 1.0,
+    "threshold_min_pos_rate": None,
+    "threshold_max_pos_rate": None,
+    "threshold_fallback_mode": "tss",
 
     # Checkpointing
     "save_last_checkpoint": True,
@@ -305,6 +316,7 @@ def main() -> None:
     ap.add_argument("--batch-size", type=int, default=None)
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--lr", type=float, default=None)
+    ap.add_argument("--early-stopping-min-epoch", type=int, default=None, help="Minimum 1-based epoch before best_tss checkpointing / early stopping")
     ap.add_argument("--image-size", type=int, default=None, help="Input image size (e.g., 112 or 224)")
     ap.add_argument("--steps-per-epoch", type=int, default=None, help="Limit steps per epoch for quick testing")
     ap.add_argument("--val-max-batches", type=int, default=None, help="Limit validation batches")
@@ -320,9 +332,52 @@ def main() -> None:
     ap.add_argument("--video-layers", type=int, default=None, help="Number of temporal transformer layers for video_transformer")
     ap.add_argument(
         "--loss-type",
-        choices=["ce", "ce_weighted", "focal", "skill_tss"],
+        choices=["ce", "ce_weighted", "bce", "focal", "binary_focal", "skill_tss"],
         default=None,
         help="Loss function type",
+    )
+    ap.add_argument(
+        "--class-weight-mode",
+        choices=["fixed", "dynamic"],
+        default=None,
+        help="Class-weight source for imbalanced runs (ignored when balanced sampling is enabled)",
+    )
+    ap.add_argument(
+        "--focal-alpha",
+        type=float,
+        default=None,
+        help="Alpha (positive-class balance factor) for focal / binary_focal loss (default 0.25)",
+    )
+    ap.add_argument(
+        "--balanced-batch-sampling",
+        action="store_true",
+        default=None,
+        help="Enable per-batch balancing: interleave positives and negatives in the train stream",
+    )
+    ap.add_argument(
+        "--no-balanced-batch-sampling",
+        dest="balanced_batch_sampling",
+        action="store_false",
+        default=None,
+        help="Disable per-batch balancing (default)",
+    )
+    ap.add_argument(
+        "--balanced-batch-neg-buffer",
+        type=int,
+        default=None,
+        help="Max negatives to buffer for balanced-batch sampling (default 8192)",
+    )
+    ap.add_argument("--threshold-min-recall", type=float, default=None, help="Minimum recall constraint during threshold tuning")
+    ap.add_argument("--threshold-min-precision", type=float, default=None, help="Minimum precision constraint during threshold tuning")
+    ap.add_argument("--threshold-min", type=float, default=None, help="Lower bound for threshold search")
+    ap.add_argument("--threshold-max", type=float, default=None, help="Upper bound for threshold search")
+    ap.add_argument("--threshold-min-pos-rate", type=float, default=None, help="Optional lower bound on predicted-positive rate")
+    ap.add_argument("--threshold-max-pos-rate", type=float, default=None, help="Optional upper bound on predicted-positive rate")
+    ap.add_argument(
+        "--threshold-fallback-mode",
+        choices=["tss", "pr_sum"],
+        default=None,
+        help="Fallback when threshold constraints are infeasible",
     )
 
     # Labeling / class threshold
@@ -372,6 +427,8 @@ def main() -> None:
         overrides["epochs"] = args.epochs
     if args.lr is not None:
         overrides["lr"] = args.lr
+    if args.early_stopping_min_epoch is not None:
+        overrides["early_stopping_min_epoch"] = int(args.early_stopping_min_epoch)
     if args.image_size is not None:
         overrides["image_size"] = args.image_size
     if args.steps_per_epoch is not None:
@@ -400,6 +457,22 @@ def main() -> None:
         overrides["video_layers"] = int(args.video_layers)
     if args.loss_type is not None:
         overrides["loss_type"] = args.loss_type
+    if args.class_weight_mode is not None:
+        overrides["class_weight_mode"] = str(args.class_weight_mode)
+    if args.threshold_min_recall is not None:
+        overrides["threshold_min_recall"] = float(args.threshold_min_recall)
+    if args.threshold_min_precision is not None:
+        overrides["threshold_min_precision"] = float(args.threshold_min_precision)
+    if args.threshold_min is not None:
+        overrides["threshold_min"] = float(args.threshold_min)
+    if args.threshold_max is not None:
+        overrides["threshold_max"] = float(args.threshold_max)
+    if args.threshold_min_pos_rate is not None:
+        overrides["threshold_min_pos_rate"] = float(args.threshold_min_pos_rate)
+    if args.threshold_max_pos_rate is not None:
+        overrides["threshold_max_pos_rate"] = float(args.threshold_max_pos_rate)
+    if args.threshold_fallback_mode is not None:
+        overrides["threshold_fallback_mode"] = str(args.threshold_fallback_mode)
     if args.min_flare_class is not None:
         overrides["min_flare_class"] = str(args.min_flare_class).upper()
     if args.balance_classes is not None:
@@ -418,6 +491,13 @@ def main() -> None:
         overrides["target_neg_none"] = int(args.target_neg_none)
     if args.target_neg_c is not None:
         overrides["target_neg_c"] = int(args.target_neg_c)
+
+    if getattr(args, "focal_alpha", None) is not None:
+        overrides["focal_alpha"] = float(args.focal_alpha)
+    if getattr(args, "balanced_batch_sampling", None) is not None:
+        overrides["balanced_batch_sampling"] = bool(args.balanced_batch_sampling)
+    if getattr(args, "balanced_batch_neg_buffer", None) is not None:
+        overrides["balanced_batch_neg_buffer"] = int(args.balanced_batch_neg_buffer)
 
     # If any target is requested, default to enabling auto probability computation
     # and balanced sampling unless explicitly overridden by flags above.
