@@ -320,6 +320,7 @@ def main() -> None:
     ap.add_argument("--image-size", type=int, default=None, help="Input image size (e.g., 112 or 224)")
     ap.add_argument("--steps-per-epoch", type=int, default=None, help="Limit steps per epoch for quick testing")
     ap.add_argument("--val-max-batches", type=int, default=None, help="Limit validation batches")
+    ap.add_argument("--num-workers", type=int, default=None, help="Override dataloader worker count")
     ap.add_argument("--pretrained-3d", action="store_true", default=False, help="Use pretrained 3D weights")
     ap.add_argument("--use-multi-gpu", action="store_true", default=None, help="Enable DataParallel when multiple GPUs are visible")
     ap.add_argument("--use-ddp", action="store_true", default=None, help="Enable DistributedDataParallel when launched under torchrun")
@@ -437,6 +438,8 @@ def main() -> None:
         overrides["use_aug"] = args.use_aug
     if args.val_max_batches is not None:
         overrides["val_max_batches"] = args.val_max_batches
+    if args.num_workers is not None:
+        overrides["num_workers"] = int(args.num_workers)
     if args.pretrained_3d:
         overrides["pretrained_3d"] = True
     if args.use_multi_gpu is not None:
