@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from itertools import chain
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -13,7 +14,9 @@ from typing import Any, Iterable
 RE_TS_SPACE = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})_")
 RE_TS_COMPACT = re.compile(r"^(\d{4}-\d{2}-\d{2})_(\d{6})_")
 RE_CADENCE = re.compile(r"cadence[-_]?([0-9]+)min", re.IGNORECASE)
-RE_LOG_JOB_TASK = re.compile(r"_(\d+)_(\d+)\.out$")
+# Supports both array logs (<job>_<task>) and non-array logs (<job>)
+# for either .out or .err files.
+RE_LOG_JOB_TASK = re.compile(r"_(\d+)(?:_(\d+))?\.(?:out|err)$")
 
 
 @dataclass(frozen=True)
@@ -124,19 +127,21 @@ def _regime(cfg: dict[str, Any], interval_min: int | None) -> str:
     return f"{bb}_c{interval}_{min_class.lower()}plus_{aug}_{ds_tag}"
 
 
-def _build_run_dir_to_slurm_map(repo_root: Path) -> dict[str, tuple[int, int]]:
+def _build_run_dir_to_slurm_map(repo_root: Path) -> dict[str, tuple[int | None, int | None]]:
     logs_dir = repo_root / "logs"
-    mapping: dict[str, tuple[int, int]] = {}
+    mapping: dict[str, tuple[int | None, int | None]] = {}
     if not logs_dir.exists():
         return mapping
 
-    for log_path in sorted(logs_dir.glob("arfl-16f-*.out")):
+    log_paths = sorted(chain(logs_dir.glob("arfl-*.out"), logs_dir.glob("arfl-*.err")))
+
+    for log_path in log_paths:
         m = RE_LOG_JOB_TASK.search(log_path.name)
         if not m:
             continue
 
         job_id = int(m.group(1))
-        task_id = int(m.group(2))
+        task_id = int(m.group(2)) if m.group(2) is not None else None
         run_dir_name: str | None = None
 
         try:
@@ -150,12 +155,15 @@ def _build_run_dir_to_slurm_map(repo_root: Path) -> dict[str, tuple[int, int]]:
             continue
 
         if run_dir_name:
-            mapping[run_dir_name] = (job_id, task_id)
+            # Prefer mappings that include an array task id over ones that do not.
+            prev = mapping.get(run_dir_name)
+            if prev is None or (prev[1] is None and task_id is not None):
+                mapping[run_dir_name] = (job_id, task_id)
 
     return mapping
 
 
-def _iter_run_records(results_dir: Path, run_to_slurm: dict[str, tuple[int, int]]) -> Iterable[RunRecord]:
+def _iter_run_records(results_dir: Path, run_to_slurm: dict[str, tuple[int | None, int | None]]) -> Iterable[RunRecord]:
     for run_dir in results_dir.iterdir():
         if not run_dir.is_dir():
             continue
@@ -276,6 +284,26 @@ def main() -> None:
         "fixed_Recall",
         "fixed_F1",
         "fixed_Accuracy",
+        "report_val_threshold",
+        "report_val_TSS",
+        "report_val_TPR",
+        "report_val_TNR",
+        "report_val_FPR",
+        "report_val_HSS",
+        "report_val_Precision",
+        "report_val_Recall",
+        "report_val_F1",
+        "report_val_Accuracy",
+        "report_0p5_threshold",
+        "report_0p5_TSS",
+        "report_0p5_TPR",
+        "report_0p5_TNR",
+        "report_0p5_FPR",
+        "report_0p5_HSS",
+        "report_0p5_Precision",
+        "report_0p5_Recall",
+        "report_0p5_F1",
+        "report_0p5_Accuracy",
         "TP",
         "TN",
         "FP",
@@ -311,6 +339,20 @@ def main() -> None:
         "val_threshold_for_test",
         "fixed_threshold",
         "fixed_TSS",
+        "report_val_threshold",
+        "report_val_TSS",
+        "report_val_TPR",
+        "report_val_FPR",
+        "report_val_Precision",
+        "report_val_Recall",
+        "report_val_F1",
+        "report_0p5_threshold",
+        "report_0p5_TSS",
+        "report_0p5_TPR",
+        "report_0p5_FPR",
+        "report_0p5_Precision",
+        "report_0p5_Recall",
+        "report_0p5_F1",
         "batch_size",
         "lr",
         "epochs",
@@ -331,6 +373,7 @@ def main() -> None:
     rows: list[dict[str, Any]] = []
     for rec in records:
         rel_run_dir = rec.run_dir.relative_to(repo_root)
+        report_metrics = _load_json(rec.run_dir / 'report_metrics.json') or {}
         row: dict[str, Any] = {
             "regime": rec.regime,
             "run_dir": str(rel_run_dir),
@@ -339,6 +382,7 @@ def main() -> None:
         }
         row.update({k: rec.config.get(k) for k in columns if k in rec.config})
         row.update({k: rec.metrics.get(k) for k in columns if k in rec.metrics})
+        row.update({k: report_metrics.get(k) for k in columns if k in report_metrics})
         row["interval_min"] = _interval_min(rec.config)
         row["temporal_context_hours"] = _temporal_context_hours(rec.config)
         row["date"] = rec.metrics.get("date") or (rec.run_dt.isoformat(sep=" ") if rec.run_dt else None)

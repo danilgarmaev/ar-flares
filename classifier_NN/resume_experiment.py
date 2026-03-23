@@ -288,8 +288,9 @@ def resume_experiment(
         label_smoothing=cfg.get("label_smoothing", 0.0),
     )
 
-    # Optimizer + scheduler (try to restore optimizer if present)
-    if cfg.get("optimizer", "adamw") == "adam_paper":
+    # Optimizer + scheduler (mirror train.py so resume uses the same classes/config)
+    opt_name = str(cfg.get("optimizer", "adamw")).lower()
+    if opt_name == "adam_paper":
         print("Using Adam optimizer (paper-style)")
         optimizer = torch.optim.Adam(
             model.parameters(),
@@ -299,13 +300,23 @@ def resume_experiment(
             amsgrad=cfg.get("adam_amsgrad", False),
             weight_decay=0.0,
         )
+    elif opt_name in ["adamw", "torch_adamw"]:
+        weight_decay = float(cfg.get("weight_decay", 0.05))
+        print(f"Using AdamW optimizer (torch) | weight_decay={weight_decay}")
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=cfg["lr"],
+            betas=(cfg.get("beta1", 0.9), cfg.get("beta2", 0.999)),
+            eps=cfg.get("adam_eps", 1e-8),
+            weight_decay=weight_decay,
+        )
     else:
         optimizer = create_optimizer_v2(
             model,
             opt="adamw",
             lr=cfg["lr"],
-            weight_decay=0.05,
-            layer_decay=0.75,
+            weight_decay=float(cfg.get("weight_decay", 0.05)),
+            layer_decay=float(cfg.get("layer_decay", 0.75)),
         )
 
     scaler = torch.GradScaler("cuda", enabled=torch.cuda.is_available() and device.type == "cuda")
@@ -333,17 +344,34 @@ def resume_experiment(
         raise ValueError(f"max_epochs={target_epochs} is less than start_epoch={start_epoch}")
     extra_epochs = target_epochs - start_epoch
 
-    # Scheduler: resume state if available, otherwise create a continuation scheduler.
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer,
-        max_lr=cfg["lr"],
-        epochs=max(1, int(extra_epochs)) if extra_epochs > 0 else 1,
-        steps_per_epoch=steps_per_epoch,
-    )
+    # Scheduler: mirror train.py and then restore state if available.
+    scheduler_name = str(cfg.get("scheduler", "onecycle")).lower()
+    scheduler_step_per_batch = False
+    scheduler = None
+    if scheduler_name in ["onecycle", "onecyclelr"]:
+        scheduler_step_per_batch = True
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=cfg["lr"],
+            epochs=max(1, int(extra_epochs)) if extra_epochs > 0 else 1,
+            steps_per_epoch=steps_per_epoch,
+        )
+    elif scheduler_name in ["cosine", "cosineannealing", "cosineannealinglr"]:
+        scheduler_step_per_batch = False
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=max(1, int(extra_epochs)) if extra_epochs > 0 else 1,
+        )
+    elif scheduler_name in ["none", "off", "constant"]:
+        scheduler_step_per_batch = False
+        scheduler = None
+    else:
+        raise ValueError(f"Unknown scheduler: {scheduler_name}")
     if warm_sched_sd is not None:
         try:
-            scheduler.load_state_dict(warm_sched_sd)
-            print("Restored scheduler_state_dict from checkpoint.")
+            if scheduler is not None:
+                scheduler.load_state_dict(warm_sched_sd)
+                print("Restored scheduler_state_dict from checkpoint.")
         except Exception as e:
             print(f"Warning: failed to load scheduler_state_dict; continuing with fresh scheduler. Error: {e}")
 
@@ -389,7 +417,9 @@ def resume_experiment(
                 scaler,
                 device,
                 steps_per_epoch,
+                scheduler_step_per_batch=scheduler_step_per_batch,
                 mixup_fn=None,
+                cfg=cfg,
             )
 
             avg_val_loss, val_metrics = validate_epoch(
