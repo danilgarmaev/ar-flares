@@ -81,6 +81,11 @@ def find_best_threshold_tss(
     *,
     min_recall: float = 0.5,
     min_precision: float = 0.15,
+    min_threshold: float = 0.0,
+    max_threshold: float = 1.0,
+    min_pos_rate: float | None = None,
+    max_pos_rate: float | None = None,
+    fallback_mode: str = "tss",
 ):
     """Select an operating threshold using Riggi et al. (2026)-style constraints.
 
@@ -88,14 +93,20 @@ def find_best_threshold_tss(
       - recall >= min_recall
       - precision >= min_precision
 
-    If no threshold satisfies the constraints, fall back to the threshold that
-    maximizes (precision + recall).
+        If no threshold satisfies the constraints, use a robust fallback:
+            - fallback_mode="tss" (default): maximize unconstrained TSS
+            - fallback_mode="pr_sum": maximize (precision + recall)
 
     Args:
         y_true: Ground truth binary labels (0/1)
         y_probs: Predicted probabilities for positive class
         min_recall: Minimum allowed recall for constrained search
         min_precision: Minimum allowed precision for constrained search
+        min_threshold: Lower bound of threshold search window
+        max_threshold: Upper bound of threshold search window
+        min_pos_rate: Optional minimum predicted-positive fraction
+        max_pos_rate: Optional maximum predicted-positive fraction
+        fallback_mode: Fallback strategy when constraints are infeasible
 
     Returns:
         (best_tss, best_threshold)
@@ -112,13 +123,33 @@ def find_best_threshold_tss(
     lo = max(0.0, min(1.0, lo))
     hi = max(0.0, min(1.0, hi))
 
+    min_threshold = float(np.clip(min_threshold, 0.0, 1.0))
+    max_threshold = float(np.clip(max_threshold, 0.0, 1.0))
+    if max_threshold < min_threshold:
+        min_threshold, max_threshold = max_threshold, min_threshold
+
+    mode = str(fallback_mode).lower().strip()
+    if mode not in {"tss", "pr_sum"}:
+        mode = "tss"
+
     grid_full = np.linspace(0.0, 1.0, 1001)
     grid_obs = np.linspace(lo, hi, 1001) if hi > lo else np.array([lo])
     thresholds = np.unique(np.concatenate((grid_full, grid_obs, [0.0, 1.0])))
+    thresholds = thresholds[(thresholds >= min_threshold) & (thresholds <= max_threshold)]
+    if thresholds.size == 0:
+        thresholds = np.array([0.5], dtype=float)
 
     best_constrained = (-1.0, 0.5, -1.0)  # (tss, threshold, pr_sum)
     found_constrained = False
-    best_fallback = (-1.0, 0.5, -1.0)     # (pr_sum, threshold, tss)
+    best_tss_fallback = (-1.0, 0.5, -1.0)  # (tss, threshold, pr_sum)
+    best_prsum_fallback = (-1.0, 0.5, -1.0)  # (pr_sum, threshold, tss)
+
+    def _within_pos_rate(pred_pos_rate: float) -> bool:
+        if min_pos_rate is not None and pred_pos_rate < float(min_pos_rate):
+            return False
+        if max_pos_rate is not None and pred_pos_rate > float(max_pos_rate):
+            return False
+        return True
 
     for t in thresholds:
         pred = (y_probs >= t).astype(int)
@@ -132,21 +163,66 @@ def find_best_threshold_tss(
         tnr = TN / (TN + FP + 1e-7)
         tss = recall + tnr - 1.0
         pr_sum = float(precision + recall)
+        pred_pos_rate = float(pred.mean())
+        within_rate = _within_pos_rate(pred_pos_rate)
 
-        # Always track fallback (maximize precision+recall)
-        if pr_sum > best_fallback[0] or (pr_sum == best_fallback[0] and tss > best_fallback[2]):
-            best_fallback = (pr_sum, float(t), float(tss))
+        # Robust fallbacks are tracked only inside optional predicted-positive
+        # rate bounds to avoid trivial all-positive/all-negative operating points.
+        if within_rate:
+            if tss > best_tss_fallback[0] or (
+                tss == best_tss_fallback[0] and (pr_sum > best_tss_fallback[2] or (pr_sum == best_tss_fallback[2] and t > best_tss_fallback[1]))
+            ):
+                best_tss_fallback = (float(tss), float(t), pr_sum)
+            if pr_sum > best_prsum_fallback[0] or (
+                pr_sum == best_prsum_fallback[0] and (tss > best_prsum_fallback[2] or (tss == best_prsum_fallback[2] and t > best_prsum_fallback[1]))
+            ):
+                best_prsum_fallback = (pr_sum, float(t), float(tss))
 
         # Constrained optimum: maximize TSS subject to constraints
-        if recall >= float(min_recall) and precision >= float(min_precision):
+        if within_rate and recall >= float(min_recall) and precision >= float(min_precision):
             found_constrained = True
-            if tss > best_constrained[0] or (tss == best_constrained[0] and pr_sum > best_constrained[2]):
+            if tss > best_constrained[0] or (
+                tss == best_constrained[0] and (pr_sum > best_constrained[2] or (pr_sum == best_constrained[2] and t > best_constrained[1]))
+            ):
                 best_constrained = (float(tss), float(t), pr_sum)
 
     if found_constrained:
         return best_constrained[0], best_constrained[1]
-    # No feasible threshold met (recall,precision) constraints.
-    return best_fallback[2], best_fallback[1]
+
+    # No feasible threshold met (recall, precision) constraints.
+    # Fall back robustly, preferring non-degenerate operating points.
+    if mode == "pr_sum" and best_prsum_fallback[0] >= 0.0:
+        return best_prsum_fallback[2], best_prsum_fallback[1]
+    if mode == "tss" and best_tss_fallback[0] >= 0.0:
+        return best_tss_fallback[0], best_tss_fallback[1]
+
+    # If rate-bounded fallback had no candidate (unlikely), do an unconstrained
+    # full sweep fallback.
+    unconstrained_best_tss = (-1.0, 0.5, -1.0)
+    unconstrained_best_prsum = (-1.0, 0.5, -1.0)
+    for t in thresholds:
+        pred = (y_probs >= t).astype(int)
+        TP = int(((y_true == 1) & (pred == 1)).sum())
+        TN = int(((y_true == 0) & (pred == 0)).sum())
+        FP = int(((y_true == 0) & (pred == 1)).sum())
+        FN = int(((y_true == 1) & (pred == 0)).sum())
+        recall = TP / (TP + FN + 1e-7)
+        precision = TP / (TP + FP + 1e-7)
+        tnr = TN / (TN + FP + 1e-7)
+        tss = recall + tnr - 1.0
+        pr_sum = float(precision + recall)
+        if tss > unconstrained_best_tss[0] or (
+            tss == unconstrained_best_tss[0] and (pr_sum > unconstrained_best_tss[2] or (pr_sum == unconstrained_best_tss[2] and t > unconstrained_best_tss[1]))
+        ):
+            unconstrained_best_tss = (float(tss), float(t), pr_sum)
+        if pr_sum > unconstrained_best_prsum[0] or (
+            pr_sum == unconstrained_best_prsum[0] and (tss > unconstrained_best_prsum[2] or (tss == unconstrained_best_prsum[2] and t > unconstrained_best_prsum[1]))
+        ):
+            unconstrained_best_prsum = (pr_sum, float(t), float(tss))
+
+    if mode == "pr_sum":
+        return unconstrained_best_prsum[2], unconstrained_best_prsum[1]
+    return unconstrained_best_tss[0], unconstrained_best_tss[1]
 
 
 def plot_roc_curve(y_true, y_probs, save_path, model_name="Model"):

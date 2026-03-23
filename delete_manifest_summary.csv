@@ -1,0 +1,22 @@
+section,name,count,sample_path,notes
+manifest,total_entries,3379,,"actual file rows, header excluded"
+top_prefix,//lustre07/scratch/dgarmaev/ar-flares-legacy/data,3311,/lustre07/scratch/dgarmaev/ar-flares-legacy/data/ARClassifierStats_weighted_trainvaltest_linear_model.pickle,
+top_prefix,//lustre07/scratch/dgarmaev/ar-flares-legacy/.git,33,/lustre07/scratch/dgarmaev/ar-flares-legacy/.git/hooks/update.sample,
+top_prefix,//lustre07/scratch/dgarmaev/ar-flares-legacy/results,15,/lustre07/scratch/dgarmaev/ar-flares-legacy/results/plots/class_distribution.png,
+top_prefix,//lustre07/scratch/dgarmaev/ar-flares-legacy/logs,12,/lustre07/scratch/dgarmaev/ar-flares-legacy/logs/flare_vgg-50078969.out,
+top_prefix,//lustre07/scratch/dgarmaev/ar-flares-legacy/images,3,/lustre07/scratch/dgarmaev/ar-flares-legacy/images/SVM_classifier_flowchart.png,
+top_prefix,//lustre07/scratch/dgarmaev/ar-flares-legacy/jobs,2,/lustre07/scratch/dgarmaev/ar-flares-legacy/jobs/setup_env-50128359.out,
+top_prefix,//lustre07/scratch/dgarmaev/test/test.py,1,/lustre07/scratch/dgarmaev/test/test.py,
+top_prefix,/lustre07/scratch/dgarmaev/test_envs-41405609.out,1,/lustre07/scratch/dgarmaev/test_envs-41405609.out,
+top_prefix,//lustre07/scratch/dgarmaev/ar-flares-legacy/classifier_VGG,1,/lustre07/scratch/dgarmaev/ar-flares-legacy/classifier_VGG/__pycache__/wds_loader.cpython-310.pyc,
+legacy_subdir,data,3311,/lustre07/scratch/dgarmaev/ar-flares-legacy/data/ARClassifierStats_weighted_trainvaltest_linear_model.pickle,under ar-flares-legacy
+legacy_subdir,.git,33,/lustre07/scratch/dgarmaev/ar-flares-legacy/.git/hooks/update.sample,under ar-flares-legacy
+legacy_subdir,results,15,/lustre07/scratch/dgarmaev/ar-flares-legacy/results/plots/class_distribution.png,under ar-flares-legacy
+legacy_subdir,logs,12,/lustre07/scratch/dgarmaev/ar-flares-legacy/logs/flare_vgg-50078969.out,under ar-flares-legacy
+legacy_subdir,images,3,/lustre07/scratch/dgarmaev/ar-flares-legacy/images/SVM_classifier_flowchart.png,under ar-flares-legacy
+legacy_subdir,jobs,2,/lustre07/scratch/dgarmaev/ar-flares-legacy/jobs/setup_env-50128359.out,under ar-flares-legacy
+legacy_subdir,classifier_VGG,1,/lustre07/scratch/dgarmaev/ar-flares-legacy/classifier_VGG/__pycache__/wds_loader.cpython-310.pyc,under ar-flares-legacy
+current_repo_check,/lustre07/scratch/dgarmaev/ar-flares/,0,,current repo
+current_repo_check,/lustre07/scratch/dgarmaev/ar-flares/results/,0,,current repo results
+current_repo_check,/lustre07/scratch/dgarmaev/ar-flares/.git/,0,,current repo git
+current_repo_check,/lustre07/scratch/dgarmaev/ar-flares/.cache/,0,,current repo cache
