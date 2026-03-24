@@ -218,9 +218,15 @@ def get_loss_function(cfg=None, use_focal=False, gamma=2.0, class_weights=None, 
                 bce_weight=cfg.get("bce_weight", 1.0),
                 tss_weight=cfg.get("tss_loss_weight", 0.1),
             )
-        elif loss_type == "bce":
+        elif loss_type in {"bce", "weighted_bce"}:
             # Optional positive-class weighting for BCE can be passed via cfg.
             pos_w = cfg.get("bce_pos_weight", None)
+            if pos_w is None and loss_type == "weighted_bce" and class_weights is not None:
+                try:
+                    # Reuse the positive-vs-negative ratio already computed in train.py.
+                    pos_w = float(class_weights[1].detach().cpu().item())
+                except Exception:
+                    pos_w = None
             pos_w_t = None
             if pos_w is not None:
                 pos_w_t = torch.tensor(float(pos_w), dtype=torch.float32)

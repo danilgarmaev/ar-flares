@@ -333,7 +333,7 @@ def main() -> None:
     ap.add_argument("--video-layers", type=int, default=None, help="Number of temporal transformer layers for video_transformer")
     ap.add_argument(
         "--loss-type",
-        choices=["ce", "ce_weighted", "bce", "focal", "binary_focal", "skill_tss"],
+        choices=["ce", "ce_weighted", "bce", "weighted_bce", "focal", "binary_focal", "skill_tss"],
         default=None,
         help="Loss function type",
     )
