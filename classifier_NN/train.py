@@ -14,6 +14,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from datetime import datetime
+from datetime import timedelta
 import pytz
 from timm.optim import create_optimizer_v2
 from timm.data import Mixup
@@ -81,6 +82,198 @@ def _broadcast_object(obj, src: int = 0):
     payload = [obj]
     dist.broadcast_object_list(payload, src=src)
     return payload[0]
+
+
+_VAL_METRIC_KEYS = (
+    "val_acc",
+    "val_precision",
+    "val_recall",
+    "val_f1",
+    "val_auc",
+    "val_best_tss",
+    "val_best_threshold",
+    "val_acc_0.5",
+    "val_precision_0.5",
+    "val_recall_0.5",
+    "val_f1_0.5",
+)
+
+
+def _broadcast_val_metrics(avg_val_loss, val_metrics, device: torch.device, src: int = 0):
+    """Synchronize validation scalars across DDP ranks without Python object broadcasts."""
+    if not _dist_is_ready():
+        return avg_val_loss, val_metrics
+
+    packet = torch.zeros(len(_VAL_METRIC_KEYS) + 1, dtype=torch.float64, device=device)
+    if val_metrics is not None:
+        packet[0] = float(avg_val_loss)
+        for idx, key in enumerate(_VAL_METRIC_KEYS, start=1):
+            packet[idx] = float(val_metrics.get(key, float("nan")))
+
+    dist.broadcast(packet, src=src)
+    synced_loss = float(packet[0].item())
+    synced_metrics = {
+        key: float(packet[idx].item())
+        for idx, key in enumerate(_VAL_METRIC_KEYS, start=1)
+    }
+    return synced_loss, synced_metrics
+
+
+_HEAD_PARAM_TOKENS = {
+    "head",
+    "fc",
+    "classifier",
+    "classifiers",
+    "score",
+    "last_linear",
+    "cls_head",
+    "input_proj",
+}
+
+
+def _is_head_like_param(name: str) -> bool:
+    tokens = str(name).lower().replace("[", ".").replace("]", ".").split(".")
+    return any(tok in _HEAD_PARAM_TOKENS for tok in tokens)
+
+
+def _snapshot_trainable_flags(model: torch.nn.Module) -> dict[str, bool]:
+    base = _unwrap_model(model)
+    return {name: bool(param.requires_grad) for name, param in base.named_parameters()}
+
+
+def _apply_head_only_warmup(model: torch.nn.Module, trainable_flags: dict[str, bool]) -> int:
+    base = _unwrap_model(model)
+    trainable = 0
+    for name, param in base.named_parameters():
+        allow = bool(trainable_flags.get(name, True)) and _is_head_like_param(name)
+        param.requires_grad = allow
+        if allow:
+            trainable += param.numel()
+    return trainable
+
+
+def _restore_trainable_flags(model: torch.nn.Module, trainable_flags: dict[str, bool]) -> int:
+    base = _unwrap_model(model)
+    trainable = 0
+    for name, param in base.named_parameters():
+        allow = bool(trainable_flags.get(name, True))
+        param.requires_grad = allow
+        if allow:
+            trainable += param.numel()
+    return trainable
+
+
+def _get_optimizer_param_groups(model: torch.nn.Module, cfg: dict) -> tuple[list[dict], dict]:
+    base = _unwrap_model(model)
+    named_params = [(name, param) for name, param in base.named_parameters() if param.requires_grad]
+    if not named_params:
+        raise RuntimeError("No trainable parameters found while building optimizer")
+
+    use_split = cfg.get("backbone_lr") is not None or cfg.get("head_lr") is not None
+    default_lr = float(cfg["lr"])
+    backbone_lr = float(cfg.get("backbone_lr", default_lr) or default_lr)
+    head_lr = float(cfg.get("head_lr", default_lr) or default_lr)
+
+    if not use_split:
+        params = [param for _, param in named_params]
+        return ([{"params": params, "lr": default_lr, "group_name": "all"}], {"all": len(params)})
+
+    head_params = []
+    backbone_params = []
+    for name, param in named_params:
+        if _is_head_like_param(name):
+            head_params.append(param)
+        else:
+            backbone_params.append(param)
+
+    if not head_params or not backbone_params:
+        params = [param for _, param in named_params]
+        return ([{"params": params, "lr": default_lr, "group_name": "all"}], {"all": len(params)})
+
+    groups = [
+        {"params": backbone_params, "lr": backbone_lr, "group_name": "backbone"},
+        {"params": head_params, "lr": head_lr, "group_name": "head"},
+    ]
+    return groups, {"backbone": len(backbone_params), "head": len(head_params)}
+
+
+def _build_optimizer(model: torch.nn.Module, cfg: dict) -> torch.optim.Optimizer:
+    opt_name = str(cfg.get("optimizer", "adamw")).lower()
+    param_groups, group_counts = _get_optimizer_param_groups(model, cfg)
+
+    if opt_name == "adam_paper":
+        print(f"Using Adam optimizer (paper-style) | groups={group_counts}")
+        return torch.optim.Adam(
+            param_groups,
+            lr=float(cfg["lr"]),
+            betas=(cfg.get("beta1", 0.9), cfg.get("beta2", 0.999)),
+            eps=cfg.get("adam_eps", 1e-7),
+            amsgrad=cfg.get("adam_amsgrad", False),
+            weight_decay=0.0,
+        )
+
+    if opt_name in ["adamw", "torch_adamw"]:
+        weight_decay = float(cfg.get("weight_decay", 0.05))
+        print(f"Using AdamW optimizer (torch) | weight_decay={weight_decay} | groups={group_counts}")
+        return torch.optim.AdamW(
+            param_groups,
+            lr=float(cfg["lr"]),
+            betas=(cfg.get("beta1", 0.9), cfg.get("beta2", 0.999)),
+            eps=cfg.get("adam_eps", 1e-8),
+            weight_decay=weight_decay,
+        )
+
+    if len(param_groups) > 1:
+        raise ValueError(f"Optimizer '{opt_name}' does not currently support differential LR param groups")
+
+    return create_optimizer_v2(
+        model,
+        opt='adamw',
+        lr=float(cfg["lr"]),
+        weight_decay=float(cfg.get("weight_decay", 0.05)),
+        layer_decay=float(cfg.get("layer_decay", 0.75)),
+    )
+
+
+def _build_scheduler(
+    optimizer: torch.optim.Optimizer,
+    cfg: dict,
+    steps_per_epoch: int,
+    epochs_override: int | None = None,
+) -> tuple[object | None, bool]:
+    scheduler_name = str(cfg.get("scheduler", "onecycle")).lower()
+    scheduler_step_per_batch = False
+    epochs_total = int(epochs_override if epochs_override is not None else cfg["epochs"])
+
+    if scheduler_name in ["onecycle", "onecyclelr"]:
+        scheduler_step_per_batch = True
+        max_lr = [group["lr"] for group in optimizer.param_groups]
+        if len(max_lr) == 1:
+            max_lr = max_lr[0]
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=max_lr,
+            epochs=epochs_total,
+            steps_per_epoch=steps_per_epoch,
+        )
+    elif scheduler_name in ["cosine", "cosineannealing", "cosineannealinglr"]:
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=max(1, epochs_total),
+        )
+    elif scheduler_name in ["none", "off", "constant"]:
+        scheduler = None
+    else:
+        raise ValueError(f"Unknown scheduler: {scheduler_name}")
+    return scheduler, scheduler_step_per_batch
+
+
+def _format_lr_groups(optimizer: torch.optim.Optimizer) -> str:
+    parts = []
+    for idx, group in enumerate(optimizer.param_groups):
+        name = group.get("group_name", f"group{idx}")
+        parts.append(f"{name}={group['lr']:.2e}")
+    return ", ".join(parts)
 
 
 def _auto_update_video_summary() -> None:
@@ -156,16 +349,23 @@ def _trim_cfg_for_logging(cfg: dict) -> dict:
         "backbone",
         "pretrained",
         "pretrained_3d",
+        "pretrained_mvit",
+        "mvit_model_id",
         "freeze_backbone",
         # optimization / runtime
         "batch_size",
         "num_workers",
         "lr",
+        "backbone_lr",
+        "head_lr",
         "epochs",
+        "warmup_epochs",
+        "grad_clip_norm",
         "optimizer",
         "weight_decay",
         "scheduler",
         "steps_per_epoch",
+        "run_tag",
         # eval / checkpointing
         "model_selection",
         "early_stopping_patience",
@@ -355,6 +555,15 @@ def train_epoch(
             loss = criterion(outputs, labels)
         
         scaler.scale(loss).backward()
+        grad_clip_norm = cfg.get("grad_clip_norm", None) if cfg is not None else None
+        if grad_clip_norm is not None:
+            grad_clip_norm = float(grad_clip_norm)
+            if grad_clip_norm > 0:
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(
+                    [p for p in model.parameters() if p.requires_grad],
+                    max_norm=grad_clip_norm,
+                )
         scaler.step(optimizer)
         scaler.update()
 
@@ -620,7 +829,11 @@ def main(cfg=None):
         world_size = int(os.environ.get("WORLD_SIZE", "1"))
         local_rank = int(os.environ.get("LOCAL_RANK", "0"))
         if world_size > 1 and not _dist_is_ready():
-            dist.init_process_group(backend=str(cfg.get("ddp_backend", "nccl")), init_method="env://")
+            dist.init_process_group(
+                backend=str(cfg.get("ddp_backend", "nccl")),
+                init_method="env://",
+                timeout=timedelta(minutes=int(cfg.get("ddp_timeout_minutes", 120))),
+            )
         if world_size > 1:
             torch.cuda.set_device(local_rank)
             ddp_enabled = True
@@ -630,6 +843,18 @@ def main(cfg=None):
     cfg["ddp_local_rank"] = local_rank
     cfg["ddp_shard_train_only"] = True
     CFG.update(cfg)
+
+    effective_num_workers = int(cfg.get("num_workers", 0) or 0)
+    if ddp_enabled and world_size > 1 and effective_num_workers > 0:
+        scaled_num_workers = max(1, effective_num_workers // world_size)
+        if scaled_num_workers != effective_num_workers:
+            cfg["num_workers"] = scaled_num_workers
+            CFG.update({"num_workers": scaled_num_workers})
+            if _is_primary_process(cfg):
+                print(
+                    f"DDP worker auto-scale: num_workers {effective_num_workers} -> "
+                    f"{scaled_num_workers} per rank (world_size={world_size})"
+                )
 
     if ddp_enabled and not _is_primary_process(cfg) and bool(cfg.get("suppress_non_primary_output", True)):
         sys.stdout = open(os.devnull, "w", buffering=1)
@@ -799,65 +1024,27 @@ def main(cfg=None):
         label_smoothing=cfg.get("label_smoothing", 0.0)
     )
     
-    # Setup optimizer
-    # For VGG-style paper replication, allow opting into plain Adam with
-    # the original hyperparameters (lr=1e-3, betas=(0.9,0.999), eps=1e-7, amsgrad=False).
-    opt_name = str(cfg.get("optimizer", "adamw")).lower()
-    if opt_name == "adam_paper":
-        print("Using Adam optimizer (paper-style)")
-        optimizer = torch.optim.Adam(
-            model.parameters(),
-            lr=cfg["lr"],
-            betas=(cfg.get("beta1", 0.9), cfg.get("beta2", 0.999)),
-            eps=cfg.get("adam_eps", 1e-7),
-            amsgrad=cfg.get("adam_amsgrad", False),
-            weight_decay=0.0,
+    warmup_epochs = int(cfg.get("warmup_epochs", 0) or 0)
+    full_trainable_flags = _snapshot_trainable_flags(model)
+    if warmup_epochs > 0:
+        warmup_trainable = _apply_head_only_warmup(model, full_trainable_flags)
+        print(
+            f"Warmup enabled: {warmup_epochs} epoch(s) head-only/adapters-only "
+            f"| trainable params={warmup_trainable:,}"
         )
-    elif opt_name in ["adamw", "torch_adamw"]:
-        weight_decay = float(cfg.get("weight_decay", 0.05))
-        print(f"Using AdamW optimizer (torch) | weight_decay={weight_decay}")
-        optimizer = torch.optim.AdamW(
-            model.parameters(),
-            lr=cfg["lr"],
-            betas=(cfg.get("beta1", 0.9), cfg.get("beta2", 0.999)),
-            eps=cfg.get("adam_eps", 1e-8),
-            weight_decay=weight_decay,
-        )
-    else:
-        optimizer = create_optimizer_v2(
-            model,
-            opt='adamw',
-            lr=cfg["lr"],
-            weight_decay=float(cfg.get("weight_decay", 0.05)),
-            layer_decay=float(cfg.get("layer_decay", 0.75)),
-        )
-    
+
+    optimizer = _build_optimizer(model, cfg)
+
     # Setup gradient scaler for mixed precision
     scaler = torch.GradScaler('cuda', enabled=torch.cuda.is_available())
-    
-    # Scheduler
-    scheduler_name = str(cfg.get("scheduler", "onecycle")).lower()
-    scheduler = None
-    scheduler_step_per_batch = False
-    if scheduler_name in ["onecycle", "onecyclelr"]:
-        scheduler_step_per_batch = True
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer,
-            max_lr=cfg["lr"],
-            epochs=cfg["epochs"],
-            steps_per_epoch=steps_per_epoch,
-        )
-    elif scheduler_name in ["cosine", "cosineannealing", "cosineannealinglr"]:
-        scheduler_step_per_batch = False
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer,
-            T_max=int(cfg["epochs"]),
-        )
-    elif scheduler_name in ["none", "off", "constant"]:
-        scheduler_step_per_batch = False
-        scheduler = None
-    else:
-        raise ValueError(f"Unknown scheduler: {scheduler_name}")
+
+    phase_epochs = warmup_epochs if warmup_epochs > 0 else int(cfg["epochs"])
+    scheduler, scheduler_step_per_batch = _build_scheduler(
+        optimizer,
+        cfg,
+        steps_per_epoch,
+        epochs_override=phase_epochs,
+    )
 
     # Training loop
     print("\n" + "="*80)
@@ -904,6 +1091,22 @@ def main(cfg=None):
             print(f"Early-stopping/checkpoint floor: epoch >= {min_epoch_floor}")
     epoch_metrics_path = os.path.join(exp_dir, "epoch_metrics.jsonl")
     for epoch in range(cfg["epochs"]):
+        if warmup_epochs > 0 and epoch == warmup_epochs:
+            trainable_after_unfreeze = _restore_trainable_flags(model, full_trainable_flags)
+            optimizer = _build_optimizer(model, cfg)
+            remaining_epochs = max(1, int(cfg["epochs"]) - epoch)
+            scheduler, scheduler_step_per_batch = _build_scheduler(
+                optimizer,
+                cfg,
+                steps_per_epoch,
+                epochs_override=remaining_epochs,
+            )
+            if _is_primary_process(cfg):
+                print(
+                    f"Warmup complete at epoch {epoch}. "
+                    f"Backbone unfrozen | trainable params={trainable_after_unfreeze:,}"
+                )
+
         print(f"\nEpoch {epoch+1}/{cfg['epochs']}")
         print("-" * 40)
         
@@ -935,17 +1138,18 @@ def main(cfg=None):
                 threshold_cfg=threshold_cfg,
             )
         if ddp_enabled:
-            avg_val_loss = _broadcast_object(avg_val_loss, src=0)
-            val_metrics = _broadcast_object(val_metrics, src=0)
+            avg_val_loss, val_metrics = _broadcast_val_metrics(
+                avg_val_loss,
+                val_metrics,
+                device=device,
+                src=0,
+            )
 
         if _is_primary_process(cfg):
             print(f"Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} | Train Acc: {train_metrics['train_acc']:.2f}% | Val Acc: {val_metrics['val_acc']:.2f}%")
             print(f"Train P/R/F1: {train_metrics['train_precision']:.3f}/{train_metrics['train_recall']:.3f}/{train_metrics['train_f1']:.3f} | Val P/R/F1: {val_metrics['val_precision']:.3f}/{val_metrics['val_recall']:.3f}/{val_metrics['val_f1']:.3f}")
             print(f"Train AUC: {train_metrics['train_auc']:.3f} | Val AUC: {val_metrics['val_auc']:.3f}")
-            if scheduler is not None and hasattr(scheduler, "get_last_lr"):
-                print(f"Current LR: {scheduler.get_last_lr()[0]:.2e}")
-            else:
-                print(f"Current LR: {optimizer.param_groups[0]['lr']:.2e}")
+            print(f"Current LR(s): {_format_lr_groups(optimizer)}")
             print(f"Val Best TSS: {val_metrics['val_best_tss']:.4f} @ threshold={val_metrics['val_best_threshold']:.3f}")
             epoch_record = {
                 "epoch": epoch + 1,
@@ -1089,10 +1293,7 @@ def main(cfg=None):
         print(f"Best TSS: {results['Best_TSS']:.4f} @ threshold={results['Best_threshold']:.3f}")
         print("="*80 + "\n")
     else:
-        results = None
-
-    if ddp_enabled:
-        results = _broadcast_object(results, src=0)
+        results = {}
 
     if _is_primary_process(cfg):
         try:

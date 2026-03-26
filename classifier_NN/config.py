@@ -196,9 +196,15 @@ CFG = {
     "backbone": "simple3dcnn",  # default to 3D CNN for sequence experiments
     "pretrained": True,
     "freeze_backbone": False,   # allow full fine-tuning of convnext_base
+    "pretrained_mvit": True,
+    "mvit_model_id": "mvit_v2_s",
     "lr": 1e-4,
+    "backbone_lr": None,
+    "head_lr": None,
     "epochs": 5,
     "seed": 42,
+    "warmup_epochs": 0,
+    "grad_clip_norm": None,
 
     # Optional override for quick sanity runs.
     # If set, training loop will run only this many steps per epoch.

@@ -45,6 +45,21 @@ def _enable_head_grads(model: nn.Module):
                 p.requires_grad = True
 
 
+def _replace_classifier_module(model: nn.Module, num_classes: int) -> None:
+    """Replace the last classifier Linear layer for common model families."""
+    for attr in ["head", "fc", "classifier"]:
+        module = getattr(model, attr, None)
+        if isinstance(module, nn.Linear):
+            setattr(model, attr, nn.Linear(module.in_features, num_classes))
+            return
+        if isinstance(module, nn.Sequential):
+            for idx in range(len(module) - 1, -1, -1):
+                if isinstance(module[idx], nn.Linear):
+                    module[idx] = nn.Linear(module[idx].in_features, num_classes)
+                    return
+    raise RuntimeError(f"Unable to replace classifier head for model type {type(model).__name__}")
+
+
 # ===================== LORA INTEGRATION =====================
 class PeftTimmWrapper(nn.Module):
     """Wrapper to make timm models compatible with PEFT/LoRA"""
@@ -420,6 +435,78 @@ class VideoSwin3DTinyWrapper(nn.Module):
             raise ValueError(f"VideoSwin3DTinyWrapper currently assumes 1-channel input, got C={C}")
 
         # (B,T,1,H,W) -> (B,1,T,H,W) -> (B,3,T,H,W)
+        x = x.permute(0, 2, 1, 3, 4).contiguous()
+        x = self.input_proj(x)
+        return self.backbone(x)
+
+
+class MViTWrapper(nn.Module):
+    """Wrapper around torchvision MViT video backbones for sequence magnetograms."""
+
+    _CANDIDATES = (
+        ("mvit_v2_s", "MViT_V2_S_Weights"),
+        ("mvit_v1_b", "MViT_V1_B_Weights"),
+    )
+
+    def __init__(
+        self,
+        *,
+        variant: str = "mvit_v2_s",
+        num_frames: int = 16,
+        num_classes: int = 2,
+        pretrained: bool = True,
+    ) -> None:
+        super().__init__()
+        self.variant = str(variant)
+        self.num_frames = int(num_frames)
+        self.input_proj = nn.Conv3d(1, 3, kernel_size=1)
+
+        requested = self.variant.lower().strip()
+        ordered = []
+        for fn_name, weight_name in self._CANDIDATES:
+            if fn_name == requested:
+                ordered.append((fn_name, weight_name))
+        for candidate in self._CANDIDATES:
+            if candidate not in ordered:
+                ordered.append(candidate)
+
+        errors: list[str] = []
+        backbone = None
+        for fn_name, weight_name in ordered:
+            try:
+                from torchvision.models import video as tv_video
+
+                builder = getattr(tv_video, fn_name)
+                if pretrained:
+                    weights_enum = getattr(tv_video, weight_name, None)
+                    if weights_enum is not None:
+                        backbone = builder(weights=weights_enum.DEFAULT)
+                    else:
+                        backbone = builder(pretrained=True)
+                else:
+                    try:
+                        backbone = builder(weights=None)
+                    except TypeError:
+                        backbone = builder(pretrained=False)
+                self.variant = fn_name
+                break
+            except Exception as e:
+                errors.append(f"{fn_name}: {e}")
+
+        if backbone is None:
+            joined = "; ".join(errors) if errors else "no candidate constructors were attempted"
+            raise RuntimeError(f"Failed to build an MViT backbone. Tried: {joined}")
+
+        _replace_classifier_module(backbone, num_classes)
+        self.backbone = backbone
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dim() != 5:
+            raise ValueError(f"MViTWrapper expects (B,T,1,H,W), got {x.shape}")
+        _, _, c, _, _ = x.shape
+        if c != 1:
+            raise ValueError(f"MViTWrapper currently assumes 1-channel input, got C={c}")
+
         x = x.permute(0, 2, 1, 3, 4).contiguous()
         x = self.input_proj(x)
         return self.backbone(x)
@@ -999,6 +1086,11 @@ def build_model(cfg=None, num_classes=2):
         "video_swin",
         "video_swin_t",
         "swin3d_t",
+        "mvit",
+        "mvit_v2_s",
+        "mvitv2_s",
+        "mvit_v1_b",
+        "mvitv1_b",
     ]:
         if backbone.lower() in ["simple3dcnn", "3d_cnn"]:
             model = Simple3DCNN(
@@ -1025,6 +1117,26 @@ def build_model(cfg=None, num_classes=2):
                 )
                 n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
                 print(f"Built VideoSwin3DTinyWrapper (swin3d_t) with T={cfg.get('seq_T', 16)} | trainable={n_train:,}")
+                return model
+            if backbone.lower() in ["mvit", "mvit_v2_s", "mvitv2_s", "mvit_v1_b", "mvitv1_b"]:
+                img_size = int(cfg.get("image_size", IMG_SIZE) or IMG_SIZE)
+                if img_size != 224:
+                    raise ValueError(
+                        "MViTWrapper currently requires image_size=224; "
+                        f"got image_size={img_size}."
+                    )
+                variant = str(cfg.get("mvit_model_id", backbone)).lower()
+                model = MViTWrapper(
+                    variant=variant,
+                    num_frames=cfg.get("seq_T", 16),
+                    num_classes=num_classes,
+                    pretrained=cfg.get("pretrained_mvit", cfg.get("pretrained_3d", True)),
+                )
+                n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+                print(
+                    f"Built MViTWrapper ({model.variant}) with T={cfg.get('seq_T', 16)} "
+                    f"| trainable={n_train:,}"
+                )
                 return model
             if backbone.lower() in ["r2plus1d_18", "r2plus1d18"]:
                 model = R2Plus1D18Simple(

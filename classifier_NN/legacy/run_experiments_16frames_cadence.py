@@ -8,6 +8,7 @@ This script tests video models with 16 frames at different temporal sampling rat
 Models to test:
 - r2plus1d_18 (R(2+1)D from torchvision)
 - VideoMAE (when available, needs to be implemented)
+- MViT (torchvision, when available)
 """
 
 from __future__ import annotations
@@ -67,8 +68,14 @@ COMMON_CONFIG = {
     "optimizer": "adamw",
     "weight_decay": 0.01,
     "lr": 1e-4,
+    "backbone_lr": None,
+    "head_lr": None,
     "epochs": 50,
     "scheduler": "cosine",
+    "warmup_epochs": 0,
+    "grad_clip_norm": None,
+    "pretrained_mvit": True,
+    "mvit_model_id": "mvit_v2_s",
 
     # Imbalance handling
     "balance_classes": False,
@@ -98,6 +105,7 @@ COMMON_CONFIG = {
     "save_last_checkpoint": True,
     "save_last_full_checkpoint": True,
     "save_best_f1": False,
+    "run_tag": None,
 }
 
 
@@ -134,6 +142,7 @@ def run_experiment(
     use_aug = bool(cfg.get("use_aug", False))
     aug_tag = "aug" if use_aug else "noaug"
     image_size = int(cfg.get("image_size", 112))
+    run_tag = str(cfg.get("run_tag") or "").strip()
     target_neg_none = cfg.get("target_neg_none")
     target_neg_total = cfg.get("target_neg_total")
     if isinstance(target_neg_none, int):
@@ -148,6 +157,8 @@ def run_experiment(
         f"A3-16-cadence-{interval_min}min_{backbone}_seed{seed}_"
         f"{min_class_tag}_{aug_tag}_{data_tag}_{image_size}"
     )
+    if run_tag:
+        exp_name = f"{exp_name}_{run_tag}"
     
     # Set experiment-specific parameters
     cfg.update({
@@ -316,12 +327,19 @@ def main() -> None:
     ap.add_argument("--batch-size", type=int, default=None)
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--lr", type=float, default=None)
+    ap.add_argument("--backbone-lr", type=float, default=None, help="Backbone LR for differential fine-tuning")
+    ap.add_argument("--head-lr", type=float, default=None, help="Head LR for differential fine-tuning")
+    ap.add_argument("--warmup-epochs", type=int, default=None, help="Number of head-only warmup epochs")
+    ap.add_argument("--grad-clip-norm", type=float, default=None, help="Gradient clipping norm")
     ap.add_argument("--early-stopping-min-epoch", type=int, default=None, help="Minimum 1-based epoch before best_tss checkpointing / early stopping")
     ap.add_argument("--image-size", type=int, default=None, help="Input image size (e.g., 112 or 224)")
     ap.add_argument("--steps-per-epoch", type=int, default=None, help="Limit steps per epoch for quick testing")
     ap.add_argument("--val-max-batches", type=int, default=None, help="Limit validation batches")
     ap.add_argument("--num-workers", type=int, default=None, help="Override dataloader worker count")
     ap.add_argument("--pretrained-3d", action="store_true", default=False, help="Use pretrained 3D weights")
+    ap.add_argument("--pretrained-mvit", action="store_true", default=None, help="Use pretrained MViT weights")
+    ap.add_argument("--no-pretrained-mvit", dest="pretrained_mvit", action="store_false", default=None, help="Disable pretrained MViT weights")
+    ap.add_argument("--mvit-model-id", type=str, default=None, help="Torchvision MViT variant (e.g. mvit_v2_s)")
     ap.add_argument("--use-multi-gpu", action="store_true", default=None, help="Enable DataParallel when multiple GPUs are visible")
     ap.add_argument("--use-ddp", action="store_true", default=None, help="Enable DistributedDataParallel when launched under torchrun")
     ap.add_argument("--ddp-backend", type=str, default=None, help="Distributed backend for DDP (default: nccl)")
@@ -404,6 +422,7 @@ def main() -> None:
     # Augmentation
     ap.add_argument("--use-aug", action="store_true", default=None, help="Enable augmentation (±30° rotation, flips)")
     ap.add_argument("--no-aug", dest="use_aug", action="store_false", default=None, help="Disable augmentation (default)")
+    ap.add_argument("--run-tag", type=str, default=None, help="Optional suffix appended to the run_id")
     
     args = ap.parse_args()
     
@@ -428,6 +447,14 @@ def main() -> None:
         overrides["epochs"] = args.epochs
     if args.lr is not None:
         overrides["lr"] = args.lr
+    if args.backbone_lr is not None:
+        overrides["backbone_lr"] = float(args.backbone_lr)
+    if args.head_lr is not None:
+        overrides["head_lr"] = float(args.head_lr)
+    if args.warmup_epochs is not None:
+        overrides["warmup_epochs"] = int(args.warmup_epochs)
+    if args.grad_clip_norm is not None:
+        overrides["grad_clip_norm"] = float(args.grad_clip_norm)
     if args.early_stopping_min_epoch is not None:
         overrides["early_stopping_min_epoch"] = int(args.early_stopping_min_epoch)
     if args.image_size is not None:
@@ -442,6 +469,10 @@ def main() -> None:
         overrides["num_workers"] = int(args.num_workers)
     if args.pretrained_3d:
         overrides["pretrained_3d"] = True
+    if args.pretrained_mvit is not None:
+        overrides["pretrained_mvit"] = bool(args.pretrained_mvit)
+    if args.mvit_model_id is not None:
+        overrides["mvit_model_id"] = str(args.mvit_model_id)
     if args.use_multi_gpu is not None:
         overrides["use_multi_gpu"] = args.use_multi_gpu
     if args.use_ddp is not None:
@@ -494,6 +525,8 @@ def main() -> None:
         overrides["target_neg_none"] = int(args.target_neg_none)
     if args.target_neg_c is not None:
         overrides["target_neg_c"] = int(args.target_neg_c)
+    if args.run_tag is not None:
+        overrides["run_tag"] = str(args.run_tag)
 
     if getattr(args, "focal_alpha", None) is not None:
         overrides["focal_alpha"] = float(args.focal_alpha)
