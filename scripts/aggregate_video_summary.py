@@ -89,6 +89,22 @@ def _is_video_run(cfg: dict[str, Any], metrics: dict[str, Any]) -> bool:
     return False
 
 
+def _is_reportable_run(cfg: dict[str, Any], metrics: dict[str, Any]) -> bool:
+    run_id = str(cfg.get("run_id") or "")
+    model_name = str(cfg.get("model_name") or "")
+    notes = str(cfg.get("notes") or "")
+    haystack = " ".join([run_id, model_name, notes]).lower()
+
+    if any(tok in haystack for tok in ("smoke", "benchmark", "debug", "sanity")):
+        return False
+
+    epochs = cfg.get("epochs")
+    if isinstance(epochs, int) and epochs <= 2:
+        return False
+
+    return True
+
+
 def _interval_min(cfg: dict[str, Any]) -> int | None:
     stride = cfg.get("seq_stride")
     if isinstance(stride, int) and stride > 0:
@@ -174,6 +190,8 @@ def _iter_run_records(results_dir: Path, run_to_slurm: dict[str, tuple[int | Non
             continue
 
         if not _is_video_run(cfg, metrics):
+            continue
+        if not _is_reportable_run(cfg, metrics):
             continue
 
         interval = _interval_min(cfg)
