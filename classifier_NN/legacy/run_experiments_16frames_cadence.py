@@ -327,6 +327,7 @@ def main() -> None:
     ap.add_argument("--batch-size", type=int, default=None)
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--lr", type=float, default=None)
+    ap.add_argument("--scheduler", type=str, default=None, help="LR scheduler name (e.g. cosine)")
     ap.add_argument("--backbone-lr", type=float, default=None, help="Backbone LR for differential fine-tuning")
     ap.add_argument("--head-lr", type=float, default=None, help="Head LR for differential fine-tuning")
     ap.add_argument("--warmup-epochs", type=int, default=None, help="Number of head-only warmup epochs")
@@ -447,6 +448,8 @@ def main() -> None:
         overrides["epochs"] = args.epochs
     if args.lr is not None:
         overrides["lr"] = args.lr
+    if args.scheduler is not None:
+        overrides["scheduler"] = str(args.scheduler)
     if args.backbone_lr is not None:
         overrides["backbone_lr"] = float(args.backbone_lr)
     if args.head_lr is not None:
