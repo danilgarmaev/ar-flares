@@ -5,22 +5,25 @@ cd "$(dirname "$0")/.."
 
 CADENCE="${CADENCE:-120}"
 SEED="${SEED:-0}"
-LABEL_CLASS="${LABEL_CLASS:-C}"
 MVIT_MODEL_ID="${MVIT_MODEL_ID:-mvit_v1_b}"
-LABEL_TAG="$(printf '%s' "${LABEL_CLASS}" | tr '[:upper:]' '[:lower:]')"
+LABEL_CLASSES="${LABEL_CLASSES:-C M}"
 
 echo "=========================================="
-echo "MViT Full-Data Ablation"
+echo "MViT Augmentation Probes"
 echo "=========================================="
-echo "Run:"
-echo "  label: ${LABEL_CLASS}+"
-echo "  cadence: ${CADENCE}"
-echo "  seed: ${SEED}"
+echo "Runs:"
+for label_class in ${LABEL_CLASSES}; do
+  echo "  ${label_class}+ cadence ${CADENCE} seed ${SEED}"
+done
 echo ""
 
-JOB_ID=$(
+submit_probe() {
+  local label_class="$1"
+  local label_tag
+  label_tag="$(printf '%s' "${label_class}" | tr '[:upper:]' '[:lower:]')"
+
   sbatch \
-    --job-name=arfl-mvit-full \
+    --job-name=arfl-mvit-aug \
     --gres=gpu:a100:2 \
     --cpus-per-task=12 \
     --mem=64G \
@@ -55,7 +58,7 @@ python -m classifier_NN.legacy.run_experiments_16frames_cadence \
   --head-lr 1e-4 \
   --warmup-epochs 3 \
   --grad-clip-norm 1.0 \
-  --min-flare-class ${LABEL_CLASS} \
+  --min-flare-class ${label_class} \
   --loss-type weighted_bce \
   --scheduler cosine \
   --early-stopping-min-epoch 3 \
@@ -67,11 +70,20 @@ python -m classifier_NN.legacy.run_experiments_16frames_cadence \
   --pretrained-3d \
   --pretrained-mvit \
   --mvit-model-id ${MVIT_MODEL_ID} \
-  --no-balance-classes \
+  --balance-classes \
+  --auto-set-neg-keep-probs \
+  --target-neg-none 100000 \
+  --neg-keep-prob-c 1.0 \
   --no-balanced-batch-sampling \
-  --no-aug \
-  --run-tag full_cad${CADENCE}_${LABEL_TAG}" | awk '{print $4}'
-)
+  --use-aug \
+  --run-tag diag_mvit_${label_tag}${CADENCE}_augprobe" | awk '{print $4}'
+}
 
-echo "Submitted MViT full-data ablation: $JOB_ID"
-echo "Monitor with: squeue -j $JOB_ID"
+job_ids=()
+for label_class in ${LABEL_CLASSES}; do
+  job_id="$(submit_probe "${label_class}")"
+  job_ids+=("${job_id}")
+  echo "Submitted MViT augmentation probe ${label_class}+: ${job_id}"
+done
+
+echo "Monitor with: squeue -j $(IFS=,; echo "${job_ids[*]}")"
