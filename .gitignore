@@ -118,3 +118,8 @@ mlruns/
 # Compute Canada / SLURM smoke test artifacts
 arfl-smoke-*.out
 arfl-smoke-*.err
+
+# Files .tex/docx/
+*.tex
+*.docx
+*.codex
