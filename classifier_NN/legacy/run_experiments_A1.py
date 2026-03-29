@@ -19,7 +19,7 @@ from ..config import get_default_cfg
 from ..train import main
 
 
-RESOLUTIONS = [224, 128, 56, 28]
+RESOLUTIONS = [224, 128, 112, 56, 28]
 BACKBONES = [
     "resnet50",
     "efficientnet_b0",
@@ -222,7 +222,7 @@ if __name__ == "__main__":
         action="append",
         type=int,
         default=None,
-        help="Resolution(s) to run (224, 128, 56, 28). Repeat for multiple.",
+        help="Resolution(s) to run (224, 128, 112, 56, 28). Repeat for multiple.",
     )
     ap.add_argument(
         "--runs",
@@ -239,6 +239,7 @@ if __name__ == "__main__":
     )
     ap.add_argument("--epochs", type=int, default=None, help="Override epochs for all runs")
     ap.add_argument("--lr", type=float, default=None, help="Override learning rate for all runs")
+    ap.add_argument("--batch-size", type=int, default=None, help="Override batch size for all runs")
     ap.add_argument(
         "--optimizer",
         type=str,
@@ -256,6 +257,36 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help="LR scheduler ('onecycle', 'cosine', 'none')",
+    )
+    ap.add_argument(
+        "--loss-type",
+        type=str,
+        default=None,
+        help="Loss function name (e.g. 'weighted_bce', 'ce_weighted')",
+    )
+    ap.add_argument(
+        "--backbone-lr",
+        type=float,
+        default=None,
+        help="Optional lower learning rate for backbone parameters",
+    )
+    ap.add_argument(
+        "--head-lr",
+        type=float,
+        default=None,
+        help="Optional higher learning rate for classification head parameters",
+    )
+    ap.add_argument(
+        "--warmup-epochs",
+        type=int,
+        default=None,
+        help="Number of initial head-only warmup epochs before full fine-tuning",
+    )
+    ap.add_argument(
+        "--grad-clip-norm",
+        type=float,
+        default=None,
+        help="Gradient clipping max norm",
     )
     ap.add_argument(
         "--use-aug",
@@ -423,6 +454,8 @@ if __name__ == "__main__":
 
     if args.lr is not None:
         common_overrides["lr"] = float(args.lr)
+    if args.batch_size is not None:
+        common_overrides["batch_size"] = int(args.batch_size)
 
     if args.optimizer is not None:
         common_overrides["optimizer"] = str(args.optimizer)
@@ -432,6 +465,21 @@ if __name__ == "__main__":
 
     if args.scheduler is not None:
         common_overrides["scheduler"] = str(args.scheduler)
+
+    if args.loss_type is not None:
+        common_overrides["loss_type"] = str(args.loss_type)
+
+    if args.backbone_lr is not None:
+        common_overrides["backbone_lr"] = float(args.backbone_lr)
+
+    if args.head_lr is not None:
+        common_overrides["head_lr"] = float(args.head_lr)
+
+    if args.warmup_epochs is not None:
+        common_overrides["warmup_epochs"] = int(args.warmup_epochs)
+
+    if args.grad_clip_norm is not None:
+        common_overrides["grad_clip_norm"] = float(args.grad_clip_norm)
 
     if args.use_aug is not None:
         common_overrides["use_aug"] = bool(args.use_aug)

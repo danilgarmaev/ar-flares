@@ -43,7 +43,13 @@ try:
     from .losses import get_loss_function
     from .metrics import evaluate_model
     from .models import build_model
-    from .train import get_class_counts, train_epoch, validate_epoch
+    from .train import (
+        _load_state_dict_flexible,
+        _model_state_dict,
+        get_class_counts,
+        train_epoch,
+        validate_epoch,
+    )
 except ImportError:  # pragma: no cover
     # Allows running as a script: `python classifier_NN/resume_experiment.py`
     from classifier_NN.config import CFG, SPLIT_DIRS
@@ -51,7 +57,13 @@ except ImportError:  # pragma: no cover
     from classifier_NN.losses import get_loss_function
     from classifier_NN.metrics import evaluate_model
     from classifier_NN.models import build_model
-    from classifier_NN.train import get_class_counts, train_epoch, validate_epoch
+    from classifier_NN.train import (
+        _load_state_dict_flexible,
+        _model_state_dict,
+        get_class_counts,
+        train_epoch,
+        validate_epoch,
+    )
 
 
 def _append_jsonl_safely(path: str, record: dict, *, fallback_dir: str | None = None) -> str:
@@ -247,7 +259,17 @@ def resume_experiment(
     dls = create_dataloaders()
 
     print("Building model...")
-    model = build_model(cfg=cfg, num_classes=2).to(device)
+    model = build_model(cfg=cfg, num_classes=2)
+    if device.type == "cuda" and bool(cfg.get("use_multi_gpu", False)):
+        n_visible = int(torch.cuda.device_count())
+        max_devices = cfg.get("multi_gpu_max_devices", None)
+        n_use = n_visible if max_devices is None else min(n_visible, max(1, int(max_devices)))
+        if n_use > 1:
+            model = torch.nn.DataParallel(model, device_ids=list(range(n_use)))
+            print(f"Using DataParallel on {n_use} GPUs for resume")
+        else:
+            print("use_multi_gpu=True but only one visible GPU; resuming on single GPU")
+    model = model.to(device)
 
     warm_opt_sd = None
     warm_sched_sd = None
@@ -258,7 +280,7 @@ def resume_experiment(
         full = torch.load(full_ckpt_path, map_location=device)
         if not isinstance(full, dict) or "model_state_dict" not in full:
             raise ValueError(f"Full checkpoint {full_ckpt_path} is not in expected format")
-        model.load_state_dict(full["model_state_dict"])
+        _load_state_dict_flexible(model, full["model_state_dict"])
         warm_opt_sd = full.get("optimizer_state_dict")
         warm_sched_sd = full.get("scheduler_state_dict")
         warm_scaler_sd = full.get("scaler_state_dict")
@@ -266,7 +288,7 @@ def resume_experiment(
         print(f"Resuming from full checkpoint: {full_ckpt_path} (epoch={warm_epoch})")
     else:
         warm_model_sd, warm_opt_sd, warm_epoch = _load_checkpoint(warm_path, device)
-        model.load_state_dict(warm_model_sd)
+        _load_state_dict_flexible(model, warm_model_sd)
         print(f"Warm-starting from weights: {warm_path}")
 
     # Loss function setup (matches train.py)
@@ -377,8 +399,15 @@ def resume_experiment(
 
     # Baseline best-TSS: evaluate baseline checkpoint on Validation to seed comparison.
     print("Computing baseline Val TSS from existing best_tss...")
-    baseline_model = build_model(cfg=cfg, num_classes=2).to(device)
-    baseline_model.load_state_dict(torch.load(baseline_path, map_location=device))
+    baseline_model = build_model(cfg=cfg, num_classes=2)
+    if device.type == "cuda" and bool(cfg.get("use_multi_gpu", False)):
+        n_visible = int(torch.cuda.device_count())
+        max_devices = cfg.get("multi_gpu_max_devices", None)
+        n_use = n_visible if max_devices is None else min(n_visible, max(1, int(max_devices)))
+        if n_use > 1:
+            baseline_model = torch.nn.DataParallel(baseline_model, device_ids=list(range(n_use)))
+    baseline_model = baseline_model.to(device)
+    _load_state_dict_flexible(baseline_model, torch.load(baseline_path, map_location=device))
     _, baseline_val_metrics = validate_epoch(
         baseline_model,
         dls["Validation"],
@@ -387,7 +416,11 @@ def resume_experiment(
         max_batches=cfg.get("val_max_batches", None),
     )
     best_val_tss = float(baseline_val_metrics["val_best_tss"])
-    print(f"Baseline Val best-TSS: {best_val_tss:.4f} (from {baseline_best_tss_ckpt})")
+    best_val_threshold = float(baseline_val_metrics["val_best_threshold"])
+    print(
+        f"Baseline Val best-TSS: {best_val_tss:.4f} @ threshold={best_val_threshold:.3f} "
+        f"(from {baseline_best_tss_ckpt})"
+    )
 
     print("\n" + "=" * 80)
     print(f"Warm-start from {warm_start_ckpt} and continue to max_epochs={target_epochs} (start_epoch={start_epoch})")
@@ -453,10 +486,12 @@ def resume_experiment(
 
             if float(val_metrics["val_best_tss"]) > best_val_tss:
                 best_val_tss = float(val_metrics["val_best_tss"])
-                torch.save(model.state_dict(), out_ckpt_path)
-                torch.save(model.state_dict(), out_best_val_tss_path)
+                best_val_threshold = float(val_metrics["val_best_threshold"])
+                torch.save(_model_state_dict(model), out_ckpt_path)
+                torch.save(_model_state_dict(model), out_best_val_tss_path)
                 print(
-                    f"🌟 New Best Val TSS across resumed run: {best_val_tss:.4f} -> "
+                    f"🌟 New Best Val TSS across resumed run: {best_val_tss:.4f} "
+                    f"@ threshold={best_val_threshold:.3f} -> "
                     f"Saved to {out_best_val_tss_path} and {out_ckpt_path}"
                 )
 
@@ -464,7 +499,7 @@ def resume_experiment(
     print(f"Evaluating on test set using {out_ckpt_path}")
     print("=" * 80 + "\n")
 
-    model.load_state_dict(torch.load(out_ckpt_path, map_location=device))
+    _load_state_dict_flexible(model, torch.load(out_ckpt_path, map_location=device))
     results = evaluate_model(
         model,
         dls["Test"],
@@ -472,13 +507,19 @@ def resume_experiment(
         out_plots_dir,
         cfg.get("backbone", "model"),
         save_pr_curve=bool(cfg.get("save_pr_curve", True)),
+        fixed_threshold=best_val_threshold,
     )
+
+    if "fixed_TSS" in results:
+        results["test_tss_at_val_threshold"] = float(results["fixed_TSS"])
+        results["val_threshold_for_test"] = float(results.get("fixed_threshold", best_val_threshold))
 
     results.update(
         {
             "resume": True,
             "warm_start": warm_start_ckpt,
             "baseline_best_tss": baseline_best_tss_ckpt,
+            "baseline_val_threshold": float(best_val_threshold),
             "max_epochs": int(target_epochs),
             "start_epoch": int(start_epoch),
             "extra_epochs": int(extra_epochs),
