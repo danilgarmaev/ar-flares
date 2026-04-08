@@ -499,6 +499,37 @@ class MViTWrapper(nn.Module):
 
         _replace_classifier_module(backbone, num_classes)
         self.backbone = backbone
+        self._adapt_temporal_positional_encoding()
+
+    def _adapt_temporal_positional_encoding(self) -> None:
+        pos_encoding = getattr(self.backbone, "pos_encoding", None)
+        conv_proj = getattr(self.backbone, "conv_proj", None)
+        if pos_encoding is None or conv_proj is None:
+            return
+
+        temporal_pos = getattr(pos_encoding, "temporal_pos", None)
+        if not isinstance(temporal_pos, torch.nn.Parameter):
+            return
+
+        stride_t = int(getattr(conv_proj, "stride", (1, 1, 1))[0])
+        kernel_t = int(getattr(conv_proj, "kernel_size", (1, 1, 1))[0])
+        pad_t = int(getattr(conv_proj, "padding", (0, 0, 0))[0])
+        target_tokens = ((self.num_frames + 2 * pad_t - kernel_t) // stride_t) + 1
+        target_tokens = max(1, int(target_tokens))
+
+        current_tokens = int(temporal_pos.shape[0])
+        if current_tokens == target_tokens:
+            pos_encoding.temporal_size = target_tokens
+            return
+
+        interp = F.interpolate(
+            temporal_pos.detach().T.unsqueeze(0),
+            size=target_tokens,
+            mode="linear",
+            align_corners=False,
+        ).squeeze(0).T.contiguous()
+        pos_encoding.temporal_pos = nn.Parameter(interp)
+        pos_encoding.temporal_size = target_tokens
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.dim() != 5:
