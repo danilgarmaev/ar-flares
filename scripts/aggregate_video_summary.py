@@ -106,6 +106,21 @@ def _is_reportable_run(cfg: dict[str, Any], metrics: dict[str, Any]) -> bool:
 
 
 def _interval_min(cfg: dict[str, Any]) -> int | None:
+    seq_interval = cfg.get("seq_interval_min")
+    if isinstance(seq_interval, int) and seq_interval > 0:
+        return int(seq_interval)
+
+    offsets = cfg.get("seq_offsets")
+    if isinstance(offsets, list) and len(offsets) > 1:
+        try:
+            vals = [int(v) for v in offsets]
+        except (TypeError, ValueError):
+            vals = []
+        if len(vals) > 1:
+            diffs = [b - a for a, b in zip(vals, vals[1:])]
+            if diffs and len(set(diffs)) == 1 and diffs[0] > 0:
+                return int(diffs[0] * 12)
+
     stride = cfg.get("seq_stride")
     if isinstance(stride, int) and stride > 0:
         return int(stride * 12)
@@ -118,6 +133,23 @@ def _interval_min(cfg: dict[str, Any]) -> int | None:
 
 
 def _temporal_context_hours(cfg: dict[str, Any]) -> float | None:
+    offsets = cfg.get("seq_offsets")
+    if isinstance(offsets, list) and offsets:
+        try:
+            vals = [int(v) for v in offsets]
+        except (TypeError, ValueError):
+            vals = []
+        if vals:
+            return (max(vals) - min(vals)) * 12.0 / 60.0
+
+    window_hours = cfg.get("seq_window_hours")
+    if isinstance(window_hours, (int, float)):
+        return float(window_hours)
+
+    window_min = cfg.get("seq_window_min")
+    if isinstance(window_min, int):
+        return float(window_min) / 60.0
+
     t = cfg.get("seq_T")
     interval = _interval_min(cfg)
     if isinstance(t, int) and t > 1 and isinstance(interval, int):
@@ -343,6 +375,9 @@ def main() -> None:
         "seq_stride",
         "interval_min",
         "temporal_context_hours",
+        "seq_interval_min",
+        "seq_target_window_hours",
+        "seq_actual_window_hours",
         "seq_offsets",
         "use_aug",
         "AUC",
