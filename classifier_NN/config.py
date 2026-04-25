@@ -198,6 +198,7 @@ CFG = {
     "freeze_backbone": False,   # allow full fine-tuning of convnext_base
     "pretrained_mvit": True,
     "mvit_model_id": "mvit_v2_s",
+    "mvit_remove_temporal_conv": False,
     "lr": 1e-4,
     "backbone_lr": None,
     "head_lr": None,

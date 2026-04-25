@@ -362,6 +362,26 @@ if __name__ == "__main__":
             "'M' remaps labels from the intensity label file (M+/X+ positives)."
         ),
     )
+    ap.add_argument(
+        "--mvit-model-id",
+        type=str,
+        default=None,
+        help="Torchvision MViT variant for MViT backbones (e.g. mvit_v1_b, mvit_v2_s)",
+    )
+    ap.add_argument(
+        "--mvit-remove-temporal-conv",
+        dest="mvit_remove_temporal_conv",
+        action="store_true",
+        default=None,
+        help="Replace the MViT temporal patch embedding with a spatial-only patch embedding",
+    )
+    ap.add_argument(
+        "--no-mvit-remove-temporal-conv",
+        dest="mvit_remove_temporal_conv",
+        action="store_false",
+        default=None,
+        help="Keep the original MViT temporal patch embedding",
+    )
 
     # Shard-based negative downsampling controls (no external JSON required)
     ap.add_argument(
@@ -492,6 +512,12 @@ if __name__ == "__main__":
 
     if args.min_flare_class is not None:
         common_overrides["min_flare_class"] = str(args.min_flare_class).upper()
+
+    if args.mvit_model_id is not None:
+        common_overrides["mvit_model_id"] = str(args.mvit_model_id)
+
+    if args.mvit_remove_temporal_conv is not None:
+        common_overrides["mvit_remove_temporal_conv"] = bool(args.mvit_remove_temporal_conv)
 
     if args.balance_classes is not None:
         common_overrides["balance_classes"] = bool(args.balance_classes)

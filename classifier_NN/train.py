@@ -351,6 +351,7 @@ def _trim_cfg_for_logging(cfg: dict) -> dict:
         "pretrained_3d",
         "pretrained_mvit",
         "mvit_model_id",
+        "mvit_remove_temporal_conv",
         "freeze_backbone",
         # optimization / runtime
         "batch_size",

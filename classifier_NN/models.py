@@ -60,6 +60,22 @@ def _replace_classifier_module(model: nn.Module, num_classes: int) -> None:
     raise RuntimeError(f"Unable to replace classifier head for model type {type(model).__name__}")
 
 
+def _normalize_mvit_variant_name(name: str | None) -> str:
+    value = str(name or "mvit_v2_s").strip().lower()
+    aliases = {
+        "mvit": "mvit_v2_s",
+        "mvit_v2_s": "mvit_v2_s",
+        "mvitv2_s": "mvit_v2_s",
+        "mvit_v2_small": "mvit_v2_s",
+        "mvitv2_small": "mvit_v2_s",
+        "mvit_v1_b": "mvit_v1_b",
+        "mvitv1_b": "mvit_v1_b",
+        "mvit_v1_base": "mvit_v1_b",
+        "mvitv1_base": "mvit_v1_b",
+    }
+    return aliases.get(value, value)
+
+
 # ===================== LORA INTEGRATION =====================
 class PeftTimmWrapper(nn.Module):
     """Wrapper to make timm models compatible with PEFT/LoRA"""
@@ -455,13 +471,15 @@ class MViTWrapper(nn.Module):
         num_frames: int = 16,
         num_classes: int = 2,
         pretrained: bool = True,
+        remove_temporal_conv: bool = False,
     ) -> None:
         super().__init__()
-        self.variant = str(variant)
+        self.variant = _normalize_mvit_variant_name(variant)
         self.num_frames = int(num_frames)
+        self.remove_temporal_conv = bool(remove_temporal_conv)
         self.input_proj = nn.Conv3d(1, 3, kernel_size=1)
 
-        requested = self.variant.lower().strip()
+        requested = self.variant
         ordered = []
         for fn_name, weight_name in self._CANDIDATES:
             if fn_name == requested:
@@ -499,7 +517,34 @@ class MViTWrapper(nn.Module):
 
         _replace_classifier_module(backbone, num_classes)
         self.backbone = backbone
+        if self.remove_temporal_conv:
+            self._remove_temporal_patch_embed()
         self._adapt_temporal_positional_encoding()
+
+    def _remove_temporal_patch_embed(self) -> None:
+        conv_proj = getattr(self.backbone, "conv_proj", None)
+        if not isinstance(conv_proj, nn.Conv3d):
+            return
+
+        kt, kh, kw = conv_proj.kernel_size
+        st, sh, sw = conv_proj.stride
+        pt, ph, pw = conv_proj.padding
+        if kt == 1 and st == 1 and pt == 0:
+            return
+
+        new_conv = nn.Conv3d(
+            in_channels=conv_proj.in_channels,
+            out_channels=conv_proj.out_channels,
+            kernel_size=(1, kh, kw),
+            stride=(1, sh, sw),
+            padding=(0, ph, pw),
+            bias=conv_proj.bias is not None,
+        )
+        with torch.no_grad():
+            new_conv.weight.copy_(conv_proj.weight.mean(dim=2, keepdim=True))
+            if conv_proj.bias is not None and new_conv.bias is not None:
+                new_conv.bias.copy_(conv_proj.bias)
+        self.backbone.conv_proj = new_conv
 
     def _adapt_temporal_positional_encoding(self) -> None:
         pos_encoding = getattr(self.backbone, "pos_encoding", None)
@@ -532,11 +577,15 @@ class MViTWrapper(nn.Module):
         pos_encoding.temporal_size = target_tokens
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dim() == 4:
+            x = x.unsqueeze(1)
         if x.dim() != 5:
-            raise ValueError(f"MViTWrapper expects (B,T,1,H,W), got {x.shape}")
+            raise ValueError(f"MViTWrapper expects (B,T,1,H,W) or (B,C,H,W), got {x.shape}")
         _, _, c, _, _ = x.shape
-        if c != 1:
-            raise ValueError(f"MViTWrapper currently assumes 1-channel input, got C={c}")
+        if c not in (1, 3):
+            raise ValueError(f"MViTWrapper currently assumes 1 or 3 channels, got C={c}")
+        if c == 3:
+            x = x.mean(dim=2, keepdim=True)
 
         x = x.permute(0, 2, 1, 3, 4).contiguous()
         x = self.input_proj(x)
@@ -1120,8 +1169,12 @@ def build_model(cfg=None, num_classes=2):
         "mvit",
         "mvit_v2_s",
         "mvitv2_s",
+        "mvit_v2_small",
+        "mvitv2_small",
         "mvit_v1_b",
         "mvitv1_b",
+        "mvit_v1_base",
+        "mvitv1_base",
     ]:
         if backbone.lower() in ["simple3dcnn", "3d_cnn"]:
             model = Simple3DCNN(
@@ -1149,24 +1202,39 @@ def build_model(cfg=None, num_classes=2):
                 n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
                 print(f"Built VideoSwin3DTinyWrapper (swin3d_t) with T={cfg.get('seq_T', 16)} | trainable={n_train:,}")
                 return model
-            if backbone.lower() in ["mvit", "mvit_v2_s", "mvitv2_s", "mvit_v1_b", "mvitv1_b"]:
+            if backbone.lower() in [
+                "mvit",
+                "mvit_v2_s",
+                "mvitv2_s",
+                "mvit_v2_small",
+                "mvitv2_small",
+                "mvit_v1_b",
+                "mvitv1_b",
+                "mvit_v1_base",
+                "mvitv1_base",
+            ]:
                 img_size = int(cfg.get("image_size", IMG_SIZE) or IMG_SIZE)
                 if img_size != 224:
                     raise ValueError(
                         "MViTWrapper currently requires image_size=224; "
                         f"got image_size={img_size}."
                     )
-                variant = str(cfg.get("mvit_model_id", backbone)).lower()
+                variant = _normalize_mvit_variant_name(cfg.get("mvit_model_id", backbone))
+                num_frames = int(cfg.get("seq_T", 16) if cfg.get("use_seq", False) else 1)
+                remove_temporal_conv = bool(
+                    cfg.get("mvit_remove_temporal_conv", not cfg.get("use_seq", False))
+                )
                 model = MViTWrapper(
                     variant=variant,
-                    num_frames=cfg.get("seq_T", 16),
+                    num_frames=num_frames,
                     num_classes=num_classes,
                     pretrained=cfg.get("pretrained_mvit", cfg.get("pretrained_3d", True)),
+                    remove_temporal_conv=remove_temporal_conv,
                 )
                 n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
                 print(
-                    f"Built MViTWrapper ({model.variant}) with T={cfg.get('seq_T', 16)} "
-                    f"| trainable={n_train:,}"
+                    f"Built MViTWrapper ({model.variant}) with T={num_frames} "
+                    f"| remove_temporal_conv={remove_temporal_conv} | trainable={n_train:,}"
                 )
                 return model
             if backbone.lower() in ["r2plus1d_18", "r2plus1d18"]:
