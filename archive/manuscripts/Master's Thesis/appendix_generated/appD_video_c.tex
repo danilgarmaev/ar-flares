@@ -1,0 +1,18 @@
+\begin{table}[p]
+\centering
+\scriptsize
+\caption{Appendix D (C+): seed-0 video-model comparison at 108-minute cadence (no augmentation). Best metric per column is bold.}
+\label{tab:appD_video_c}
+\begin{tabular}{lcccc}
+\toprule
+Model & AUC & PR-AUC & TSS & F1 \\
+\midrule
+MViT & \textbf{0.94} & \textbf{0.81} & 0.73 & \textbf{0.74} \\
+VideoSwin & 0.88 & 0.70 & 0.61 & 0.63 \\
+VideoMAE & 0.92 & 0.79 & \textbf{0.73} & 0.74 \\
+R(2+1)D-18 (ResNet3D) & 0.60 & 0.34 & -0.00 & 0.38 \\
+\bottomrule
+\end{tabular}
+\vspace{2mm}
+\begin{flushleft}\scriptsize Run IDs used: A3-16-cadence-108min\_mvit\_seed0\_cplus\_noaug\_dsnone100000\_224\_diag\_mvit\_c108; A3-16-cadence-108min\_videoswin\_seed0\_cplus\_noaug\_dsnone100000\_224\_diag\_vswin\_c108\_bbs; A3-16-cadence-108min\_videomae\_seed0\_cplus\_noaug\_dsnone100000\_224\_diag\_vmae\_c108; 16frames\_cadence108min\_r2plus1d\_18\_seed0.\end{flushleft}
+\end{table}

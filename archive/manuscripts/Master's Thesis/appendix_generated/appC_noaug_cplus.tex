@@ -1,0 +1,19 @@
+\begin{table}[p]
+\centering
+\scriptsize
+\caption{Appendix C (C+): aggregated 2D no-augmentation results at 224$\times$224. Backbone rows are seed-0; the final row indicates current 2D MViT multi-seed status. Best seed-0 metric per column is bold.}
+\label{tab:appC_noaug_cplus}
+\begin{tabular}{llcccc}
+\toprule
+Model & Stats & AUC & PR-AUC & TSS & F1 \\
+\midrule
+ConvNeXt-Tiny & seed0 & 0.83 & 0.63 & 0.51 & 0.58 \\
+Swin-Tiny & seed0 & \textbf{0.84} & 0.65 & 0.54 & \textbf{0.63} \\
+ViT-Small/16 & seed0 & 0.83 & 0.64 & 0.50 & 0.60 \\
+2D MViTv2-Small & seed0 & 0.84 & \textbf{0.67} & \textbf{0.54} & 0.61 \\
+ResNet-50 & seed0 & 0.82 & 0.61 & 0.48 & 0.58 \\
+\midrule
+2D MViTv2-Small & mean $\pm$ std (5 seeds) & \multicolumn{4}{c}{seed-0 only in current protocol (aggregate pending)} \\
+\bottomrule
+\end{tabular}
+\end{table}

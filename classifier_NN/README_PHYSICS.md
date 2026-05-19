@@ -24,6 +24,12 @@ By using the difference image to generate a spatial attention map, we can force 
 ## Usage
 To run the experiment:
 ```bash
+python -m classifier_NN.experiments.run_physics_attention
+```
+
+Compatibility path preserved:
+
+```bash
 python -m classifier_NN.legacy.run_physics_attention
 ```
 

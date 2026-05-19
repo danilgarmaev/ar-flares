@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import getpass
+import re
 from pathlib import Path
 
 
@@ -276,9 +277,24 @@ CFG = {
     # flow encoder options
     "flow_encoder": "SmallFlowCNN",  # SmallFlowCNN, MediumFlowCNN, FlowResNetTiny
 
+    # normalization selection for custom repo-defined model blocks
+    "norm_2d": "batchnorm",
+    "norm_3d": "batchnorm",
+    "norm_token": "layernorm",
+    "norm_group_count": 8,
+    "norm_custom_name": None,
+    "norm_custom_params": {},
+
     # Optional metadata for experiment tracking
     "run_id": None,
     "notes": "",
+}
+
+_DEFAULT_NORM_SETTINGS = {
+    "norm_2d": CFG["norm_2d"],
+    "norm_3d": CFG["norm_3d"],
+    "norm_token": CFG["norm_token"],
+    "norm_group_count": CFG["norm_group_count"],
 }
 
 # Automatically build a readable model name for results
@@ -330,6 +346,59 @@ def get_default_cfg():
     import copy
 
     return copy.deepcopy(CFG)
+
+
+def _slug_token(value: object) -> str:
+    text = str(value or "").strip().lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-")
+
+
+def describe_norm_overrides(cfg: dict | None) -> dict[str, str]:
+    """Return non-default normalization settings for naming/logging."""
+    cfg = cfg or {}
+    overrides: dict[str, str] = {}
+    for key in ("norm_2d", "norm_3d", "norm_token"):
+        current = _slug_token(cfg.get(key, _DEFAULT_NORM_SETTINGS[key]))
+        default = _slug_token(_DEFAULT_NORM_SETTINGS[key])
+        if current and current != default:
+            if current == "custom":
+                custom_name = _slug_token(cfg.get("norm_custom_name"))
+                current = f"custom-{custom_name}" if custom_name else current
+            overrides[key] = current
+
+    if any(value.startswith("groupnorm") for value in overrides.values()):
+        default_groups = int(_DEFAULT_NORM_SETTINGS["norm_group_count"])
+        current_groups = int(cfg.get("norm_group_count", default_groups))
+        if current_groups != default_groups:
+            overrides["norm_group_count"] = f"g{current_groups}"
+    return overrides
+
+
+def append_norm_suffix(base_name: str, cfg: dict | None) -> str:
+    """Append a stable normalization suffix when non-default norms are in use."""
+    base = str(base_name or "").strip()
+    if not base:
+        return base
+
+    overrides = describe_norm_overrides(cfg)
+    if not overrides:
+        return base
+
+    parts: list[str] = []
+    key_labels = {
+        "norm_2d": "n2d",
+        "norm_3d": "n3d",
+        "norm_token": "ntok",
+        "norm_group_count": "ng",
+    }
+    for key in ("norm_2d", "norm_3d", "norm_token", "norm_group_count"):
+        value = overrides.get(key)
+        if value:
+            parts.append(f"{key_labels[key]}-{value}")
+
+    suffix = "_".join(parts)
+    return base if suffix in base else f"{base}_{suffix}"
 
 
 def apply_physics_attention_overrides(cfg: dict) -> dict:

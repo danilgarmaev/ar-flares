@@ -1,55 +1,47 @@
 # AR-Flares
 
-A modular PyTorch pipeline for classifying Active Region (AR) solar flare activity using deep neural networks (ConvNeXt, ViT, custom CNNs) with optional optical flow and temporal sequences.
+AR-Flares is the active PyTorch training codebase for solar flare classification experiments in this repo.
 
-## Highlights
-- Modular refactored training loop now in `classifier_refactored/`
-- Fast 112x112 training mode (~4× speedup)
-- Class balancing only on training split (probabilistic negative downsampling)
-- Rich metrics: ROC AUC, PR AUC, Precision, Recall, F1, TSS, HSS
-- Per-epoch JSONL logging + loss & accuracy curves
-- Easily switch backbone (e.g. `convnext_base`, `vit_base_patch16_224`)
+## Supported Entry Points
 
-## Quick Start
 ```bash
-cd classifier_refactored
-python train.py
-```
-Edit `config.py` to change backbone, image size, epochs, etc.
-
-## Configuration Snippet
-```python
-CFG = {
-  "image_size": 112,
-  "backbone": "convnext_base",
-  "balance_classes": True,
-  "neg_keep_prob": 0.25,
-  "epochs": 5,
-  "lr": 1e-4,
-}
+python -m classifier_NN.smoke_test
+python -m classifier_NN.train
+python -m classifier_NN.run_experiments
 ```
 
-## Data
-WebDataset-style tar shards expected under `data/wds_out/{train,val,test}`. Optical flow shards optional at `data/wds_flow/`.
+Direct experiment modules also live under `classifier_NN.experiments`.
 
-## Results
-Training outputs saved under `results/DATE_MODELNAME/`. Curves: `training_curves.png`. Per-epoch metrics: `epoch_metrics.jsonl`.
+## Data Policy
 
-## License
-MIT – see `LICENSE`.
+Raw datasets, WebDataset shards, large logs, checkpoints, and full training outputs are local-only and are not meant to be committed to GitHub.
 
-## Citation
-If you use this code, please cite the repository (add DOI later).
+Collaborators should point the code at their own local dataset copy with:
 
-## Sampling Modes
-Training split only:
-- `balance_mode='prob'`: per-epoch probabilistic negative downsampling (diverse negatives each epoch)
-- `balance_mode='fixed'`: deterministic hashed subset of negatives (stable epoch length)
-Validation & Test remain imbalanced.
+```bash
+export AR_FLARES_WDS_BASE=/path/to/wds_out
+export AR_FLARES_WDS_FLOW_BASE=/path/to/wds_flow   # optional
+export AR_FLARES_RESULTS_BASE=/path/to/results
+export AR_FLARES_INTENSITY_LABELS_ROOT=/path/to/data
+```
 
-## Roadmap
-- Sequence modeling improvements (attention aggregation)
-- LoRA / lightweight fine-tuning for large backbones
-- Experiment registry & reproducibility bundle
+## Collaborator Setup
 
-Contributions welcome!
+Local setup and smoke-test instructions live in [docs/COLLABORATOR_SETUP.md](/home/dgarmaev/scratch/ar-flares/docs/COLLABORATOR_SETUP.md).
+
+The default smoke test is data-free, but if local shards are present it will also validate one real dataloader batch.
+
+## Repo Layout
+
+- `classifier_NN/`: active training pipeline, models, datasets, and experiment runners
+- `scripts/`: analysis, plotting, and SLURM helper scripts
+- `compute_canada/`: cluster-specific setup and submission notes
+- `archive/`: historical code and research material kept for reference
+
+## Cluster Notes
+
+Compute Canada / SLURM-specific instructions are in [compute_canada/README_compute_canada.md](/home/dgarmaev/scratch/ar-flares/compute_canada/README_compute_canada.md).
+
+## Normalization Experiments
+
+The active model stack now exposes configurable normalization choices for custom 2D CNN blocks, 3D CNN blocks, and token-feature layers. Existing defaults preserve current behavior, while future custom normalization modules can be registered without rewriting each model class.

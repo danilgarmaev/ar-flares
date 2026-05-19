@@ -1,0 +1,18 @@
+\begin{table}[p]
+\centering
+\scriptsize
+\caption{Appendix D (M+): seed-0 comparison of video backbones at 108-minute cadence (no augmentation). Best values per metric are bold.}
+\label{tab:appD_m_reordered}
+\begin{tabular}{lcccc}
+\toprule
+Model & TSS & AUC & PR-AUC & F1 \\
+\midrule
+MViT & \textbf{0.71} & \textbf{0.92} & \textbf{0.25} & 0.26 \\
+VideoSwin & 0.64 & 0.91 & 0.22 & \textbf{0.28} \\
+VideoMAE & 0.59 & 0.87 & 0.18 & 0.27 \\
+R(2+1)D-18 & 0.36 & 0.71 & 0.09 & 0.16 \\
+\bottomrule
+\end{tabular}
+\vspace{1mm}
+\begin{flushleft}\scriptsize Run IDs: A3-16-cadence-108min\_mvit\_seed0\_mplus\_noaug\_dsnone100000\_224\_diag\_mvit\_m108\_bbs; A3-16-cadence-108min\_videoswin\_seed0\_mplus\_noaug\_dsnone100000\_224\_diag\_vswin\_m108\_bbs; A3-16-cadence-108min\_videomae\_seed0\_mplus\_noaug\_dsnone100000\_224\_diag\_vmae\_m108; A3-16-cadence-108min\_r2plus1d\_18\_seed0\_mplus\_noaug\_dsnone100000\_112.\end{flushleft}
+\end{table}

@@ -1,0 +1,337 @@
+Thesis Corrections
+
+Max Mignotte:
+==================
+Medium Corrections
+==================
+From the beginning to the end of the manuscript:
+...essentially just a few minor clarifications to be made...
+
+Page -1-
+========
+...stronger M- and X-class flares are rare...
+Me: It might be helpful to indicate in a footnote or parenthesis that
+these classes  (M- and X-class) will be CLEARLY explained starting
+on page 3, so as not to frustrate the reader too much
+
+Response:
+We added a parenthetical clarification indicating that flare classes are formally introduced in Chapter~\ref{chap:introduction}. This avoids early confusion while keeping the introduction concise.
+
+
+Beginning of the manuscript:
+============================
+Me: In the introduction or somewhere in the manuscript, I would have liked
+to know if M or X class storms are dangerous and to what extent for
+satellite or terrestrial infrastructure, and perhaps how many times
+less likely X class storms are to occur than M class storms, which in
+turn are how many times less likely to occur than C class storms.
+For example; something like that (thanks Google): ...While Class M flares
+cause minor satellite glitches and radio interference, Class X flares
+pose severe risks to power grids and orbital
+electronics. Statistically, Class X events are about 13 times rarer
+than Class M flares and 20 times less frequent than the common Class C
+occurrences. Their impact on Earth depends largely on whether they are
+accompanied by a directed plasma ejection....
+
+Response:
+We expanded the General Introduction to include a concise description of the physical impact of M- and X-class flares on technological systems (e.g., satellites, radio communication, power grids). We also clarified the relative rarity of flare classes using a qualitative but informative description (C > M > X), avoiding dataset-dependent numerical claims while still addressing the reviewer’s concern.
+
+
+Page 5 Table 1.1.
+=================
+Me: I don't understand why you don't try to predict the X classes?
+What does this implicitly mean? Included in both tasks
+
+Response:
+We added an explicit explanation below Table~\ref{tab:intro_flare_classes} stating that X-class flares are not modeled as a separate task due to their extreme rarity. Instead, they are included in both the $\geq C$ and $\geq M$ tasks, where they contribute to the positive class. This clarifies the modeling choice and its relation to class imbalance.
+
+
+Page -5- Fig 1.1. or Page -28- Fig 2.1.
+=======================================
+Me: I would have liked to see explicitly the region that was enlarged in
+the left image to produce the right image.
+
+Response:
+We agree that this improves readability. We revised the corresponding figures so that the full-disk magnetogram now includes a red rectangle indicating the active region shown in the companion cutout. We also adjusted the captions accordingly to make the relationship between the full-disk view and the active-region crop explicit.
+
+Page-7- line-19
+===============
+positive samples for a random classifier [?].
+>>
+Reference is missing
+
+Response:
+We added a citation to The Precision-Recall Plot Is More Informative than the ROC Plot When Evaluating Binary Classifiers on Imbalanced Datasets, which formally establishes that PR-AUC for a random classifier equals the prevalence of the positive class.
+
+
+Page-28- line-12
+================
+....reduced-resolution version...
+Me: refer in parentheses, for example, to page 32, where it will be specified
+by how much the resolution is lowered.
+
+Response:
+We added a forward clarification so that the reader is told explicitly that the spatial-ablation details, including the exact downsampling levels, are specified later in the methodology section. This makes the early dataset description easier to follow without overloading it.
+
+
+Page-28- line-21
+================
+....within ±60◦ latitude and longitude ...
+Me: I would have liked to see the image of the square (on the figure of
+the sun or elsewhere, possibly annexed or on page 28), the squared
+region that represents within ±60° latitude and longitude, and similarly
+[we will discuss this further] what ±30° latitude and longitude represents
+(relatively to the center of the sun?).
+
+Response:
+We agree that this geometric restriction benefits from a visual explanation. In the revised manuscript we now clarify in the text that these angular limits are defined relative to the center of the visible solar disk, and we added a schematic showing the $\pm 60^\circ$ and central $\pm 30^\circ$ regions so that the longitude-based experiments can be interpreted more intuitively.
+
+
+Page-29- penultimate line
+=========================
+....it is more informative for imbalanced data [?]....
+>>> Reference is missing
+
+Response:
+Reference added.
+
+Page-30- line-6
+===============
+..we report F1 ...
+>>
+Me:  Is this the F-measure? Please specify, or explain the
+difference/variant between this measure and the classic F-measure?
+
+Response:
+We clarified that F1 is the standard F-measure with $\beta=1$, i.e. the harmonic mean of precision and recall at the validation-selected operating threshold. This removes any ambiguity about the variant being used.
+
+Page-30- line-15
+================
+...applied random horizontal and vertical flips, random rotations up to ±30◦....
+>>
+Me: thus 12*2=24 transformations ? (to be specified)
+
+Response:
+We clarified that the augmentation pipeline is stochastic rather than exhaustive. We do not generate a fixed bank of 24 transformed copies. Instead, for each training sample, horizontal and vertical flips are sampled randomly, and the rotation angle is sampled continuously in the interval $[-30^\circ, 30^\circ]$, so a new transformed view may be produced at each epoch.
+
+
+Page-30- line-17
+================
+...magnetic polarity inversion
+>>
+Me: Algorithmically, are you using a simple video inversion of the image,
+i.e., you are "negating" the image ? (255-grey levels)
+Please specify this explicitly in a footnote or in parenthesis.
+
+Response:
+We clarified this point explicitly. In the reduced-resolution 8-bit representation, polarity inversion is implemented by negating the signed magnetogram encoding around the midpoint value 128, followed by clipping back to the valid grayscale range. In other words, it is an intensity-space inversion adapted to the signed magnetic-field encoding used by the dataset, not an unspecified generic image effect.
+
+
+Page-30- line-16
+================
+...and small integer noise in the range [−5,5]...
+>>
+Me: What type of noise ?? AWGN -Additive White Gaussian Noise ?
+with what standard deviation (or variance) ??
+or additive Uniform White Gaussian Noise within [-5.5] <Uniform Law> ?
+White noise or not ?? correlated noise ? impulse noise?
+>> To be clearly specified
+
+Response:
+We clarified that this is not Gaussian noise. The augmentation uses additive per-pixel integer noise sampled independently from the discrete uniform set $\{-5,\ldots,5\}$. It is therefore an uncorrelated uniform perturbation in the 8-bit intensity representation, not AWGN and not impulse noise.
+
+
+Page-30- line-16
+================
+...and small integer noise in the range [−5,5] after magnetogram
+intensities were normalized to [0,255]....
+>>>
+Me: If you add unshaped noise [-5 5 ] (assuming it is indeed uniform noise)
+to grayscale levels that have first been recalibrated between 0 and 255
+(You say you're adding noise after normalizing it between 0 and 255)
+you obtain a noisy  image with grayscale levels ranging from -5 to 260.
+Is that really what you are doing, or do you mean that you are normalizing
+between 0 and 255 AFTER ADDING noise to the image?
+>> to be clearly specified
+
+Response:
+We clarified this explicitly. The reduced-resolution images are first represented in the 8-bit range $[0,255]$. The integer noise is then added in that space, and the result is clipped back to $[0,255]$ before conversion to tensors. We do not leave the noisy image outside the valid grayscale range, and we do not mean that normalization is performed after noise addition.
+
+Page-30- line-16
+=================
+Me: If I wanted to replicate your data augmentation, I wouldn't be
+able to because you haven't provided enough details for me to do it unambiguously!
+Are you taking all the 30-degree rotations, all the flips (mirror symmetries),
+all the polarity inversions, and adding noise to that?
+>>12*2=24 transformations + magnetic polarity inversion *2=48 +small integer noise in the range [−5,5]>>
+Or are you performing several (but how many?) random rotations for each image,
+with a 50/50 chance of a flip and a 50/50 chance of a polarity inversion?
+This needs clarification (at least in a footnote)....
+
+Response:
+We agree, and we have rewritten the augmentation description to make it reproducible. The revised text now states that the pipeline is stochastic rather than exhaustive: horizontal and vertical flips are sampled independently with probability 0.5, the rotation angle is sampled from a continuous uniform law on $[-30^\circ,30^\circ]$, polarity inversion is applied in augmented mode as defined above, and integer noise is sampled independently per pixel. For sequences, the same flip/rotation/polarity decisions are sampled once and then applied consistently across all frames, while the small integer noise may vary from frame to frame.
+
+Page-31 line-30
+===============
+....R(2+1)D-18....
+Me: As far as I can tell, there is no explanation or reference provided regarding
+what the R(2+1)D-18 baseline (?) model is.
+To clarified.
+
+A Closer Look at Spatiotemporal Convolutions for Action Recognition
+Du Tran1, Heng Wang1, Lorenzo Torresani1,2, Jamie Ray1, Yann LeCun1, Manohar Paluri1
+1Facebook Research 2Dartmouth College
+
+Response:
+We agree. This point has been clarified in the revised manuscript. We added both a short explanation and a citation: the text now states that R(2+1)D-18 is a standard spatio-temporal convolutional architecture in which each 3D convolution is factorized into a spatial 2D convolution followed by a temporal 1D convolution, with a citation to Tran et al., A Closer Look at Spatiotemporal Convolutions for Action Recognition. A brief high-level mention of R(2+1)D was also added in the introduction chapter together with the other model families.
+
+
+Page-40- Fig.-2.4.
+==================
+Me: I don't understand what the y-coordinate is ? count (log scale) ?
+to be clarified.
+
+Response:
+We agree. We kept the original figure rather than replacing it with raw counts, because the linear-count version is less readable visually. Instead, we clarified the figure directly: the lower panel corresponds to counts, and these counts are shown on a logarithmic scale. The revised caption now states this explicitly so that the meaning of the y-axis is unambiguous.
+
+Page-51 line-16
+===============
+...The goal is not to establish a definitive
+architecture ranking, since the screening comparison is based on seed 0 only....
+
+Me: See the comment and question below.
+
+& Page-33- line-1
+===================
+...The goal is to see whether longer temporal context helps the model or
+whether a shorter cadence is sufficient.
+Every sequence setting was repeated with five random seeds....
+
+Me: What is stochastic about this classification/prediction procedure? Is
+it the stochastic gradient of neuron weight optimization? Or does this
+MVIT network involve stochastic simulations (Monte Carlo or otherwise)
+according to one or more distribution laws? Is it the seed of
+(uniform?) noise added to the data during the data augmentation
+process? This needs clarification.
+
+Response:
+We clarified this point in both places. The random seed affects standard training stochasticity such as parameter initialization, mini-batch order, and sampled augmentation parameters. It does not correspond to any stochastic physical simulation or Monte Carlo process inside the forecasting model. We added this clarification to avoid ambiguity when discussing seed-0 screening and the five-seed cadence experiments.
+
+
+Page-39- Table 2.4.
+==================
+TSS et ≥ M task
+The result is barely significant and uninterpretable for the >M class.
+because the variations you observe between the seeds (the “noise”) are of the
+same order of magnitude, or even greater, than the differences between
+the averages (see below)
+
+Response:
+We agree that the $\geq M$ TSS comparison must be interpreted more cautiously. The revised text no longer presents the $\geq M$ cadence result as a clean threshold-dependent ranking. Instead, it states that the strongest signal for $\geq M$ is in the ranking metrics, especially AUC, while threshold-dependent metrics such as TSS remain too variable across seeds to support a strong ordering between the best configurations.
+
+
+Page-60-Table E.1.
+==================
+....0.61 ± 0.05   0.66 ± 0.05   0.62 ± 0.16.....
+...For the ≥ M task, the pattern is similar but less stable....
+
+Me: Not really. The pattern is not similar since the set of measures are not significant.
+
+OK, the measurements are significant for class > C BUT NOT FOR CLASS >M:
+
+The pattern isn't the same, and we can't simply say that it's less
+stable. In fact, these measurements and their inaccuracies simply mean
+that they aren't significant....
+
+The variations you observe between the seeds (the “noise”) are of the
+same order of magnitude, or even greater, than the differences between
+the averages. You cannot therefore claim that the configuration
+yielding 0.66 is actually better than the one yielding 0.61.
+
+For measures 1 and 2: sigma_diff = sqrt(0.05² + 0.05²) = 0.07 The
+difference between the means is 0.05.  The ratio (difference /
+uncertainty or Z-score) is 0.05/0.07 ≈ 0.71.  In statistics, a difference is
+generally considered to be “significant” only if it exceeds 2
+(corresponding roughly to p < 0.05). Here, with a ratio of 0.71, we
+are very far from the significance threshold.  The variations you
+observe between the seeds (the “noise”) are of the same order of
+magnitude, or even greater, than the differences between the
+means. Therefore, you cannot claim that the configuration yielding
+0.66 is actually better than the one yielding 0.61, nor that all these
+measurements follow a pattern, much less the same pattern as the ≥ C
+task.
+
+see also Remark made at the very begining of the report
+
+Response:
+We agree and revised the wording accordingly. The appendix now states that the $\geq M$ no-augmentation cadence results do not support the same clean monotonic conclusion as the $\geq C$ task. We now describe the $\geq M$ result as metric-dependent and statistically fragile: AUC, PR-AUC, and F1 may favor longer context, but the overlaps between uncertainties are too large to justify a definitive threshold-based ordering or to claim the same pattern as in the $\geq C$ case.
+
+
+=======================
+General/Open Questions
+=======================
+
+[-1] Me: In this labeling problem, there is a fuzzy transition zone between
+class C and class M. Would it have been worthwhile to consider a fuzzy
+class label that fell halfway between the two and modeled the
+uncertainty between these two classes?
+Please comment.
+
+Response:
+This is an interesting suggestion, especially from the perspective of ordinal or uncertainty-aware prediction. In the present thesis, we kept the benchmark formulation used in the dataset and in prior flare-prediction work, namely binary threshold tasks ($\geq C$ and $\geq M$), in order to maintain comparability and isolate input-design effects. A fuzzy or ordinal labeling scheme could be worthwhile in future work, but it would change the prediction problem itself and would require a different evaluation framework. We therefore view it as a valuable extension rather than as a missing component of the current controlled study.
+
+[-2] Me:  Among the four metrics used in the article to quantify the quality of
+the classification (F-measure, TSS, AUC, PR-AUC), Why not calculate
+the pairwise correlation of all the results from these measures (6
+possible combinations) to determine which were most correlated and
+which were least correlated, in order to ultimately identify which 2
+or 3 measures were the most complementary?
+Please comment.
+
+Response:
+This would indeed be a useful supplementary analysis, especially for understanding metric redundancy and complementarity. In the current thesis, we instead chose the metrics based on their distinct interpretive roles: TSS for operating-point skill under imbalance, AUC and PR-AUC for threshold-free ranking, and F1 for the precision-recall trade-off at the selected threshold. Because the main focus of the thesis is controlled input-design analysis rather than metric selection, we did not include a full metric-correlation study. We agree, however, that such an analysis would be valuable in a broader benchmarking paper or extended follow-up study.
+
+
+==================
+Minor Corrections
+==================
+From the beginning to the end of the manuscript:
+... very few rare typos & spelling mistakes or incomplete references ...
+
+
+Page-5- Fig-1.1. line-5
+... magnetogram appear saturated (all-white or all-black) in active ...
+>>
+... magnetogram appears saturated (all-white or all-black) in active ...
+
+Response: corrected
+
+Page-7- line-27
+...The first is class imbalance mentioned above...
+>>
+...The first is class imbalance mentioned above...
+
+Response: corrected
+
+Page-27- line-30
+..while reducing spatial or temporal input cost...
+>>
+..while reducing spatial or temporal input costs...
+
+Response: corrected
+
+Page-32- line-14
+...active regions far from disk center are...
+>>
+...active regions far from the disk center are...
+
+Response: corrected
+
+
+References:
+Me: In many references, page numbers are missing !
+This needs to be completed
+especially in Refs  [1][2][3][4][5][13][14]
+
+Response:
+We verified the bibliography and completed missing information where applicable. Several references use article identifiers instead of conventional page ranges (e.g., Scientific Data, Astrophysical Journal Letters, Astronomy and Computing), which were retained as such. The empty placeholder reference was removed and replaced with the complete citation.

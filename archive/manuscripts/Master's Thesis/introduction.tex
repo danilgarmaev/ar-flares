@@ -1,0 +1,505 @@
+\anglais
+
+\chapter{Solar Flare Prediction and Deep Learning}
+\label{chap:introduction}
+
+Although the Sun appears stable on human timescales, its magnetic activity produces sudden eruptions that can disrupt modern technological systems. Its surface and atmosphere contain active regions where strong magnetic fields emerge, twist, shear, and store energy. When part of this magnetic energy is suddenly released, the result can be a solar eruption. These eruptions are central to space weather: they can disturb radio communication, affect satellite operations, increase radiation exposure for astronauts and high-altitude aviation, degrade navigation systems, and, in extreme cases, contribute to geomagnetically induced currents in power networks. From a machine-learning perspective, solar flare prediction can be formulated as a highly imbalanced spatio-temporal classification problem, where rare but critical events must be predicted from complex magnetic field observations with evolving temporal dynamics.
+
+This thesis studies solar flare prediction from magnetogram images using deep learning. The work is intended for readers with a computer-vision background who may not have a background in solar physics. For that reason, this chapter first introduces the solar-physics concepts needed to understand the task. It then formalizes the prediction problem, explains the evaluation metrics, describes the dataset and its imbalance, and motivates the use of spatio-temporal vision models such as the Multiscale Vision Transformer (MViT). The goal is not only to introduce the article in Chapter~\ref{chap:article1}, but also to make clear why the empirical choices studied in that article are scientifically and computationally meaningful.
+
+\section{Solar Eruptions and Magnetogram Data}
+
+Solar activity is driven by magnetic fields. The visible surface of the Sun, called the photosphere, is threaded by magnetic flux that emerges from the solar interior. In some locations the magnetic field becomes concentrated into active regions (ARs), which may appear as sunspots in visible-light observations. These regions are important because they can store magnetic energy in the solar atmosphere above the photosphere. When the magnetic configuration becomes unstable or reconnects, part of this stored energy can be released suddenly.
+
+Solar eruptions are not all the same phenomenon. A solar flare is a sudden release of energy in the solar atmosphere, observed as an increase in electromagnetic radiation over a broad range of wavelengths. A coronal mass ejection (CME), by contrast, is a large-scale ejection of magnetized plasma from the solar corona into interplanetary space. Flares and CMEs often occur together because they can be triggered by the same magnetic reconfiguration, but they are not identical events: a flare is primarily a burst of radiation, while a CME is a moving cloud of plasma and magnetic field.
+
+For flare prediction, active regions are the natural unit of study. An active region is an area on the solar disk where strong magnetic flux is concentrated. In magnetogram images, active regions appear as structured patterns of positive and negative magnetic polarities. A classic magnetogram measures the magnetic field along the observer's line of sight (LOS); in typical grayscale visualizations, black and white represent opposite polarities (see Fig. ~\ref{fig:intro_solar_context}. The rectangle in the full-disk view marks the active region shown in the cutout. The boundary between opposite polarities is especially important because strong gradients and shearing motions around polarity inversion lines can indicate magnetic stress. A computer-vision model does not receive these physical quantities explicitly unless they are engineered as features; it receives an image whose spatial patterns must be mapped to a future flare label.
+
+Solar flares are commonly classified using the peak soft X-ray flux measured near Earth by GOES satellites. The classes are logarithmic: each class represents a factor of ten in peak flux (see Table~\ref{tab:intro_flare_classes}). In this thesis, the main prediction tasks are binary thresholds. The $\geq C$ task asks whether an active region will produce at least a C-class flare in the next 24 hours. The $\geq M$ task asks whether it will produce at least an M-class flare, which is rarer and generally more difficult to predict.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.47\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/20141021_1500_hmimag_512.pdf}
+\end{minipage}
+\hfill
+\begin{minipage}{0.47\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/2192_hmi.M_720s.20141021_150000_TAI.1.magnetogram_224.pdf}
+\end{minipage}
+\caption{(Left) SDO/HMI full-disk HMI magnetogram around 2014-10-21 15:00 TAI, with the red rectangle indicating the active region shown in the cutout. (Right) Active-region magnetogram cutout for NOAA AR 2192 from the Boucheron dataset~\cite{ref_boucheron}. This observation is labeled positive for the $\geq M$ task because it is followed by an X1.6-class flare within the 24-hour prediction window. Notice that the full-disk magnetogram appears saturated (all-white or all-black) in active regions compared to active-region cutouts because the full-disk view is scaled to display the Sun's entire magnetic range, including weak fields, whereas the cutout is scaled to highlight fine detail in strong magnetic fields.}
+\label{fig:intro_solar_context}
+\end{figure}
+
+
+
+\begin{table}[H]
+\centering
+\caption{Solar flare classes used to define the prediction tasks. The thresholds refer to the GOES soft X-ray peak flux in the 0.1--0.8 nm band.}
+\label{tab:intro_flare_classes}
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Class & Peak flux range & Label definition \\
+\midrule
+C & $10^{-6} \leq F < 10^{-5}$ W m$^{-2}$ & Positive class for the $\geq C$ task \\
+M & $10^{-5} \leq F < 10^{-4}$ W m$^{-2}$ & Positive class for the $\geq M$ task \\
+X & $F \geq 10^{-4}$ W m$^{-2}$ & Included in both tasks \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+X-class flares are not treated as a separate prediction task because of their extreme rarity; instead, they are included in both the $\geq C$ and $\geq M$ tasks, where they contribute to the positive class.
+
+These properties make solar flares a natural target for data-driven prediction methods: the relevant physical structures are visible in images, but their predictive meaning depends on magnetic complexity, viewing geometry, and temporal evolution.
+
+\section{Prediction Task and Evaluation Metrics}
+
+The supervised learning task can be written as follows. For each reference time $t$, the model receives either one magnetogram image $x_t$ or a sequence of magnetograms $(x_{t_1}, \ldots, x_t)$ from the same active region. It outputs a score interpreted as the probability that a flare above a chosen threshold will occur during a future time window. In this thesis, the future window is 24 hours. The target label is therefore not a description of what is already visible in the image; it is a statement about what will happen after the observation, as illustrated in Figure~\ref{fig:modern_prediction_window}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    >=Stealth,
+    % Minimalist Styles
+    frame/.style={rectangle, draw=blue!30, rounded corners=2pt, minimum width=0.9cm, minimum height=0.7cm, fill=blue!5},
+    model/.style={rectangle, draw=blue!40, rounded corners=4pt, align=center, minimum width=2cm, minimum height=1cm, fill=blue!2},
+    tick/.style={circle, fill=black, inner sep=1.2pt},
+    % Scale and font
+    scale=0.9, every node/.style={transform shape, font=\small}
+]
+
+% 1. The Time Axis - made it thinner
+\draw[->, color=gray!80] (-1,0) -- (12,0) node[right, color=black] {time};
+
+% 2. Ticks and Labels - spaced out to 2.5 units
+\foreach \x/\lab in {0/{t-45\text{ h}}, 2.5/{t-30\text{ h}}, 5.0/{t-15\text{ h}}, 7.5/{t}, 11.5/{t+24\text{ h}}} {
+    \node[tick] at (\x,0) {};
+    \node[below=10pt] at (\x,0) {$\lab$};
+}
+
+% 3. The 24-hour Prediction Window - softer color
+\fill[orange!10] (7.5,0.2) rectangle (11.5,0.7);
+\draw[orange!30, thin] (7.5,0.2) -- (11.5,0.2);
+\draw[orange!30, thin] (7.5,0.7) -- (11.5,0.7);
+\node[above=2pt, font=\scriptsize, color=orange!80!black] at (9.5,0.7) {24h prediction window};
+
+% 4. Magnetogram Sequence - added air
+% Use 'count' to create integer names (f1, f2, f3, f4)
+\foreach \x [count=\i] in {0, 2.5, 5, 7.5} {
+  \node[frame] (f\i) at (\x, 2.2) {};
+  \draw[blue!20] (f\i.north west) -- (f\i.south east);
+  \draw[blue!20] (f\i.north east) -- (f\i.south west);
+}
+
+% Brace - more elegant
+\draw[decorate, decoration={brace, amplitude=6pt, raise=12pt}, color=gray] (-0.5, 2.2) -- (8.0, 2.2) 
+    node[midway, above=22pt, color=black] {magnetogram input sequence};
+
+% 5. Reference Time - distinct but not distracting
+\draw[dashed, gray!60] (7.5, -0.5) -- (7.5, 3.2);
+\node[above, font=\bfseries\footnotesize] at (7.5, 3.2) {reference time};
+
+% 6. Flow Blocks - positioned to the right for a linear flow
+\node[model] (forecast) at (9.8, 2.2) {forecast\\model};
+\node[model] (score) at (12.5, 2.2) {flare\\score};
+\node[model, anchor=west] (label) at (14, 2.2) {label:\\flare / no flare};
+
+% Connecting Arrows
+\draw[->, color=gray] (8.2, 2.2) -- (forecast);
+\draw[->, color=gray] (forecast) -- (score);
+\draw[->, color=gray] (score) -- (label.west);
+
+% Arrow pointing from label down to the window
+\draw[->, color=gray!80, rounded corners=5pt] (label.south) |- (11.5, 0.45);
+
+\end{tikzpicture}
+\caption{Refined forecasting setup. The model utilizes a historical sequence of magnetograms to predict flare activity within the subsequent 24-hour window.}
+\label{fig:modern_prediction_window}
+\end{figure}
+This setup is different from many standard computer-vision benchmarks. In object recognition, the label often describes an object present in the image. In flare prediction, the label describes a future event. The model is therefore asked to learn precursors: image or sequence patterns that are statistically associated with later activity. This is one reason why temporal context is important. A single magnetogram can show magnetic complexity, but a sequence can show whether the active region is changing, stabilizing, or becoming more structured.
+
+% Evaluation must account for class imbalance. Let $TP$, $FP$, $TN$, and $FN$ denote true positives, false positives, true negatives, and false negatives. The True Skill Statistic (TSS), widely used in flare forecasting studies~\cite{ref_bloomfield}, is defined as
+% \begin{equation}
+% \mathrm{TSS}
+% = \frac{TP}{TP + FN} - \frac{FP}{FP + TN}
+% = \mathrm{Sensitivity} + \mathrm{Specificity} - 1 .
+% \end{equation}
+% TSS ranges from $-1$ to $1$, where $1$ is perfect forecasting and $0$ corresponds to no skill under this formulation. Unlike accuracy, TSS does not reward a model simply for predicting the majority negative class. This matters because many active-region observations are not followed by flares, especially when the target is $\geq M$.
+
+% The experiments also use AUC, PR-AUC, and F1. The area under the ROC curve (AUC) measures how well a model ranks positive examples above negative examples over all possible thresholds. The area under the precision-recall curve (PR-AUC) is especially informative for rare-event prediction because precision is sensitive to the number of false alarms. F1 summarizes precision and recall at a particular decision threshold. In the \hyperref[chap:article1]{next chapter}, the main reported TSS uses a threshold selected on the validation set, not on the test set, so that test performance remains an estimate of generalization.
+
+Evaluation must account for strong class imbalance. In flare prediction, most observations are not followed by a flare, especially for the $\geq M$ task. As a result, standard metrics such as accuracy can be misleading. For example, a model that predicts ``no flare'' for every input could achieve high accuracy while having no practical forecasting value. This motivates the use of skill scores and ranking-based metrics that better reflect predictive usefulness.
+
+Let $TP$, $FP$, $TN$, and $FN$ denote true positives, false positives, true negatives, and false negatives. The True Skill Statistic (TSS), widely used in solar flare forecasting studies~\cite{ref_bloomfield}, is defined as
+\begin{equation}
+\mathrm{TSS}
+= \frac{TP}{TP + FN} - \frac{FP}{FP + TN}
+= \mathrm{Sensitivity} + \mathrm{Specificity} - 1 .
+\end{equation}
+TSS measures the ability of a model to correctly identify both flaring and non-flaring cases, independently of class imbalance. A value of $1$ corresponds to perfect predictions, while $0$ corresponds to no skill relative to a random baseline under this formulation. Unlike accuracy, TSS does not reward trivial predictions of the majority class, making it particularly suitable for imbalanced forecasting problems.
+
+In addition to TSS, we use threshold-free ranking metrics. The area under the receiver operating characteristic curve (AUC) measures how well a model ranks positive examples above negative examples across all possible decision thresholds. A model with AUC equal to $1$ perfectly separates the two classes, while an AUC of $0.5$ corresponds to random ranking. AUC is useful because it evaluates the quality of the predicted scores independently of any specific threshold.
+
+However, AUC can be less informative in highly imbalanced settings because it gives equal weight to true positives and true negatives. For rare-event prediction, it is often more important to understand the trade-off between detecting true events and avoiding false alarms. For this reason, we also report the area under the precision-recall curve (PR-AUC). Precision measures the fraction of predicted positives that are correct, while recall measures the fraction of true positives that are detected. PR-AUC summarizes this trade-off over all thresholds and is especially informative when the positive class is rare. In this thesis, this is particularly relevant for the $\geq M$ task, where only about 3\% of samples are positive. PR-AUC  equals 1 for a perfect classifier and equals the percentage of positive samples for a random classifier \cite{saito2015precision}.
+
+Finally, we report the F1 score, which is the harmonic mean of precision and recall at a specific decision threshold. Unlike AUC and PR-AUC, F1 depends on a chosen operating point and provides a compact summary of the precision-recall balance. In the \hyperref[chap:article1]{next chapter}, the main reported TSS and F1 values are computed using a threshold selected on the validation set, ensuring that the test results remain an unbiased estimate of generalization performance.
+
+\section{Challenges in Solar Flare Prediction}
+
+Solar flare prediction has several complications that are important for both solar physics and machine learning. The first is class imbalance mentioned above. Most active-region observations are not followed by a strong flare, while M- and X-class events are rare. In the dataset used in this thesis, the $\geq C$ task has a positive rate of about 20\%, whereas the $\geq M$ task has a positive rate of only about 3\%. A model can therefore obtain high accuracy by predicting the majority negative class too often, even if it has little operational value. This is why the thesis emphasizes skill scores and ranking metrics, such as TSS, ROC-AUC, and PR-AUC, rather than accuracy alone. The imbalance also makes false alarms important: when positive events are rare, even a modest number of false positives can strongly reduce precision.
+
+The second challenge is that the prediction target is temporal and uncertain. The label assigned to a magnetogram does not describe what is already visible in the image; it describes whether a flare above a chosen threshold will occur during the next 24 hours. An active region may evolve slowly over many hours before producing a flare, and two visually similar magnetograms may have different future outcomes. The 24-hour label window is practical for forecasting, but it also creates ambiguity: an observation shortly before a flare and an observation many hours before a flare can receive the same positive label, even though the visible precursors may be different. This motivates the use of temporal input sequences, because a sequence can represent magnetic evolution rather than only a single snapshot.
+
+The third challenge is viewing geometry. Solar images have geometric effects that do not appear in ordinary object-recognition benchmarks. Active regions near the center of the solar disk are viewed more directly, whereas regions closer to the limb are affected by projection effects (foreshortening) because the solar surface is curved. A magnetogram pixel far from disk center no longer represents the magnetic field from the same viewing geometry as a central pixel. For this reason, many datasets restrict the usable longitude and latitude range, and it is meaningful to test whether disk position affects model performance. This issue directly motivates the longitude experiment in the Chapter~\ref{chap:article1}.
+
+Finally, the label is not a perfect description of the image content. A cutout can contain multiple nearby active regions, while the flare label is associated with a NOAA active-region number. If neighboring regions overlap in the image, a model might learn cues from a region that is not the labeled source. In addition, the label says whether a flare occurred in a future interval, but not which visual structure caused it. These issues do not make the task invalid, but they mean that flare prediction should be treated as a noisy forecasting problem rather than as ordinary image recognition.
+
+Together, these challenges motivate a controlled study of input design. The model must capture spatial magnetic structure, account for class imbalance and rare-event evaluation, and exploit temporal context when sequences are available. They also explain why this thesis studies resolution, disk position, temporal cadence, and number of frames as practical factors in deep-learning-based flare prediction.
+
+\section{Dataset and Prediction Setting}
+
+The experiments in this thesis use the solar active-region magnetogram image dataset introduced by Boucheron et al.~\cite{ref_boucheron}. This dataset was designed to make flare-prediction experiments possible without requiring each researcher to rebuild the same solar-data pipeline from scratch. It combines three sources of information: NOAA Solar Region Summaries, which identify active regions and their disk positions; SDO/HMI line-of-sight magnetograms, which provide the image data; and NOAA/SWPC event reports, which associate GOES soft X-ray flares with NOAA active-region numbers.
+
+The image data come from the Helioseismic and Magnetic Imager (HMI) on board NASA's Solar Dynamics Observatory (SDO). The relevant HMI series is \texttt{hmi.M\_720s}, which provides line-of-sight photospheric magnetograms at a 720-second, or 12-minute, cadence. The full dataset covers NOAA active regions observed between May 1, 2010 and December 31, 2018. Boucheron et al. downloaded 1,372,004 HMI magnetogram images corresponding to 1,655 NOAA active regions over this period. The images are active-region cutouts rather than full-disk solar images, so the learning problem focuses on the magnetic structure of each region instead of on the mostly quiet solar disk. The active regions are tracked according to the Carrington (synodic) rotation rate of the Sun as observed from Earth with daily position updating by an analyst in order to keep them centered in the image \cite{ref_boucheron}.
+
+The original downloaded cutouts have a fixed size of $600 \times 600$ pixels, corresponding to approximately $300 \times 300$ arcseconds around the NOAA active-region center. This fixed physical window is important for deep learning because it avoids giving every active region an arbitrary image size. It also avoids a common preprocessing problem: if active regions of different sizes are simply resized to a common network input size, their apparent scale and aspect ratio can be distorted. The fixed-window strategy keeps the image format consistent while preserving a comparable view of each active region across time.
+
+The preconfigured dataset used here applies two main quality filters. First, only images whose active-region centers lie within $\pm 60^\circ$ latitude and longitude are retained. This removes the difficult limb cases, where the curved solar surface makes line-of-sight magnetograms harder to interpret. Second, images containing NaN pixels are excluded (e.g. when part of the sky background with no magnetic field is included). After latitude/longitude and NaN filtering, the preconfigured dataset contains 950,047 on-disk HMI images. This filtered set is the basis for both the full-resolution and reduced-resolution versions of the benchmark.
+
+This thesis uses the reduced-resolution PNG version of the preconfigured dataset. In this version, the active-region magnetograms are represented as $224 \times 224$ images with 8-bit intensities. This format is especially convenient for computer-vision experiments because it can be used directly with standard image and video backbones. The reduction in image size also makes repeated fine-tuning experiments feasible while keeping the same active-region split and labels as the full-resolution dataset.  According to Boucheron et al. \cite{ref_boucheron}, the reduced-resolution version retains comparable classification performance to the full-resolution dataset.
+
+Each image has a flare label derived from NOAA/SWPC event reports. For every reported flare associated with a NOAA active region, the dataset assigns the flare's GOES class to images of that active region whose timestamps fall within the 24-hour prediction window before the flare peak time. Images not associated with a flare above the chosen threshold are labeled as non-flaring. The label file therefore stores a string such as \texttt{C4.7}, \texttt{M1.4}, or \texttt{X2.2} for flaring examples, and \texttt{0} for non-flaring examples. In this thesis, these string labels are converted into two binary tasks: $\geq C$ and $\geq M$ flare occurrence in the next 24 hours.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/flare_distributions_onepanel.pdf}
+\caption{Temporal distribution of flare classes in the preconfigured dataset used in this thesis (adapted from Boucheron et al.~\cite{ref_boucheron}). The top panel shows the distribution of flaring examples by class, while the bottom panel shows the full dataset distribution including non-flaring observations. The strong class imbalance, especially for $\geq M$ events, is clearly visible.}
+\label{fig:intro_dataset_distribution}
+\end{figure}
+
+The temporal distribution of flare events in the preconfigured dataset is shown in Figure~\ref{fig:intro_dataset_distribution}. The figure highlights both the variation in solar activity over time and the strong class imbalance, particularly for M- and X-class events.
+
+The original train, validation, and test split proposed by Boucheron et al.~\cite{ref_boucheron} is preserved. The split is made by active region, not by individual image. This is important because neighboring images from the same active region can be extremely similar; if images were randomly shuffled, nearly identical observations of the same AR could appear in both training and testing, making the test set artificially easy. The AR-disjoint split contains 1,256 training ARs, 157 validation ARs, and 157 test ARs, corresponding to 759,357, 95,933, and 94,757 images, respectively.
+
+A summary of the dataset configuration is provided in Table~\ref{tab:intro_dataset_summary}, and the overall dataset construction process is illustrated in Figure~\ref{fig:intro_dataset_pipeline}.
+
+
+\begin{table}[H]
+\centering
+\caption{Summary of the dataset configuration used throughout the thesis.}
+\label{tab:intro_dataset_summary}
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.32\textwidth}>{\raggedright\arraybackslash}p{0.56\textwidth}@{}}
+\toprule
+Item & Setting \\
+\midrule
+Instrument & SDO/HMI line-of-sight magnetograms \\
+Solar targets & NOAA active regions \\
+Observation period & May 1, 2010 to December 31, 2018 \\
+Native cadence & 720 seconds between HMI observations \\
+Image size & $224 \times 224$ pixels \\
+Image format & Reduced-resolution 8-bit PNG active-region cutouts \\
+Disk-position filter & Active-region center within $\pm 60^\circ$ latitude/longitude \\
+NaN filter & Images containing NaN pixels excluded \\
+Forecast window & 24 hours after the reference observation \\
+Main labels & $\geq C$ and $\geq M$ flare occurrence \\
+Train/validation/test ARs & 1,256 / 157 / 157 active regions \\
+Train/validation/test images & 759,357 / 95,933 / 94,757 images \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[
+  >=Latex,
+  block/.style={rectangle, draw, rounded corners=2pt, align=center, minimum width=2.5cm, minimum height=0.9cm},
+  every node/.style={font=\small}
+]
+\node[block, fill=gray!10] (sdo) {SDO/HMI\\magnetograms};
+\node[block, fill=gray!10, right=0.9cm of sdo] (ar) {NOAA active\\regions};
+\node[block, fill=gray!10, right=0.9cm of ar] (crop) {$224 \times 224$\\AR images};
+\node[block, fill=gray!10, right=0.9cm of crop] (label) {24-hour\\flare labels\\($\geq C$, $\geq M$)};
+\node[block, fill=gray!10, below=0.8cm of crop] (split) {AR-disjoint\\train/val/test splits};
+\draw[->, thick] (sdo) -- (ar);
+\draw[->, thick] (ar) -- (crop);
+\draw[->, thick] (crop) -- (label);
+\draw[->, thick] (crop) -- (split);
+\draw[->, thick] (label) -- (split);
+\end{tikzpicture}
+}
+\caption{Dataset construction overview for the thesis experiments. The benchmark provides consistently sized active-region magnetograms and flare labels while preserving active-region-disjoint splits.}
+\label{fig:intro_dataset_pipeline}
+\end{figure}
+
+\subsection{Comparison Between the $\geq C$ and $\geq M$ Tasks}
+
+The dataset is large, but the two prediction tasks do not have the same statistical difficulty, as illustrated in Figure~\ref{fig:intro_dataset_distribution}. The $\geq C$ task asks whether an active region will produce a C-, M-, or X-class flare in the next 24 hours. It is therefore a broader activity-detection problem: many moderate events count as positive. In the training split, 149,249 of 759,357 observations are positive for this task, corresponding to 19.7\%.
+
+The $\geq M$ task asks whether the future flare will reach at least M class. C-class flares become negative examples in this setting, even though they are still signs of solar activity. This makes the $\geq M$ task more selective and much more imbalanced: in the training split, only 23,395 observations are positive, corresponding to 3.1\%. The same observation can therefore have different labels depending on the operational question. If an active region later produces a C-class flare, it is a positive example for the $\geq C$ task but a negative example for the $\geq M$ task.
+
+This comparison shapes the rest of the thesis. The $\geq C$ task has enough positives to learn many examples of future flare activity, but it includes moderate flares that may be less operationally severe. The $\geq M$ task focuses on stronger events that are more relevant for space-weather risk, but the model has fewer examples from which to learn, the variance across random seeds tends to be larger, and false positives can dominate precision. This is why the Chapter~\ref{chap:article1} reports both TSS and threshold-free metrics such as AUC and PR-AUC.
+
+\subsection{Temporal Coverage of Active Regions}
+
+The temporal experiments require more than individual labeled images. To construct a sequence, an active region must have a sufficiently long contiguous history of observations before the reference time. Since the HMI magnetograms are spaced by 12 minutes, a sequence covering 45 hours requires a long uninterrupted run of valid observations for the same AR. An example of such a sequence is shown in Figure~\ref{fig:example_180_sequence}. This constraint is important because increasing the temporal window can reduce the number of usable training sequences. 
+
+To quantify this effect, we computed for each AR the longest contiguous run of available 12-minute observations and converted it to a maximum usable temporal span in hours. If an AR has a longest uninterrupted run of $N$ frames, its maximum contiguous span is $(N-1)\times 12/60$ hours. This analysis is based on the same $224 \times 224$ image split files used in the thesis. A summary of the temporal coverage across splits is provided in Table~\ref{tab:intro_ar_temporal_coverage}.
+
+\begin{table}[H]
+\centering
+\caption{Longest contiguous temporal coverage per AR. The columns at 15, 30, and 45 hours correspond to the temporal spans of 16-frame sequences sampled every 60, 120, and 180 minutes, respectively.}
+\label{tab:intro_ar_temporal_coverage}
+\small
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+Split & ARs & Median span & IQR & $\geq 15$ h & $\geq 30$ h & $\geq 45$ h \\
+\midrule
+Train & 1,256 & 82.2 h & 35.8--125.5 h & 96.2\% & 76.9\% & 70.5\% \\
+Validation & 157 & 77.2 h & 36.2--124.8 h & 97.5\% & 77.7\% & 72.6\% \\
+Test & 157 & 77.4 h & 41.4--125.0 h & 94.9\% & 76.4\% & 72.6\% \\
+All & 1,570 & 80.2 h & 36.2--125.2 h & 96.2\% & 76.9\% & 70.9\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\safeincludegraphics[width=\linewidth]{figures/example_ar1339_180min_sequence.pdf}
+\caption{Example of a 16-frame input sequence from NOAA AR 1339 sampled every 3 h over a 45-hour window, ending at the reference time 2011-11-06 03:36 TAI. This sequence is labeled positive for the $\geq M$ task due to an M1.4-class flare occurring within the 24-hour prediction window.}
+\label{fig:example_180_sequence}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\safeincludegraphics[width=0.88\linewidth]{figures/intro_ar_temporal_coverage.pdf}
+\caption{Fraction of active regions with at least a given amount of contiguous temporal coverage. Vertical dashed lines mark the temporal spans of 16-frame sequences at 60-, 120-, and 180-minute cadences.}
+\label{fig:intro_ar_temporal_coverage}
+\end{figure}
+
+This analysis shows why temporal design is a practical dataset question, not only a model question. As shown in Figure~\ref{fig:intro_ar_temporal_coverage}, most ARs have enough contiguous observations for a 15-hour history, but fewer ARs support 30- or 45-hour histories. Across all splits, about 70.9\% of ARs have at least 45 hours of contiguous coverage (Table~\ref{tab:intro_ar_temporal_coverage}). Longer temporal windows may contain more useful information about magnetic evolution, but they also impose stricter availability constraints and can reduce the effective number of training sequences.
+\subsection{Input Design Questions}
+
+The dataset choice has two advantages for the present work. First, it gives a large number of consistently formatted magnetogram images, which is important for deep learning. Second, it makes the thesis less dependent on custom solar-data preprocessing. The scientific question can therefore be focused on input design.
+
+Four input design choices are central to the \hyperref[chap:article1]{next chapter}. The first is spatial resolution: if lower-resolution magnetograms preserve most predictive information, then training and inference can be made cheaper. The second is disk position: if active regions near disk center are easier to classify, projection effects may be an important source of nuisance variation. The third is temporal cadence: for a fixed number of frames, a short cadence gives dense sampling over a short interval, whereas a long cadence gives sparse sampling over a longer interval. The fourth is the number of frames: for a fixed temporal span, fewer frames may be sufficient if the important information lies in broad evolution rather than dense frame-to-frame changes.
+
+\section{Deep Learning Architectures for Spatio-Temporal Forecasting}
+
+Computer vision has moved from handcrafted features toward deep representations learned from data. In solar flare prediction, earlier machine-learning approaches often used engineered physical descriptors of active regions, such as total magnetic flux, field gradients, polarity-separation measures, or other summaries of magnetic complexity. Deep learning offers a different strategy: instead of defining all relevant descriptors by hand, the model learns image representations directly from magnetograms. This is useful when predictive patterns are spatially complex or when the best combination of local structure, global organization, and temporal evolution is not obvious in advance.
+
+For this thesis, the architecture question is not simply ``which neural network gives the best leaderboard number?'' The more important question is what kind of visual representation is appropriate for active-region magnetograms. A useful model should be able to represent local magnetic structures, such as compact opposite-polarity regions; broader organization, such as the arrangement of magnetic polarities across the whole active region; and temporal change, such as the evolution of those structures over several hours. The following subsections summarize the main architecture families relevant to this work and explain why MViT is a reasonable choice for the controlled experiments.
+
+\subsection{Convolutional Neural Networks}
+
+Convolutional neural networks (CNNs) are built around three important inductive biases: locality, weight sharing, and hierarchy. Locality means that early filters look at small neighborhoods of the image. Weight sharing means that the same filter is applied across many spatial locations. Hierarchy means that deeper layers combine simple local patterns into more abstract features. These properties explain why CNNs have been effective in many image-recognition tasks: the same visual pattern can occur at different positions, and complex objects can be built from local parts.
+
+For magnetograms, these biases are useful but incomplete. Locality is useful because the model can learn small-scale structures such as magnetic-gradient patterns and polarity boundaries. Weight sharing is useful because similar magnetic structures can appear at different positions inside an active-region cutout. Hierarchy is useful because a flare-productive active region may contain both small details and larger-scale organization. However, the most relevant magnetic relationships are not always local. Two opposite-polarity regions can be separated across the image, and their relative arrangement may matter. A purely convolutional model can still learn such relationships, but it may require many layers or pooling operations to build a sufficiently large receptive field.
+
+% \subsection{Vision Transformers and Attention}
+
+% Vision Transformers (ViTs) approach images differently~\cite{ref_vit}. The image is divided into patches, each patch is projected into a vector, and the resulting vectors are treated as tokens. The central operation is self-attention. In simplified form, attention computes
+% \begin{equation}
+% \operatorname{Attention}(Q,K,V)
+% = \operatorname{softmax}\left(\frac{QK^\top}{\sqrt{d}}\right)V,
+% \end{equation}
+% where $Q$, $K$, and $V$ are query, key, and value representations of the tokens, and $d$ is a scaling factor. Intuitively, each token can compare itself with other tokens and collect information from them. This allows distant regions of an image to interact more directly than in a standard convolutional layer.
+
+% This property is attractive for magnetograms. A flare-predictive configuration may depend on the relationship between multiple magnetic polarities, not only on a local texture. Attention can in principle connect distant parts of the active region, such as opposite-polarity concentrations separated by many pixels. At the same time, standard ViTs can be computationally expensive because attention scales with the number of tokens. They also have weaker built-in locality than CNNs, which can make them more data-hungry if the training set is not large enough or if the pretraining domain is very different from the target data.
+
+\subsection{Vision Transformers and Attention}
+
+Vision Transformers (ViTs) adopt a sequence-based representation of images, inspired by Transformer architectures originally developed for natural language processing~\cite{ref_vit}. Instead of processing images as spatial grids with convolutions, ViTs treat an image as a collection of patches that are processed jointly through attention mechanisms.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/model_scheme.pdf}
+\caption{Overview of the Vision Transformer architecture. The image is divided into patches, embedded into tokens, and processed by a stack of Transformer encoder blocks. A classification token aggregates global information and is used for prediction.}
+\label{fig:vit_scheme}
+\end{figure}
+
+As illustrated in Figure~\ref{fig:vit_scheme}, the input image is first divided into non-overlapping patches of fixed size (e.g., $16 \times 16$ pixels). Each patch is flattened and linearly projected into a vector representation, producing a sequence of embedded tokens. Because this process removes explicit spatial structure, positional embeddings are added to each token to encode its location within the image.
+
+In addition to patch tokens, a special learnable \emph{classification token} (often denoted as [CLS]) is prepended to the sequence. This token is designed to aggregate global information from all patches and is used for the final prediction.
+
+The sequence of tokens is then passed through a stack of Transformer encoder blocks. Each block consists of two main components: a multi-head self-attention layer and a feed-forward network (MLP), both wrapped with residual connections and layer normalization. The self-attention mechanism is the core operation, defined as
+\begin{equation}
+\operatorname{Attention}(Q,K,V)
+= \operatorname{softmax}\left(\frac{QK^\top}{\sqrt{d}}\right)V,
+\end{equation}
+where $Q$, $K$, and $V$ are learned projections of the input tokens. This operation allows each token to dynamically weigh the importance of all other tokens in the sequence, enabling global information exchange across the entire image.
+
+In practice, multiple attention heads are used in parallel (multi-head attention), allowing the model to capture different types of relationships simultaneously, such as local patterns, long-range dependencies, or structural alignments between regions.
+
+After several encoder layers, the final representation of the [CLS] token is passed to a classification head (typically a small MLP), which produces the output prediction.
+
+This architecture is particularly well suited for magnetogram analysis. Solar flare activity is often associated with complex interactions between spatially distant magnetic regions, such as opposite-polarity structures. Unlike convolutional neural networks, which rely on local receptive fields and progressively aggregate information, self-attention enables direct interactions between all parts of the image at every layer. This makes it possible to model global magnetic configurations more effectively.
+
+However, ViTs also present challenges. The computational cost of self-attention grows quadratically with the number of tokens, making high-resolution inputs expensive. Additionally, the absence of strong inductive biases such as locality and translation invariance can make ViTs more data-hungry than CNNs, particularly when the pretraining domain differs from the target task.
+
+
+\subsection{Hierarchical Backbones: Swin, ConvNeXt, and Multiscale Models}
+
+Modern vision backbones often combine ideas from CNNs and transformers. Swin Transformer introduces a hierarchical transformer structure with local window attention and shifted windows~\cite{ref_swin}. Instead of attending globally over all image tokens at every layer, Swin computes attention inside local windows, then shifts the windows between blocks so that information can cross window boundaries. This reduces computation while preserving a form of hierarchical representation.
+
+ConvNeXt takes a different route~\cite{ref_convnext}. It remains a convolutional network, but adopts several design choices associated with modern transformer-era models, such as larger kernels and updated block structure. It is useful as a strong CNN-style baseline because it keeps convolutional inductive biases while narrowing the gap with transformer architectures.
+
+These architectures illustrate an important point for this thesis: the useful distinction is not simply ``CNN versus transformer.'' The real design axes are locality versus global interaction, flat versus hierarchical representation, and computation versus input size. Magnetogram forecasting needs all of these considerations. The model must preserve enough spatial detail to represent magnetic structure, but it must also integrate information across the active region and, in the sequence setting, across time.
+
+\begin{table}[H]
+\centering
+\caption{Architecture families relevant to magnetogram-based flare prediction.}
+\label{tab:intro_architecture_comparison}
+\small
+\renewcommand{\arraystretch}{1.18}
+\setlength{\tabcolsep}{4pt}
+
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.18\textwidth} >{\raggedright\arraybackslash}p{0.25\textwidth} >{\raggedright\arraybackslash}X@{}}
+\toprule
+Model family & Main idea & Relevance for this thesis \\
+\midrule
+CNN & Local convolutions, weight sharing, hierarchical features & Strong local inductive bias for polarity boundaries and compact magnetic structures; long-range interactions may require deeper layers. \\
+ViT~\cite{ref_vit} & Patch tokens with global self-attention & Can connect distant magnetic regions directly, but may be computationally expensive and less locally biased. \\
+Swin~\cite{ref_swin} & Windowed attention with shifted windows and hierarchy & More efficient than global attention and naturally hierarchical; useful reference point for transformer-style image modeling. \\
+ConvNeXt~\cite{ref_convnext} & Modernized convolutional backbone & Strong CNN-style baseline that preserves locality while using design choices from modern vision architectures. \\
+Video models (e.g., R(2+1)D) & Joint processing of space and time & Suitable when active-region evolution matters, but input length and cadence strongly affect computation and available training sequences. \\
+MViT~\cite{ref_mvit} & Hierarchical multiscale attention for images or video & Fits the thesis because it can be used in both 2D and temporal settings while combining local detail, larger context, and temporal interactions. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Temporal Modeling}
+
+Temporal information can be introduced in several ways. A simple approach is to classify each frame independently and aggregate predictions over time. This is easy to implement, but it does not explicitly learn how magnetic structures evolve. Recurrent models process features sequentially, but they compress each frame into a hidden state and may lose spatial detail. Three-dimensional CNNs extend convolution to space and time, allowing local spatio-temporal patterns to be learned. A representative example is R(2+1)D, which factorizes each 3D convolution into a spatial 2D convolution followed by a temporal 1D convolution~\cite{ref_r2plus1d}. Video transformers use attention over space-time tokens, allowing longer-range temporal interactions at higher computational cost.
+
+In the experiments, temporal inputs are sequences of magnetograms from the same active region. The sequence model therefore receives both spatial information, such as the arrangement of magnetic polarities, and temporal information, such as how that arrangement changes over several hours. This makes the task closer to video understanding than to ordinary image classification, even though the input is scientific imagery rather than natural video.
+
+The choice of temporal sampling is itself part of the modeling problem. If frames are sampled too closely in time, adjacent magnetograms may be nearly redundant. If frames are sampled too far apart, the model may miss shorter-term changes. For a fixed number of frames, increasing cadence increases temporal span but decreases temporal density. For a fixed temporal span, reducing the number of frames decreases computational cost but may remove useful intermediate observations. These trade-offs are exactly why the following chapter studies both cadence and frame count.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[
+  >=Latex,
+  img/.style={rectangle, draw, minimum width=0.85cm, minimum height=0.7cm, fill=gray!12},
+  block/.style={rectangle, draw, rounded corners=2pt, align=center, minimum width=2.2cm, minimum height=0.8cm},
+  every node/.style={font=\small}
+]
+\node[img] (i1) at (0,1.5) {};
+\node[block, right=0.8cm of i1] (m1) {2D model};
+\node[block, right=0.8cm of m1] (o1) {flare score};
+\draw[->, thick] (i1) -- (m1);
+\draw[->, thick] (m1) -- (o1);
+\node[left=0.25cm of i1] {image};
+
+\foreach \x in {0,0.35,0.70,1.05}
+  \node[img] at (\x,0) {};
+\node[block] (m2) at (3.0,0) {spatio-temporal\\model};
+\node[block] (o2) at (5.8,0) {flare score};
+\draw[->, thick] (1.15,0) -- (m2);
+\draw[->, thick] (m2) -- (o2);
+\node[left=0.25cm] at (0,0) {sequence};
+\node[below=0.35cm] at (0.55,0) {temporal context};
+\end{tikzpicture}
+}
+\caption{Conceptual comparison between image-based and sequence-based flare prediction. The image model predicts from a single magnetogram, while the spatio-temporal model uses multiple observations of the same active region.}
+\label{fig:intro_image_vs_sequence}
+\end{figure}
+
+\subsection{Multiscale Vision Transformer}
+
+The Multiscale Vision Transformer (MViT) is the main architecture family used in the \hyperref[chap:article1]{next chapter}~\cite{ref_mvit}. Its key idea is to combine transformer attention with the multiscale hierarchy that has long been useful in convolutional vision models. A standard ViT usually keeps a relatively uniform token resolution and channel dimension through most of the network. MViT instead organizes the network into scale stages. As depth increases, the number of visual tokens is reduced while the channel capacity is increased. Early stages therefore operate on dense, fine-resolution tokens with relatively small channel dimension, while later stages operate on coarser tokens with richer feature representations.
+
+\begin{figure}[H]
+\centering
+\safeincludegraphics[width=0.95\linewidth]{figures/mvit_teaser.pdf}
+\caption{Multiscale hierarchy in MViT. The model progressively reduces the resolution of the token sequence while increasing channel capacity, moving from dense low-level representations to coarser high-level representations. Figure adapted from Fan et al.~\cite{ref_mvit}.}
+\label{fig:intro_mvit_teaser}
+\end{figure}
+
+For the solar-flare setting, this hierarchy is appealing because magnetograms contain useful information at several spatial scales. Local patterns can matter near polarity inversion lines, compact opposite-polarity concentrations, or sharp magnetic gradients. At the same time, larger-scale organization can matter, such as the global arrangement of positive and negative polarities across the active region. A model that focuses only on local texture may miss global magnetic structure, whereas a model that summarizes the whole image too early may lose important local detail. MViT provides a way to represent both levels of information within a single architecture.
+
+At a high level, an MViT model first converts the input image or video into visual tokens. For an image model, these tokens come from spatial patches. For a sequence model, they can be understood as space-time tokens, or tubelets, that cover small regions across both space and time. The model then applies transformer blocks while gradually changing the resolution and channel dimension of the token sequence. If the input is a magnetogram sequence, the tokens encode not only where magnetic structures are located but also how they evolve from frame to frame.
+
+The main operator that enables this changing resolution is Multi Head Pooling Attention (MHPA). In ordinary multi-head attention, the query, key, and value sequences usually keep the same length as the input token sequence. MViT modifies this by applying a pooling operator to the query, key, and value tensors before attention is computed. If the input sequence has length $L$ and feature dimension $D$, the usual projections first produce
+\begin{equation}
+\hat{Q}=XW_Q,\qquad \hat{K}=XW_K,\qquad \hat{V}=XW_V .
+\end{equation}
+MHPA then applies pooling operators $\mathcal{P}$ to obtain shorter sequences,
+\begin{equation}
+Q=\mathcal{P}(\hat{Q};\Theta_Q),\qquad
+K=\mathcal{P}(\hat{K};\Theta_K),\qquad
+V=\mathcal{P}(\hat{V};\Theta_V),
+\end{equation}
+and attention is computed on these pooled representations:
+\begin{equation}
+\operatorname{MHPA}(Q,K,V)
+= \operatorname{softmax}\left(\frac{QK^\top}{\sqrt{d}}\right)V .
+\end{equation}
+Pooling the query changes the output token resolution, which allows a stage transition to reduce the number of tokens. Pooling the keys and values reduces the cost of attention without necessarily changing the output resolution. This is important for video-like inputs because the number of tokens grows with both image size and number of frames.
+
+\begin{figure}[H]
+\centering
+\safeincludegraphics[width=0.72\linewidth]{figures/mvit_mhpa.pdf}
+\caption{Multi Head Pooling Attention. Query pooling can reduce the output space-time resolution, while key and value pooling reduce the sequence length used inside attention and therefore lower computational cost. Figure adapted from Fan et al.~\cite{ref_mvit}.}
+\label{fig:intro_mvit_mhpa}
+\end{figure}
+
+The scale-stage design also affects residual connections. In a standard transformer block, the input can be added directly to the output of the attention or MLP branch because the shape is unchanged. At an MViT stage transition, however, the token resolution and channel dimension may both change. The residual path must therefore be adapted so that it can be added to the transformed branch. Fan et al. compare several strategies and use a normalized skip connection when the channel dimension is expanded. In the context of this thesis, the main point is not the exact ablation result, but the design principle: once the model changes token resolution and feature dimension inside the network, the residual path must also respect that change.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.31\linewidth}
+\centering
+\safeincludegraphics[height=0.24\textheight]{figures/mvit_skip1.pdf}
+\end{minipage}
+\hfill
+\begin{minipage}{0.31\linewidth}
+\centering
+\safeincludegraphics[height=0.24\textheight]{figures/mvit_skip2.pdf}
+\end{minipage}
+\hfill
+\begin{minipage}{0.31\linewidth}
+\centering
+\safeincludegraphics[height=0.24\textheight]{figures/mvit_skip3.pdf}
+\end{minipage}
+\caption{Skip-connection variants at MViT stage transitions: normalized channel expansion, direct channel expansion, and no skip connection. These variants illustrate why residual paths must be adapted when the token sequence changes resolution or channel dimension. Figures adapted from Fan et al.~\cite{ref_mvit}.}
+\label{fig:intro_mvit_skip}
+\end{figure}
+
+MViT is also well suited to the temporal part of this thesis. A flare-predictive magnetic configuration may not be fully captured by the appearance of a single frame. Instead, the model may benefit from seeing whether magnetic structures are becoming more complex, whether opposite polarities are moving relative to one another, or whether the active region remains stable over many hours. Because MViT can process tokens across both space and time, it can represent local changes between nearby frames as well as broader evolution over the full temporal window. This is why it is a natural architecture for the cadence and frame-count experiments: the same model family can be used to ask whether a longer temporal span helps and whether fewer frames can preserve most of the useful temporal information.
+
+MViT extends the basic transformer design with multiscale attention and hierarchical token representations~\cite{ref_mvit}. These design choices improve the ability of the model to capture both local and global structures while remaining computationally efficient. In this thesis, both the image and sequence experiments use MViT-based architectures, ensuring consistency across spatial and spatio-temporal settings.
+
+\subsection{Model Exploration in this Thesis}
+
+Several modern backbones were considered in the broader experimental work, including ConvNeXt, Swin Transformer, ViT, and MViT-style models~\cite{ref_vit,ref_mvit,ref_swin,ref_convnext}. Recent work has also started to compare transformer-based foundation models across image, video, and time-series modalities for flare forecasting~\cite{ref_riggi_transformers}. These architectures differ in how they balance inductive bias and flexibility (see Table~\ref{tab:intro_architecture_comparison}). CNN-like models provide strong locality and efficient feature extraction. Windowed transformers such as Swin provide a compromise between local attention and hierarchical representations. ViT-style models provide more global attention but can require more data and computation. MViT combines hierarchy and attention in a way that is naturally compatible with both image and sequence inputs.
+
+Chapter~\ref{chap:article1} uses an MViT backbone for both image and sequence experiments. This choice should be understood as an experimental control, not as a claim that MViT is universally optimal for all solar flare forecasting. Keeping the model family consistent makes it easier to interpret the effect of input design choices.
+
+This is also why the thesis does not try to exhaustively compare every modern architecture. Such a comparison would be valuable, but it would answer a different question. The central question here is how input design affects performance when a strong and flexible model family is kept mostly fixed. Architecture selection is therefore used to support the empirical study, while the main scientific contribution is the analysis of spatial resolution, disk position, temporal cadence, and frame count.
+
+\section{Thesis Objective and Organization}
+
+The objective of this thesis is to understand how input design choices affect the performance of deep learning models for solar flare prediction under a controlled training protocol. The article included in Chapter~\ref{chap:article1} examines four practical questions:
+
+\begin{enumerate}
+  \item How much spatial resolution is needed for active-region magnetogram images?
+  \item How does active-region position on the solar disk affect prediction quality?
+  \item For a fixed 16-frame model, which temporal cadence provides useful context?
+  \item For a fixed temporal span, how many frames are needed?
+\end{enumerate}
+
+Chapter~\ref{chap:article1} contains the submitted ICANN 2026 article, reformatted for the thesis. It presents the dataset, methods, metrics, experiments, results, and discussion. The article is empirical and comparative: it uses established deep-learning models as tools to understand the role of spatial and temporal input design. A general conclusion chapter then synthesize the broader lessons of the thesis, including the practical implications, limitations, and future directions beyond the submitted article.
+We also provide an appendix with additional results for reinforcing the main claims of the thesis.
+
+\endinput

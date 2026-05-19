@@ -1,0 +1,91 @@
+Professor Sebastien Roy
+=======================
+
+General Note
+============
+The comments are overall positive and mostly suggest additional context rather than pointing to concrete scientific or methodological problems in the thesis. During the jury session, the supervisor indicated that the main concerns had already been discussed orally. For the written manuscript, the only point we considered important enough to add explicitly was approximate training time for the models.
+
+
+Implemented Change
+==================
+
+Training Time / Practical Compute Cost
+--------------------------------------
+This point was added to the manuscript.
+
+- In the reproducibility section, the image-based 2D MViT runs are now described as typically requiring several hours on one A100 GPU.
+- The spatio-temporal MViT runs are described as being on the order of half a day on two A100 GPUs.
+- Appendix D now also gives rough compute context for the additional sequence backbones (Video Swin, VideoMAE, and R(2+1)D-18).
+
+
+Points Already Addressed in the Current Thesis
+==============================================
+
+What is the data source?
+------------------------
+The thesis already states that the image data come from line-of-sight SDO/HMI magnetograms and identifies the dataset used in the experiments as the active-region benchmark of Boucheron et al. The introduction also explains that the images are active-region cutouts rather than full-disk inputs.
+
+What exactly is the prediction task?
+------------------------------------
+This is already clarified in the current version. The thesis explains that each observation is labeled according to whether the corresponding active region produces a flare above a chosen threshold within the next 24 hours. It also states that X-class flares are not modeled as a separate task because of rarity; they are included in the positive class of both the $\geq C$ and $\geq M$ tasks.
+
+What is meant by a "future flare label"?
+----------------------------------------
+The introduction now explains that the label does not describe what is already visible in the image; it indicates whether a flare will occur during the following 24-hour window. The thesis also gives concrete label examples such as `C4.7`, `M1.4`, and `X2.2`.
+
+What part of the Sun does a label refer to?
+-------------------------------------------
+The thesis already makes clear that the prediction is attached to an active-region cutout, not to the whole solar disk. The data are organized by NOAA active region, and the flare labels are associated with that active region.
+
+Longitude / latitude restrictions
+---------------------------------
+This is already addressed more clearly in the revised version. The thesis now states that the $\pm 60^\circ$ and $\pm 30^\circ$ regions are defined relative to the center of the visible solar disk, and a schematic figure was added to illustrate these geometric restrictions.
+
+Why 16 frames?
+--------------
+The manuscript already gives the experimental logic: 16 frames were used as a fixed input design for the cadence study, and the later frame-count experiment was introduced precisely to test whether fewer frames could preserve most of the useful information when temporal span is held fixed.
+
+How are means and standard deviations computed?
+-----------------------------------------------
+The thesis already reports repeated experiments with multiple random seeds in the main comparative settings, and it explicitly states that every sequence setting was repeated with five random seeds. The appendices now also use five-seed supplementary comparisons for the relevant backbone comparisons.
+
+
+Comments That Are Reasonable but Not Necessary to Add Now
+=========================================================
+
+More general solar-imaging background
+-------------------------------------
+Suggestions such as adding more examples of notable solar events, more general discussion of solar-weather situations, or a broader overview of SDO / SOHO / STEREO would be useful background for a broader audience. However, these are contextual enrichments rather than missing elements required to understand the thesis experiments.
+
+NASA / SDO links
+----------------
+Adding a link to NASA SDO resources or "images of the day" could be helpful for reader intuition, but it is optional and not necessary for the scientific content of the thesis.
+
+GitHub link
+-----------
+Making the code available would be good practice, but a repository link should only be added if the repository is in a stable and shareable state. This is therefore optional rather than required at deposit time.
+
+
+Comments Better Treated as Future Work
+======================================
+
+Why not use all available SDO images?
+-------------------------------------
+The thesis intentionally uses a standardized benchmark dataset with predefined preprocessing and splits. Moving beyond that benchmark would change the scope of the experiments and would not be a simple late-stage correction.
+
+Can one correct for solar-surface inclination / deproject the data?
+-------------------------------------------------------------------
+This is a legitimate scientific question, but addressing it would require a different preprocessing pipeline and new experiments. It is better treated as future work than as a final manuscript correction.
+
+Would higher spatial resolution help further?
+---------------------------------------------
+Testing larger resolutions such as 448 or 600 is a reasonable extension, but it would require additional experiments and is outside the scope of a final correction round.
+
+What should be retained from Appendix A about model choice?
+-----------------------------------------------------------
+The main takeaway is already present: the thesis is not primarily an architecture leaderboard, but the appendix shows that the selected MViT-family image backbone is competitive under the common protocol while preserving consistency with the sequence experiments.
+
+
+Bottom Line
+===========
+The only manuscript change that clearly needed to be added from this review was approximate training time, and that has been done. The remaining remarks are either already addressed in the current thesis, or they are best interpreted as optional contextual enrichment and future-work suggestions rather than required final corrections.

@@ -5,16 +5,17 @@ raw_data/
 processed_data/
 
 # Results and experiments (keep lightweight summaries & curves)
-results/
-experiments/
-outputs/
-checkpoints/
-runs/
-macros/
+/results/
+/experiments/
+/outputs/
+/checkpoints/
+/runs/
 # Unignore small summary artifacts
 !results/**/*.txt
 !results/**/*.json
 !results/*/training_curves.png
+!results/**/metrics.json
+!results/**/config.min.json
 
 # Model files
 *.pt
@@ -37,6 +38,12 @@ logs/
 *.jpeg
 *.pdf
 *.svg
+
+# WebDataset / data artifacts
+*.tar
+*.tar.gz
+*.tgz
+*.idx
 
 # Python
 __pycache__/
@@ -119,7 +126,20 @@ mlruns/
 arfl-smoke-*.out
 arfl-smoke-*.err
 
-# Files .tex/docx/
-*.tex
-*.docx
+# LaTeX and manuscript build products
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+
+# Codex local state
 *.codex

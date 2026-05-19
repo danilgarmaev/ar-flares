@@ -1,0 +1,20 @@
+\begin{table}[p]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Appendix A (M+): seed-0 A1 backbone screening at 224$\times$224. Metrics are reported at the validation-selected threshold. Best values in each column are bold.}
+\label{tab:appA_mplus_seed0_grouped}
+\begin{tabular}{lcccccccc}
+\toprule
+& \multicolumn{4}{c}{No augmentation} & \multicolumn{4}{c}{Augmentation} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-9}
+Model & AUC & TSS & F1 & PR-AUC & AUC & TSS & F1 & PR-AUC \\
+\midrule
+ConvNeXt-Tiny & \textbf{0.92} & \textbf{0.67} & \textbf{0.33} & 0.34 & 0.90 & 0.60 & 0.28 & 0.31 \\
+Swin-Tiny & 0.90 & 0.61 & 0.28 & 0.30 & 0.85 & 0.58 & 0.27 & 0.30 \\
+ViT-Small/16 & 0.91 & 0.62 & 0.30 & 0.32 & \textbf{0.91} & \textbf{0.65} & 0.29 & 0.39 \\
+2D MViTv2-Small & 0.91 & 0.54 & 0.29 & \textbf{0.38} & 0.91 & 0.63 & 0.28 & \textbf{0.41} \\
+ResNet-50 & 0.87 & 0.54 & 0.24 & 0.26 & 0.90 & 0.57 & \textbf{0.33} & 0.29 \\
+\bottomrule
+\end{tabular}
+\end{table}

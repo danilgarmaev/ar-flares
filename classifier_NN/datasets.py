@@ -49,7 +49,7 @@ def _parse_longitude_from_location_token(token: str) -> Optional[int]:
 def _build_srs_longitude_lookup_cached(srs_root: str) -> Dict[LocationKey, int]:
     """Build (AR, YYYYMMDD) -> longitude_deg lookup from SRS text files.
 
-    This intentionally mirrors the parsing approach in `legacy/run_experiments_A2.py`:
+    This intentionally mirrors the parsing approach in `experiments/run_experiments_A2.py`:
     - scan line-by-line (SRS formats vary)
     - find a location token like N15E42
     - infer the AR number from the first integer token in the same line

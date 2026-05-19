@@ -1,0 +1,16 @@
+\begin{table}[p]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Appendix B (C+): full fixed-threshold metrics for 2D MViT across resolutions (mean $\pm$ std over seeds, 2 decimals). Best mean metric per column is bold.}
+\label{tab:appB_full_cplus}
+\begin{tabular}{lcccccccccc}
+\toprule
+Resolution & TSS & TPR & TNR & Precision & Recall & F1 & HSS & MCC & Accuracy & val\_threshold \\
+\midrule
+224 & \textbf{0.54 $\pm$ 0.02} & 0.75 $\pm$ 0.04 & \textbf{0.79 $\pm$ 0.02} & \textbf{0.51 $\pm$ 0.02} & 0.75 $\pm$ 0.04 & \textbf{0.61 $\pm$ 0.01} & \textbf{0.46 $\pm$ 0.01} & \textbf{0.48 $\pm$ 0.02} & \textbf{0.78 $\pm$ 0.01} & 0.26 $\pm$ 0.11 \\
+112 & 0.50 $\pm$ 0.06 & 0.72 $\pm$ 0.06 & 0.78 $\pm$ 0.03 & 0.50 $\pm$ 0.03 & 0.72 $\pm$ 0.06 & 0.59 $\pm$ 0.03 & 0.43 $\pm$ 0.05 & 0.45 $\pm$ 0.04 & 0.77 $\pm$ 0.02 & 0.24 $\pm$ 0.32 \\
+56 & 0.52 $\pm$ 0.05 & \textbf{0.76 $\pm$ 0.04} & 0.76 $\pm$ 0.04 & 0.48 $\pm$ 0.04 & \textbf{0.76 $\pm$ 0.04} & 0.59 $\pm$ 0.03 & 0.43 $\pm$ 0.05 & 0.47 $\pm$ 0.05 & 0.76 $\pm$ 0.03 & 0.19 $\pm$ 0.22 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -21,7 +21,7 @@ from timm.data import Mixup
 from sklearn.metrics import roc_auc_score
 
 # Import our modules
-from .config import CFG, SPLIT_DIRS, get_default_cfg
+from .config import CFG, SPLIT_DIRS, append_norm_suffix, get_default_cfg
 from .datasets import create_dataloaders, count_labels_all_shards, count_samples_all_shards
 from .models import build_model
 from .losses import get_loss_function
@@ -353,6 +353,11 @@ def _trim_cfg_for_logging(cfg: dict) -> dict:
         "mvit_model_id",
         "mvit_remove_temporal_conv",
         "freeze_backbone",
+        "norm_2d",
+        "norm_3d",
+        "norm_token",
+        "norm_group_count",
+        "norm_custom_name",
         # optimization / runtime
         "batch_size",
         "num_workers",
@@ -433,7 +438,7 @@ def setup_experiment(cfg=None):
     eastern = pytz.timezone('US/Eastern')
     now_et = datetime.now(eastern)
     # Prefer explicit run_id if provided, otherwise derive from timestamp+model name
-    suffix = cfg.get("run_id") or cfg["model_name"]
+    suffix = append_norm_suffix(cfg.get("run_id") or cfg["model_name"], cfg)
     exp_id = f"{now_et.strftime('%Y-%m-%d %H:%M:%S')}_{suffix}"
     exp_dir = os.path.join(cfg["results_base"], exp_id)
     os.makedirs(exp_dir, exist_ok=True)

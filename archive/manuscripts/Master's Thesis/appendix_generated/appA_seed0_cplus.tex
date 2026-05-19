@@ -1,0 +1,17 @@
+\begin{table}[p]
+\centering
+\scriptsize
+\caption{Appendix A (C+): seed-0 backbone screening at 224$\times$224. Best value in each metric column is bold.}
+\label{tab:appA_seed0_cplus}
+\begin{tabular}{lcccccc}
+\toprule
+Model & AUC (NoAug) & TSS (NoAug) & F1 (NoAug) & AUC (Aug) & TSS (Aug) & F1 (Aug) \\
+\midrule
+ConvNeXt-Tiny & 0.83 & 0.51 & 0.58 & 0.82 & 0.51 & 0.59 \\
+Swin-Tiny & \textbf{0.84} & 0.54 & \textbf{0.63} & 0.82 & 0.47 & 0.57 \\
+ViT-Small/16 & 0.83 & 0.50 & 0.60 & 0.86 & 0.55 & \textbf{0.63} \\
+2D MViTv2-Small & 0.84 & \textbf{0.54} & 0.61 & \textbf{0.87} & \textbf{0.58} & 0.62 \\
+ResNet-50 & 0.82 & 0.48 & 0.58 & 0.80 & 0.45 & 0.56 \\
+\bottomrule
+\end{tabular}
+\end{table}

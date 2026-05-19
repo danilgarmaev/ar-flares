@@ -1,0 +1,25 @@
+\begin{table}[p]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{Appendix B (M+): compact full-metric summary for 2D MViT (mean $\pm$ std over seeds) across resolutions. Core metrics are listed first (TSS, AUC, PR-AUC, F1), followed by additional operating metrics. Best mean per metric is bold.}
+\label{tab:appB_compact_mplus}
+\begin{tabular}{lccc}
+\toprule
+Metric & 224 & 112 & 56 \\
+\midrule
+TSS & 0.58 $\pm$ 0.13 & \textbf{0.61 $\pm$ 0.04} & 0.55 $\pm$ 0.07 \\
+AUC & \textbf{0.91 $\pm$ 0.01} & 0.90 $\pm$ 0.01 & 0.87 $\pm$ 0.03 \\
+PR\_AUC & \textbf{0.38 $\pm$ 0.06} & 0.37 $\pm$ 0.02 & 0.35 $\pm$ 0.11 \\
+F1 & 0.23 $\pm$ 0.08 & \textbf{0.26 $\pm$ 0.03} & 0.26 $\pm$ 0.02 \\
+TPR & \textbf{0.83 $\pm$ 0.10} & 0.76 $\pm$ 0.04 & 0.68 $\pm$ 0.09 \\
+TNR & 0.75 $\pm$ 0.23 & 0.85 $\pm$ 0.03 & \textbf{0.87 $\pm$ 0.02} \\
+Precision & 0.14 $\pm$ 0.05 & 0.16 $\pm$ 0.02 & \textbf{0.16 $\pm$ 0.01} \\
+Recall & \textbf{0.83 $\pm$ 0.10} & 0.76 $\pm$ 0.04 & 0.68 $\pm$ 0.09 \\
+HSS & 0.19 $\pm$ 0.08 & \textbf{0.22 $\pm$ 0.03} & 0.21 $\pm$ 0.02 \\
+MCC & \textbf{0.31 $\pm$ 0.01} & 0.30 $\pm$ 0.01 & 0.28 $\pm$ 0.02 \\
+Accuracy & 0.75 $\pm$ 0.22 & 0.85 $\pm$ 0.02 & \textbf{0.86 $\pm$ 0.02} \\
+val\_threshold & 0.12 $\pm$ 0.11 & 0.06 $\pm$ 0.06 & 0.13 $\pm$ 0.10 \\
+\bottomrule
+\end{tabular}
+\end{table}

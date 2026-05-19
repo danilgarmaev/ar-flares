@@ -1,4 +1,6 @@
 """Model architectures for AR-flares classification."""
+from collections.abc import Callable
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,6 +14,83 @@ from .config import CFG
 
 # Get image size from config (used as a fallback; prefer cfg passed into build_model)
 IMG_SIZE = CFG.get("image_size", 224)
+_NORM_REGISTRY: dict[str, Callable[[str, int, dict, dict], nn.Module]] = {}
+
+
+def register_custom_norm(name: str, builder: Callable[[str, int, dict, dict], nn.Module]) -> None:
+    """Register a custom norm builder for repo-defined model blocks."""
+    key = str(name or "").strip().lower()
+    if not key:
+        raise ValueError("Custom norm name must be non-empty")
+    _NORM_REGISTRY[key] = builder
+
+
+def _group_count(num_features: int, cfg: dict) -> int:
+    groups = max(1, int(cfg.get("norm_group_count", 8)))
+    groups = min(groups, int(num_features))
+    while groups > 1 and num_features % groups != 0:
+        groups -= 1
+    return groups
+
+
+def _resolve_custom_norm(kind: str, num_features: int, cfg: dict, spec: str) -> nn.Module:
+    custom_name = None
+    if spec.startswith("custom:"):
+        custom_name = spec.split(":", 1)[1].strip().lower()
+    else:
+        custom_name = str(cfg.get("norm_custom_name") or "").strip().lower()
+    if not custom_name:
+        raise ValueError(f"Custom norm requested for {kind} but norm_custom_name is not set")
+    builder = _NORM_REGISTRY.get(custom_name)
+    if builder is None:
+        available = ", ".join(sorted(_NORM_REGISTRY)) or "<none registered>"
+        raise KeyError(f"Unknown custom norm '{custom_name}' for {kind}. Registered: {available}")
+    extra = dict(cfg.get("norm_custom_params") or {})
+    return builder(kind, int(num_features), dict(cfg), extra)
+
+
+def _build_norm(kind: str, num_features: int, cfg: dict | None = None) -> nn.Module:
+    cfg = cfg or CFG
+    defaults = {"2d": "batchnorm", "3d": "batchnorm", "token": "layernorm"}
+    config_keys = {"2d": "norm_2d", "3d": "norm_3d", "token": "norm_token"}
+    if kind not in defaults:
+        raise ValueError(f"Unsupported norm kind: {kind}")
+
+    spec = str(cfg.get(config_keys[kind], defaults[kind]) or defaults[kind]).strip().lower()
+    if not spec or spec == "default":
+        spec = defaults[kind]
+
+    if spec == "identity":
+        return nn.Identity()
+    if spec == "batchnorm":
+        if kind == "2d":
+            return nn.BatchNorm2d(num_features)
+        if kind == "3d":
+            return nn.BatchNorm3d(num_features)
+        raise ValueError("batchnorm is only supported for 2d/3d norm selections")
+    if spec == "layernorm":
+        if kind == "token":
+            return nn.LayerNorm(num_features)
+        raise ValueError("layernorm is only supported for token norm selections")
+    if spec == "groupnorm":
+        if kind not in {"2d", "3d"}:
+            raise ValueError("groupnorm is only supported for 2d/3d norm selections")
+        return nn.GroupNorm(_group_count(num_features, cfg), num_features)
+    if spec == "custom" or spec.startswith("custom:"):
+        return _resolve_custom_norm(kind, num_features, cfg, spec)
+    raise ValueError(f"Unsupported norm selection '{spec}' for {kind}")
+
+
+def make_2d_norm(num_features: int, cfg: dict | None = None) -> nn.Module:
+    return _build_norm("2d", num_features, cfg)
+
+
+def make_3d_norm(num_features: int, cfg: dict | None = None) -> nn.Module:
+    return _build_norm("3d", num_features, cfg)
+
+
+def make_token_norm(num_features: int, cfg: dict | None = None) -> nn.Module:
+    return _build_norm("token", num_features, cfg)
 
 
 # ===================== UTILITY FUNCTIONS =====================
@@ -111,15 +190,15 @@ class CANSmall(nn.Module):
     Convolutional Attention Network for magnetograms (domain-specific CNN+attention).
     Designed for single-channel grayscale input (1×224×224).
     """
-    def __init__(self, in_chans=1, num_classes=2, embed_dim=128, num_heads=4, dropout=0.3):
+    def __init__(self, in_chans=1, num_classes=2, embed_dim=128, num_heads=4, dropout=0.3, cfg=None):
         super().__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_chans, 32, kernel_size=5, stride=2, padding=2),
-            nn.BatchNorm2d(32), nn.ReLU(inplace=True),
+            make_2d_norm(32, cfg), nn.ReLU(inplace=True),
             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(64), nn.ReLU(inplace=True),
+            make_2d_norm(64, cfg), nn.ReLU(inplace=True),
             nn.Conv2d(64, embed_dim, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(embed_dim), nn.ReLU(inplace=True),
+            make_2d_norm(embed_dim, cfg), nn.ReLU(inplace=True),
         )
         self.attn = nn.MultiheadAttention(embed_dim, num_heads=num_heads,
                                           dropout=dropout, batch_first=True)
@@ -167,17 +246,17 @@ class SmallFlowCNN(nn.Module):
 
 class MediumFlowCNN(nn.Module):
     """Medium-capacity CNN for optical flow encoding."""
-    def __init__(self, out_dim=256, dropout=0.3):
+    def __init__(self, out_dim=256, dropout=0.3, cfg=None):
         super().__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(2, 32, 5, 2, 2),
-            nn.BatchNorm2d(32),
+            make_2d_norm(32, cfg),
             nn.ReLU(inplace=True),
             nn.Conv2d(32, 64, 3, 2, 1),
-            nn.BatchNorm2d(64),
+            make_2d_norm(64, cfg),
             nn.ReLU(inplace=True),
             nn.Conv2d(64, 128, 3, 2, 1),
-            nn.BatchNorm2d(128),
+            make_2d_norm(128, cfg),
             nn.ReLU(inplace=True),
             nn.AdaptiveAvgPool2d((1,1))
         )
@@ -207,7 +286,7 @@ class FlowResNetTiny(nn.Module):
 class TwoStreamModel(nn.Module):
     """Two-stream architecture combining image and optical flow encoders."""
     def __init__(self, img_backbone="deit_tiny_patch16_224", flow_encoder="SmallFlowCNN",
-                 num_classes=2, pretrained=True, freeze_backbone=True, flow_dim=128):
+                 num_classes=2, pretrained=True, freeze_backbone=True, flow_dim=128, cfg=None):
         super().__init__()
         # Image stream
         self.img_model = timm.create_model(img_backbone, pretrained=pretrained, num_classes=0)
@@ -220,7 +299,7 @@ class TwoStreamModel(nn.Module):
         if flow_encoder == "SmallFlowCNN":
             self.flow_model = SmallFlowCNN(out_dim=flow_dim)
         elif flow_encoder == "MediumFlowCNN":
-            self.flow_model = MediumFlowCNN(out_dim=flow_dim)
+            self.flow_model = MediumFlowCNN(out_dim=flow_dim, cfg=cfg)
         elif flow_encoder == "FlowResNetTiny":
             self.flow_model = FlowResNetTiny(out_dim=flow_dim)
         else:
@@ -256,7 +335,7 @@ class TemporalWrapper(nn.Module):
     Aggregate temporally via mean or attention, then classify.
     """
     def __init__(self, backbone_name="vit_base_patch16_224", num_classes=2,
-                 pretrained=True, freeze_backbone=False, aggregate="mean"):
+                 pretrained=True, freeze_backbone=False, aggregate="mean", cfg=None):
         super().__init__()
         self.aggregate = aggregate
         # feature extractor
@@ -268,10 +347,10 @@ class TemporalWrapper(nn.Module):
 
         if aggregate == "attn":
             self.temporal_attn = nn.MultiheadAttention(self.feat_dim, num_heads=4, batch_first=True)
-            self.norm = nn.LayerNorm(self.feat_dim)
+            self.norm = make_token_norm(self.feat_dim, cfg)
 
         self.head = nn.Sequential(
-            nn.LayerNorm(self.feat_dim),
+            make_token_norm(self.feat_dim, cfg),
             nn.Linear(self.feat_dim, 256), nn.ReLU(inplace=True),
             nn.Dropout(0.2),
             nn.Linear(256, num_classes)
@@ -302,24 +381,31 @@ class Simple3DCNN(nn.Module):
     representation which is then classified.
     """
 
-    def __init__(self, in_chans: int = 1, num_frames: int = 3, num_classes: int = 2, base_channels: int = 32):
+    def __init__(
+        self,
+        in_chans: int = 1,
+        num_frames: int = 3,
+        num_classes: int = 2,
+        base_channels: int = 32,
+        cfg=None,
+    ):
         super().__init__()
         # Input layout for conv3d: (B, C, T, H, W)
         self.num_frames = num_frames
         c = base_channels
         self.features = nn.Sequential(
             nn.Conv3d(in_chans, c, kernel_size=(3, 3, 3), padding=1),
-            nn.BatchNorm3d(c),
+            make_3d_norm(c, cfg),
             nn.ReLU(inplace=True),
             nn.MaxPool3d(kernel_size=(1, 2, 2)),  # pool spatial only
 
             nn.Conv3d(c, 2 * c, kernel_size=(3, 3, 3), padding=1),
-            nn.BatchNorm3d(2 * c),
+            make_3d_norm(2 * c, cfg),
             nn.ReLU(inplace=True),
             nn.MaxPool3d(kernel_size=(2, 2, 2)),  # pool time and space
 
             nn.Conv3d(2 * c, 4 * c, kernel_size=(3, 3, 3), padding=1),
-            nn.BatchNorm3d(4 * c),
+            make_3d_norm(4 * c, cfg),
             nn.ReLU(inplace=True),
             nn.AdaptiveAvgPool3d((1, 1, 1)),
         )
@@ -837,6 +923,7 @@ class VideoTransformer(nn.Module):
         num_heads: int = 4,
         num_layers: int = 2,
         dropout: float = 0.1,
+        cfg=None,
     ) -> None:
         super().__init__()
         self.num_frames = num_frames
@@ -859,7 +946,7 @@ class VideoTransformer(nn.Module):
         self.temporal_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
         self.cls_head = nn.Sequential(
-            nn.LayerNorm(self.feat_dim),
+            make_token_norm(self.feat_dim, cfg),
             nn.Linear(self.feat_dim, 256),
             nn.ReLU(inplace=True),
             nn.Dropout(dropout),
@@ -923,12 +1010,12 @@ def topk_crops_from_grad(x1, k=8, crop_size=64, stride=32):
 
 class LocalCropCNN(nn.Module):
     """Local CNN for 64x64 crops -> token embedding."""
-    def __init__(self, in_ch=1, embed_dim=192, dropout=0.1):
+    def __init__(self, in_ch=1, embed_dim=192, dropout=0.1, cfg=None):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Conv2d(in_ch, 32, 3, 2, 1), nn.BatchNorm2d(32), nn.ReLU(inplace=True),   # 32x32
-            nn.Conv2d(32, 64, 3, 2, 1), nn.BatchNorm2d(64), nn.ReLU(inplace=True),      # 16x16
-            nn.Conv2d(64, 128, 3, 2, 1), nn.BatchNorm2d(128), nn.ReLU(inplace=True),    # 8x8
+            nn.Conv2d(in_ch, 32, 3, 2, 1), make_2d_norm(32, cfg), nn.ReLU(inplace=True),   # 32x32
+            nn.Conv2d(32, 64, 3, 2, 1), make_2d_norm(64, cfg), nn.ReLU(inplace=True),      # 16x16
+            nn.Conv2d(64, 128, 3, 2, 1), make_2d_norm(128, cfg), nn.ReLU(inplace=True),    # 8x8
             nn.AdaptiveAvgPool2d((1,1)),
         )
         self.proj = nn.Sequential(
@@ -976,7 +1063,7 @@ class MultiScaleFusionModel(nn.Module):
     """
     def __init__(self, num_classes=2, k_crops=8, crop_size=64, stride=32,
                  vit_name="vit_base_patch16_224", local_dim=192, num_heads=4,
-                 pretrained=True, freeze_backbone=False):
+                 pretrained=True, freeze_backbone=False, cfg=None):
         super().__init__()
         self.k_crops = k_crops
         self.crop_size = crop_size
@@ -990,14 +1077,14 @@ class MultiScaleFusionModel(nn.Module):
         self.global_dim = self.vit.num_features  # 768 for ViT-B/16
 
         # Local crop encoder
-        self.local = LocalCropCNN(in_ch=1, embed_dim=local_dim)
+        self.local = LocalCropCNN(in_ch=1, embed_dim=local_dim, cfg=cfg)
 
         # Cross-attention: map local tokens to global dim inside attention block
         self.cross = CrossAttn(dim_q=self.global_dim, dim_kv=local_dim, num_heads=num_heads, dropout=0.1)
 
         # Classifier head
         self.head = nn.Sequential(
-            nn.LayerNorm(self.global_dim),
+            make_token_norm(self.global_dim, cfg),
             nn.Linear(self.global_dim, 256),
             nn.ReLU(inplace=True),
             nn.Dropout(0.2),
@@ -1047,7 +1134,7 @@ class DiffAttentionModel(nn.Module):
     
     Combination: Features * (1 + Attention)
     """
-    def __init__(self, backbone_name="convnext_tiny", num_classes=2, pretrained=True, freeze_backbone=False):
+    def __init__(self, backbone_name="convnext_tiny", num_classes=2, pretrained=True, freeze_backbone=False, cfg=None):
         super().__init__()
         
         # Main Backbone (Image)
@@ -1085,7 +1172,7 @@ class DiffAttentionModel(nn.Module):
         
         # Classifier Head
         self.head = nn.Sequential(
-            nn.LayerNorm(self.num_features),
+            make_token_norm(self.num_features, cfg),
             nn.Linear(self.num_features, num_classes)
         )
         
@@ -1182,6 +1269,7 @@ def build_model(cfg=None, num_classes=2):
                 num_frames=cfg.get("seq_T", 3),
                 num_classes=num_classes,
                 base_channels=cfg.get("video_base_channels", 32),
+                cfg=cfg,
             )
             n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
             print(f"Built Simple3DCNN with T={cfg.get('seq_T', 3)} | trainable={n_train:,}")
@@ -1293,6 +1381,7 @@ def build_model(cfg=None, num_classes=2):
             num_heads=cfg.get("video_heads", 4),
             num_layers=cfg.get("video_layers", 2),
             dropout=cfg.get("drop_rate", 0.1),
+            cfg=cfg,
         )
         n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(
@@ -1356,6 +1445,7 @@ def build_model(cfg=None, num_classes=2):
             num_classes=num_classes,
             pretrained=cfg.get("pretrained", True),
             freeze_backbone=cfg.get("freeze_backbone", False),
+            cfg=cfg,
         )
         n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(f"Built Physics-Informed DiffAttentionModel over {backbone} | trainable={n_train:,}")
@@ -1369,6 +1459,7 @@ def build_model(cfg=None, num_classes=2):
             num_classes=num_classes,
             pretrained=cfg.get("pretrained", True),
             freeze_backbone=cfg.get("freeze_backbone", False),
+            cfg=cfg,
         )
         if cfg.get("use_lora", False):
             print("Using LoRA fine-tuning")
@@ -1385,6 +1476,7 @@ def build_model(cfg=None, num_classes=2):
             pretrained=cfg.get("pretrained", True),
             freeze_backbone=cfg.get("freeze_backbone", False),
             aggregate=cfg.get("seq_aggregate", "mean"),
+            cfg=cfg,
         )
         n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(f"Built TemporalWrapper over {backbone} | trainable={n_train:,}")
@@ -1402,6 +1494,7 @@ def build_model(cfg=None, num_classes=2):
             num_heads=cfg.get("cross_heads", 4),
             pretrained=cfg.get("pretrained", True),
             freeze_backbone=cfg.get("freeze_backbone", False),
+            cfg=cfg,
         )
         n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(f"Built MultiScaleFusionModel over {backbone} | trainable={n_train:,}")
@@ -1409,7 +1502,7 @@ def build_model(cfg=None, num_classes=2):
 
     # Domain-specific CAN model
     if backbone.lower() in ["can_small", "can"]:
-        model = CANSmall(in_chans=1, num_classes=num_classes)
+        model = CANSmall(in_chans=1, num_classes=num_classes, cfg=cfg)
         n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(f"Built CANSmall (Convolutional Attention Network) | trainable={n_train:,}")
         return model

@@ -129,7 +129,7 @@ This runs 9 experiments total (3 cadences × 3 seeds).
 ### Custom Run
 ```python
 # Single experiment
-python -m classifier_NN.legacy.run_experiments_16frames_cadence \
+python -m classifier_NN.experiments.run_experiments_16frames_cadence \
     --backbone r2plus1d_18 \
     --interval-min 72 \
     --seed 0 \
@@ -137,7 +137,7 @@ python -m classifier_NN.legacy.run_experiments_16frames_cadence \
     --pretrained-3d
 
 # Multiple cadences, single seed
-python -m classifier_NN.legacy.run_experiments_16frames_cadence \
+python -m classifier_NN.experiments.run_experiments_16frames_cadence \
     --backbone r2plus1d_18 \
     --interval-min 36 \
     --interval-min 72 \
@@ -146,7 +146,7 @@ python -m classifier_NN.legacy.run_experiments_16frames_cadence \
     --pretrained-3d
 
 # Full sweep with custom parameters
-python -m classifier_NN.legacy.run_experiments_16frames_cadence \
+python -m classifier_NN.experiments.run_experiments_16frames_cadence \
     --backbone r2plus1d_18 \
     --interval-min 36 --interval-min 72 --interval-min 108 \
     --n-seeds 3 \
@@ -155,6 +155,8 @@ python -m classifier_NN.legacy.run_experiments_16frames_cadence \
     --lr 1e-4 \
     --pretrained-3d
 ```
+
+Older `classifier_NN.legacy.run_experiments_16frames_cadence` commands are still supported as compatibility wrappers for existing SLURM scripts.
 
 ## Configuration Details
 

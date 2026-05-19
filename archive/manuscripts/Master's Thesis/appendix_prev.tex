@@ -1,0 +1,440 @@
+\anglais
+
+% Avoid right-hand-only chapter starts in appendix (removes extra blank pages).
+\let\origcleardoublepage\cleardoublepage
+\let\cleardoublepage\clearpage
+
+\chapter{Supplementary Backbone Comparison for the Image-Based Study}
+\label{app:supplementary_empirical_analysis}
+\label{app:backbone_screening}
+
+The appendices provide additional empirical material supporting the analyses presented in Chapter~\ref{chap:article1}. Their purpose is threefold. First, they document intermediate model-selection results that were not central enough for the main text but are important for transparency. Second, they report extended metric tables that provide a more complete view of model behavior beyond the primary results. Third, they include supplementary analyses and diagnostic visualizations that help interpret the role of spatial resolution, temporal design, and operating-point selection in solar flare forecasting.
+
+Overall, the appendices complement the main chapter by reinforcing the central claim of the thesis: input design, including spatial resolution, temporal cadence, sequence construction, and threshold selection, plays a critical role in determining predictive performance. These factors are not merely implementation details. In this forecasting problem, the input representation controls which physical and temporal cues are available to the model before learning begins.
+
+This appendix chapter provides additional evidence supporting the selection of the 2D MViT backbone for the image-based experiments. To keep the supplementary comparison aligned with the repeated-run analyses used elsewhere in the thesis, the comparison below is restricted to the augmented $224\times224$ setting and is summarized over five random seeds per backbone. The goal is still not to present a definitive architecture leaderboard. Rather, it is to show that the selected backbone remains competitive under a common training protocol once ordinary training stochasticity is averaged over repeated runs.
+
+The choice of 2D MViT was also motivated by methodological consistency. The main experiments are designed to isolate input-design choices: spatial resolution, disk position, temporal cadence, and number of frames. Using an MViT-family model in both the image-based and spatio-temporal settings reduces the risk that the thesis confounds input effects with unrelated architectural differences. In that sense, the comparison results should be interpreted as contextual support for a controlled experimental choice rather than as a complete architecture benchmark.
+
+Tables~\ref{tab:appendix_backbone_cplus} and~\ref{tab:appendix_backbone_mplus} report the five-seed augmented backbone comparison for the $\geq C$ and $\geq M$ tasks, respectively. AUC and PR-AUC are threshold-free ranking metrics, while TSS and F1 are evaluated at the validation-selected threshold on the test set.
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\caption{Supplementary five-seed augmented backbone comparison for the $\geq C$ task at $224\times224$. Values are mean $\pm$ std over seeds. Best mean per metric is bold.}
+\label{tab:appendix_backbone_cplus}
+\begin{tabular}{lcccc}
+\toprule
+Model & TSS & AUC & PR-AUC & F1 \\
+\midrule
+ConvNeXt-Tiny & 0.512 $\pm$ 0.037 & 0.826 $\pm$ 0.024 & 0.619 $\pm$ 0.049 & 0.591 $\pm$ 0.026 \\
+Swin-Tiny & 0.525 $\pm$ 0.032 & 0.841 $\pm$ 0.018 & 0.663 $\pm$ 0.024 & 0.593 $\pm$ 0.016 \\
+ViT-Small/16 & \textbf{0.540 $\pm$ 0.038} & 0.844 $\pm$ 0.028 & 0.641 $\pm$ 0.030 & \textbf{0.606 $\pm$ 0.030} \\
+2D MViT & 0.535 $\pm$ 0.024 & \textbf{0.848 $\pm$ 0.012} & \textbf{0.670 $\pm$ 0.011} & \textbf{0.606 $\pm$ 0.010} \\
+ResNet-50 & 0.503 $\pm$ 0.051 & 0.822 $\pm$ 0.027 & 0.612 $\pm$ 0.043 & 0.591 $\pm$ 0.033 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\caption{Supplementary five-seed augmented backbone comparison for the $\geq M$ task at $224\times224$. Values are mean $\pm$ std over seeds. Best mean per metric is bold.}
+\label{tab:appendix_backbone_mplus}
+\begin{tabular}{lcccc}
+\toprule
+Model & TSS & AUC & PR-AUC & F1 \\
+\midrule
+ConvNeXt-Tiny & 0.553 $\pm$ 0.085 & 0.877 $\pm$ 0.030 & 0.300 $\pm$ 0.082 & \textbf{0.278 $\pm$ 0.016} \\
+Swin-Tiny & 0.585 $\pm$ 0.039 & 0.870 $\pm$ 0.021 & 0.342 $\pm$ 0.033 & 0.256 $\pm$ 0.010 \\
+ViT-Small/16 & \textbf{0.621 $\pm$ 0.046} & 0.891 $\pm$ 0.030 & \textbf{0.386 $\pm$ 0.066} & 0.266 $\pm$ 0.027 \\
+2D MViT & 0.581 $\pm$ 0.134 & \textbf{0.911 $\pm$ 0.007} & 0.377 $\pm$ 0.062 & 0.234 $\pm$ 0.076 \\
+ResNet-50 & 0.596 $\pm$ 0.018 & 0.887 $\pm$ 0.016 & 0.234 $\pm$ 0.073 & 0.252 $\pm$ 0.078 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+In Table~\ref{tab:appendix_backbone_cplus}, differences between modern backbones remain relatively moderate even after averaging across seeds. The selected 2D MViT model gives the strongest mean AUC and PR-AUC and remains tied with the best mean F1, while ViT-Small/16 is slightly ahead in mean TSS. This suggests that the broad flare-activity signal is accessible to several strong image models, not only to one architecture, while still confirming that the chosen backbone is a competitive controlled choice.
+
+Table~\ref{tab:appendix_backbone_mplus} shows a more metric-dependent pattern for the $\geq M$ task. This is expected because the positive class is much rarer, so small changes in false positives, calibration, or selected threshold can noticeably affect F1, precision-recall behavior, and TSS. No architecture dominates all metrics. The selected 2D MViT model is therefore still a reasonable controlled choice: it gives the strongest mean AUC, remains competitive on PR-AUC and TSS, and keeps the image and video parts of the thesis within a common multiscale-transformer family.
+
+\FloatBarrier
+
+\chapter{Extended Image-Based Operating-Point Metrics}
+\label{app:extended_image_operating_metrics}
+
+\section{Additional Metric Definitions and Interpretation}
+\label{app:metric_definitions}
+
+The main text emphasizes TSS, AUC, PR-AUC, and F1 because they capture complementary aspects of model behavior. TSS evaluates a selected operating point while balancing the true-positive and false-positive rates, which is why it is widely used in solar flare forecasting~\cite{ref_bloomfield}. AUC and PR-AUC are threshold-free ranking metrics. AUC measures whether positive examples tend to receive higher scores than negative examples, whereas PR-AUC is especially informative when the positive class is rare. F1 summarizes precision and recall at the selected threshold.
+
+The extended tables below also include TPR, TNR, precision, recall, HSS, MCC, accuracy, and the validation-selected threshold. These values help explain how a model obtains a given TSS. For example, two models may have similar TSS but different balances between missed flares and false alarms. In an operational forecasting context, that distinction matters because false negatives and false positives have different consequences.
+
+Accuracy is reported only as supporting context. In a strongly imbalanced task such as $\geq M$ flare prediction, a model can achieve high accuracy by predicting the majority non-flaring class too often. Accuracy therefore does not by itself indicate useful forecasting skill. HSS provides a chance-corrected skill score that is commonly used in forecast verification and originates from Heidke's work on forecast quality~\cite{ref_heidke_original}. MCC is a correlation-like summary of the full confusion matrix and is often recommended for imbalanced binary classification because it uses all four counts: $TP$, $TN$, $FP$, and $FN$~\cite{ref_chicco_mcc}. In this thesis, MCC is computed as
+\begin{equation}
+\mathrm{MCC}=
+\frac{TP \times TN - FP \times FN}
+{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)}}.
+\end{equation}
+
+\section{Extended Operating-Point Metrics for the Resolution Study}
+\label{app:extended_resolution_metrics}
+
+While the main text focuses on TSS, AUC, PR-AUC, and F1, the resolution study also affects the balance between sensitivity and specificity. The extended metrics reported here provide additional insight into how spatial information loss changes classifier behavior. To make the tables readable, metrics are shown as rows and resolutions as columns. Tables~\ref{tab:appendix_res_c} and~\ref{tab:appendix_res_m} report the complete operating-point summaries for the $\geq C$ and $\geq M$ tasks.
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{Extended metrics for the A1 resolution study on the $\geq C$ task. Values are mean $\pm$ std over seeds for 2D MViT. Core metrics are listed first, followed by additional operating-point metrics. Best mean per metric is bold.}
+\label{tab:appendix_res_c}
+\begin{tabular}{lccc}
+\toprule
+Metric & 224 & 112 & 56 \\
+\midrule
+TSS & \textbf{0.54 $\pm$ 0.02} & 0.50 $\pm$ 0.06 & 0.52 $\pm$ 0.05 \\
+AUC & \textbf{0.85 $\pm$ 0.01} & 0.83 $\pm$ 0.03 & 0.83 $\pm$ 0.03 \\
+PR-AUC & \textbf{0.67 $\pm$ 0.01} & 0.65 $\pm$ 0.03 & 0.63 $\pm$ 0.05 \\
+F1 & \textbf{0.61 $\pm$ 0.01} & 0.59 $\pm$ 0.03 & 0.59 $\pm$ 0.03 \\
+TPR & 0.75 $\pm$ 0.04 & 0.72 $\pm$ 0.06 & \textbf{0.76 $\pm$ 0.04} \\
+TNR & \textbf{0.79 $\pm$ 0.02} & 0.78 $\pm$ 0.03 & 0.76 $\pm$ 0.04 \\
+Precision & \textbf{0.51 $\pm$ 0.02} & 0.50 $\pm$ 0.03 & 0.48 $\pm$ 0.04 \\
+Recall & 0.75 $\pm$ 0.04 & 0.72 $\pm$ 0.06 & \textbf{0.76 $\pm$ 0.04} \\
+HSS & \textbf{0.46 $\pm$ 0.01} & 0.43 $\pm$ 0.05 & 0.43 $\pm$ 0.05 \\
+MCC & \textbf{0.48 $\pm$ 0.02} & 0.45 $\pm$ 0.04 & 0.47 $\pm$ 0.05 \\
+Accuracy & \textbf{0.78 $\pm$ 0.01} & 0.77 $\pm$ 0.02 & 0.76 $\pm$ 0.03 \\
+val. threshold & 0.26 $\pm$ 0.11 & 0.24 $\pm$ 0.32 & 0.19 $\pm$ 0.22 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+Table~\ref{tab:appendix_res_c} shows that reducing resolution causes only a moderate degradation in ranking-based metrics such as AUC and PR-AUC for the $\geq C$ task. This supports the interpretation from Chapter~\ref{chap:article1}: coarse magnetic organization already contains much of the information needed to predict general flare activity. The model does not require every fine-scale pixel feature to separate many flare-productive and non-flaring examples.
+
+The extended metrics add a more precise view of this behavior. TPR and recall remain competitive at low resolution, but precision, TNR, HSS, and MCC are strongest at full resolution. This suggests that lower-resolution inputs preserve sensitivity to active regions that may flare, while making it slightly harder to reject active but non-flaring regions. In other words, coarse spatial representations retain global activity patterns, but finer spatial structure appears useful for reducing false alarms.
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{Extended metrics for the A1 resolution study on the $\geq M$ task. Values are mean $\pm$ std over seeds for 2D MViT. Core metrics are listed first, followed by additional operating-point metrics. Best mean per metric is bold.}
+\label{tab:appendix_res_m}
+\begin{tabular}{lccc}
+\toprule
+Metric & 224 & 112 & 56 \\
+\midrule
+TSS & 0.58 $\pm$ 0.13 & \textbf{0.61 $\pm$ 0.04} & 0.55 $\pm$ 0.07 \\
+AUC & \textbf{0.91 $\pm$ 0.01} & 0.90 $\pm$ 0.01 & 0.87 $\pm$ 0.03 \\
+PR-AUC & \textbf{0.38 $\pm$ 0.06} & 0.37 $\pm$ 0.02 & 0.35 $\pm$ 0.11 \\
+F1 & 0.23 $\pm$ 0.08 & \textbf{0.26 $\pm$ 0.03} & 0.26 $\pm$ 0.02 \\
+TPR & \textbf{0.83 $\pm$ 0.10} & 0.76 $\pm$ 0.04 & 0.68 $\pm$ 0.09 \\
+TNR & 0.75 $\pm$ 0.23 & 0.85 $\pm$ 0.03 & \textbf{0.87 $\pm$ 0.02} \\
+Precision & 0.14 $\pm$ 0.05 & 0.16 $\pm$ 0.02 & \textbf{0.16 $\pm$ 0.01} \\
+Recall & \textbf{0.83 $\pm$ 0.10} & 0.76 $\pm$ 0.04 & 0.68 $\pm$ 0.09 \\
+HSS & 0.19 $\pm$ 0.08 & \textbf{0.22 $\pm$ 0.03} & 0.21 $\pm$ 0.02 \\
+MCC & \textbf{0.31 $\pm$ 0.01} & 0.30 $\pm$ 0.01 & 0.28 $\pm$ 0.02 \\
+Accuracy & 0.75 $\pm$ 0.22 & 0.85 $\pm$ 0.02 & \textbf{0.86 $\pm$ 0.02} \\
+val. threshold & 0.12 $\pm$ 0.11 & 0.06 $\pm$ 0.06 & 0.13 $\pm$ 0.10 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+Table~\ref{tab:appendix_res_m} gives a more nuanced picture for the $\geq M$ task. AUC remains high at full and intermediate resolution, showing that the model can still rank many strong-flare examples above negatives. However, threshold-dependent metrics vary more strongly, especially at 224 where TPR is high but TNR and accuracy have larger variance. This indicates that the model's ranking quality and its final operating point are not equivalent.
+
+This divergence is expected in rare-event forecasting. When positive examples are scarce, small changes in the score distribution can produce large changes in false positives and therefore in precision, F1, HSS, and MCC. The $\geq M$ table therefore reinforces an important theme of the thesis: it is not enough to report a single score. Ranking metrics, skill scores, and confusion-matrix-derived metrics must be interpreted together.
+
+\FloatBarrier
+
+\chapter{Image-Based Robustness Without Augmentation}
+\label{app:no_aug_2d_mvit}
+
+This appendix chapter evaluates whether the image-based conclusions depend strongly on augmentation. Augmentation is used in the main experiments because it regularizes training and encodes physically plausible invariances, but it is still important to verify that the predictive signal is present without synthetic transformations. Table~\ref{tab:appendix_no_aug} reports the aggregated no-augmentation MViT results.
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\caption{Aggregated no-augmentation performance of 2D MViT at $224\times224$. Values are mean $\pm$ std over seeds.}
+\label{tab:appendix_no_aug}
+\begin{tabular}{lccccc}
+\toprule
+Task & n(seeds) & TSS & AUC & PR-AUC & F1 \\
+\midrule
+$\geq C$ & 5 & 0.55 $\pm$ 0.01 & 0.85 $\pm$ 0.01 & \textbf{0.67 $\pm$ 0.00} & \textbf{0.61 $\pm$ 0.01} \\
+$\geq M$ & 5 & \textbf{0.63 $\pm$ 0.07} & \textbf{0.91 $\pm$ 0.01} & 0.37 $\pm$ 0.06 & 0.27 $\pm$ 0.02 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+Table~\ref{tab:appendix_no_aug} shows that strong predictive performance is maintained even when the model is trained only on the original images. This suggests that the model captures real structure in the magnetogram data rather than relying on augmentation artifacts. The $\geq C$ results are especially stable across seeds, which is consistent with the larger number of positive examples in that task.
+
+For $\geq M$, the mean TSS and AUC remain strong, but the variance is higher. This is consistent with the rare-event nature of the task: fewer positive examples make the training process and threshold selection more sensitive to random initialization and sample ordering. Augmentation should therefore be understood primarily as a stabilizing regularizer. It does not create the flare-predictive signal, but it can make the model less brittle in the presence of noise, polarity conventions, and small geometric perturbations.
+
+\FloatBarrier
+
+\chapter{Supplementary Comparison of Spatio-Temporal Backbones}
+\label{app:video_backbone_comparison}
+
+This appendix chapter situates the MViT sequence model relative to other representative video architectures under a matched protocol. The comparison includes MViT~\cite{ref_mvit,ref_mvitv2}, Video Swin~\cite{ref_video_swin}, VideoMAE~\cite{ref_videomae}, and an R(2+1)D-18 baseline. R(2+1)D-18 is a convolutional video model in which each 3D convolution is factorized into a spatial 2D operation followed by a temporal 1D operation~\cite{ref_r2plus1d}. VideoMAE is also included because recent work on solar flare forecasting with foundational transformer models has explicitly explored transformer-based image, video, and time-series modalities~\cite{ref_riggi_transformers}. To keep this supplementary comparison aligned with the repeated-run analyses in the main text, Tables~\ref{tab:appendix_video_c} and~\ref{tab:appendix_video_m} summarize the augmented 180-minute comparison over five seeds per backbone. All sequence backbones in this appendix were trained with the same two-A100 setup used for the main temporal experiments. As a rough order of magnitude, these runs typically required on the order of half a day up to about a day per seed, with R(2+1)D-18 generally among the lighter models and Video Swin or VideoMAE often toward the upper end of that range.
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\caption{Supplementary five-seed comparison of video backbones at 180-minute cadence with augmentation for the $\geq C$ task. Values are mean $\pm$ std over seeds. Best mean per metric is bold.}
+\label{tab:appendix_video_c}
+\begin{tabular}{lcccc}
+\toprule
+Model & TSS & AUC & PR-AUC & F1 \\
+\midrule
+MViT & \textbf{0.789 $\pm$ 0.020} & \textbf{0.957 $\pm$ 0.004} & \textbf{0.842 $\pm$ 0.027} & \textbf{0.740 $\pm$ 0.014} \\
+VideoSwin & 0.732 $\pm$ 0.018 & 0.942 $\pm$ 0.003 & 0.817 $\pm$ 0.003 & 0.687 $\pm$ 0.010 \\
+VideoMAE & \textbf{0.789 $\pm$ 0.024} & 0.953 $\pm$ 0.010 & 0.824 $\pm$ 0.042 & 0.736 $\pm$ 0.026 \\
+R(2+1)D-18 & 0.735 $\pm$ 0.030 & 0.930 $\pm$ 0.005 & 0.767 $\pm$ 0.013 & 0.715 $\pm$ 0.040 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\caption{Supplementary five-seed comparison of video backbones at 180-minute cadence with augmentation for the $\geq M$ task. Values are mean $\pm$ std over seeds. Best mean per metric is bold.}
+\label{tab:appendix_video_m}
+\begin{tabular}{lcccc}
+\toprule
+Model & TSS & AUC & PR-AUC & F1 \\
+\midrule
+MViT & 0.674 $\pm$ 0.134 & 0.947 $\pm$ 0.011 & \textbf{0.393 $\pm$ 0.042} & \textbf{0.377 $\pm$ 0.090} \\
+VideoSwin & 0.734 $\pm$ 0.183 & \textbf{0.950 $\pm$ 0.019} & 0.365 $\pm$ 0.063 & 0.331 $\pm$ 0.011 \\
+VideoMAE & \textbf{0.735 $\pm$ 0.122} & 0.944 $\pm$ 0.007 & 0.266 $\pm$ 0.047 & 0.346 $\pm$ 0.044 \\
+R(2+1)D-18 & 0.599 $\pm$ 0.137 & 0.873 $\pm$ 0.072 & 0.161 $\pm$ 0.078 & 0.175 $\pm$ 0.054 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+In Table~\ref{tab:appendix_video_c}, MViT and VideoMAE are effectively tied in mean TSS for the $\geq C$ task, while MViT gives the strongest mean AUC, PR-AUC, and F1. Video Swin remains competitive but trails the two strongest transformer variants on most metrics. The R(2+1)D-18 baseline improves substantially relative to the earlier single-run screening but still remains weaker than the strongest transformer models.
+
+Table~\ref{tab:appendix_video_m} shows even more clearly that differences across models become metric-dependent for the $\geq M$ task. VideoMAE gives the highest mean TSS by a very small margin, Video Swin gives the highest mean AUC, and MViT gives the highest mean PR-AUC and F1. The standard deviations are also large enough that the table should be read as evidence of broad competitiveness rather than as a strict ordering. This is a useful reminder that no single metric fully describes rare-event forecasting performance.
+
+These results reinforce the decision to focus on a single backbone family in the main experiments. The thesis is not primarily an architecture leaderboard. Its main empirical question is how input design affects forecasting behavior when the model family and training protocol are kept as controlled as possible.
+
+\FloatBarrier
+
+\chapter{Temporal Cadence Analysis for Sequence Models}
+\label{app:no_aug_cadence}
+
+This appendix chapter provides a deeper analysis of temporal cadence, helping to clarify the role of temporal span versus sampling density. With a fixed 16-frame input, increasing the cadence also increases the total temporal context: 60, 120, and 180 minutes correspond to approximately 15, 30, and 45 hours of history, respectively.
+
+\section{Cadence Results Without Augmentation}
+\label{app:no_aug_cadence_results}
+
+Table~\ref{tab:appendix_cadence_c} reports the MViT cadence comparison without augmentation for both flare thresholds.
+
+\begin{table}[!htbp]
+\centering
+\scriptsize
+\caption{Cadence comparison for MViT without augmentation. Values are mean $\pm$ std over seeds.}
+\label{tab:appendix_cadence_c}
+\begin{tabular}{lcccc}
+\toprule
+Cadence & TSS & AUC & PR-AUC & F1 \\
+\midrule
+\multicolumn{5}{c}{$\geq C$ task} \\
+\midrule
+60 min & 0.64 $\pm$ 0.04 & 0.89 $\pm$ 0.02 & 0.72 $\pm$ 0.03 & 0.67 $\pm$ 0.03 \\
+120 min & 0.72 $\pm$ 0.04 & 0.93 $\pm$ 0.01 & 0.78 $\pm$ 0.01 & 0.72 $\pm$ 0.02 \\
+180 min & \textbf{0.79 $\pm$ 0.04} & \textbf{0.96 $\pm$ 0.01} & \textbf{0.85 $\pm$ 0.03} & \textbf{0.74 $\pm$ 0.03} \\
+\addlinespace
+\multicolumn{5}{c}{$\geq M$ task} \\
+\midrule
+60 min & 0.61 $\pm$ 0.05 & 0.89 $\pm$ 0.03 & 0.35 $\pm$ 0.10 & 0.32 $\pm$ 0.07 \\
+120 min & \textbf{0.66 $\pm$ 0.05} & 0.90 $\pm$ 0.04 & 0.29 $\pm$ 0.08 & 0.28 $\pm$ 0.03 \\
+180 min & 0.62 $\pm$ 0.16 & \textbf{0.95 $\pm$ 0.01} & \textbf{0.41 $\pm$ 0.08} & \textbf{0.41 $\pm$ 0.07} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+Table~\ref{tab:appendix_cadence_c} shows that performance improves consistently as cadence increases from 60 to 180 minutes for the $\geq C$ task. Since the number of frames is fixed, this result suggests that broader temporal span is more useful than dense short-term sampling in this setup. Closely spaced frames may contain redundant information, while a longer window can reveal whether an active region is evolving toward greater magnetic complexity.
+
+For the $\geq M$ task, the no-augmentation results do not support the same clean monotonic conclusion. AUC, PR-AUC, and F1 are highest at 180 minutes, whereas TSS is highest at 120 minutes, and the uncertainties overlap substantially. This difference is plausible in a rare-event regime: the score ranking can improve with longer context while the selected operating threshold remains sensitive to the small number of positive examples. The result therefore supports a more cautious statement: temporal context appears useful for $\geq M$, but cadence should be interpreted through multiple metrics and not as a definitive single-score ranking.
+
+\FloatBarrier
+
+\section{Extended Operating-Point Metrics for the Temporal Cadence Study}
+\label{app:extended_temporal_metrics}
+
+The preceding cadence table summarizes the main performance metrics for the no-augmentation temporal experiments. The full operating-point behavior of the augmented 16-frame MViT cadence study is reported in Tables~\ref{tab:appendix_video_full_c} and~\ref{tab:appendix_video_full_m}. These tables follow the same layout as the extended resolution analysis: core metrics are listed first, followed by sensitivity, specificity, precision, skill scores, accuracy, and the validation-selected threshold. Threshold-dependent metrics are computed at the validation-selected threshold, whereas AUC and PR-AUC remain threshold-free ranking metrics.
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{Extended metrics for the augmented 16-frame MViT temporal cadence study on the $\geq C$ task. Values are mean $\pm$ std over seeds. Core metrics are listed first, followed by additional operating-point metrics. Best displayed mean values per metric are bold.}
+\label{tab:appendix_video_full_c}
+\begin{tabular}{lccc}
+\toprule
+Metric & 60 min & 120 min & 180 min \\
+\midrule
+TSS & 0.66 $\pm$ 0.03 & 0.74 $\pm$ 0.03 & \textbf{0.79 $\pm$ 0.02} \\
+AUC & 0.90 $\pm$ 0.02 & 0.93 $\pm$ 0.01 & \textbf{0.96 $\pm$ 0.00} \\
+PR-AUC & 0.75 $\pm$ 0.04 & 0.80 $\pm$ 0.04 & \textbf{0.84 $\pm$ 0.03} \\
+F1 & 0.66 $\pm$ 0.02 & 0.72 $\pm$ 0.02 & \textbf{0.74 $\pm$ 0.01} \\
+TPR & 0.86 $\pm$ 0.05 & 0.87 $\pm$ 0.04 & \textbf{0.91 $\pm$ 0.04} \\
+TNR & 0.81 $\pm$ 0.03 & 0.87 $\pm$ 0.02 & \textbf{0.88 $\pm$ 0.02} \\
+Precision & 0.54 $\pm$ 0.03 & 0.62 $\pm$ 0.03 & \textbf{0.63 $\pm$ 0.04} \\
+Recall & 0.86 $\pm$ 0.05 & 0.87 $\pm$ 0.04 & \textbf{0.91 $\pm$ 0.04} \\
+HSS & 0.55 $\pm$ 0.03 & 0.64 $\pm$ 0.02 & \textbf{0.67 $\pm$ 0.02} \\
+MCC & 0.58 $\pm$ 0.02 & 0.66 $\pm$ 0.02 & \textbf{0.69 $\pm$ 0.01} \\
+Accuracy & 0.82 $\pm$ 0.02 & 0.87 $\pm$ 0.01 & \textbf{0.89 $\pm$ 0.01} \\
+val. threshold & 0.76 $\pm$ 0.34 & 0.73 $\pm$ 0.25 & 0.35 $\pm$ 0.32 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+Table~\ref{tab:appendix_video_full_c} shows a particularly clear trend for the $\geq C$ task. Increasing the cadence from 60 to 180 minutes improves not only the ranking metrics, AUC and PR-AUC, but also the threshold-dependent operating-point metrics. The 180-minute cadence gives the strongest TSS, F1, TPR, TNR, HSS, MCC, and accuracy. This means that the benefit of the longer temporal window is not limited to better score ordering. It also translates into a better validation-selected decision rule.
+
+The joint increase in TPR and TNR is important. It suggests that the longer temporal context helps the model identify flare-productive active regions while also rejecting more non-flaring examples. In the language of operational forecasting, the improvement is therefore not simply obtained by becoming more aggressive and accepting more false alarms. Instead, the 180-minute cadence appears to provide a more informative representation of active-region evolution. This supports the interpretation that a 45-hour history captures magnetic development that is less visible in shorter windows.
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{Extended metrics for the augmented 16-frame MViT temporal cadence study on the $\geq M$ task. Values are mean $\pm$ std over seeds. Core metrics are listed first, followed by additional operating-point metrics. Best displayed mean values per metric are bold.}
+\label{tab:appendix_video_full_m}
+\begin{tabular}{lccc}
+\toprule
+Metric & 60 min & 120 min & 180 min \\
+\midrule
+TSS & 0.64 $\pm$ 0.06 & \textbf{0.67 $\pm$ 0.05} & \textbf{0.67 $\pm$ 0.13} \\
+AUC & 0.90 $\pm$ 0.01 & 0.91 $\pm$ 0.01 & \textbf{0.95 $\pm$ 0.01} \\
+PR-AUC & \textbf{0.40 $\pm$ 0.09} & \textbf{0.40 $\pm$ 0.05} & 0.39 $\pm$ 0.04 \\
+F1 & 0.29 $\pm$ 0.05 & 0.31 $\pm$ 0.03 & \textbf{0.38 $\pm$ 0.09} \\
+TPR & \textbf{0.77 $\pm$ 0.07} & \textbf{0.77 $\pm$ 0.06} & 0.75 $\pm$ 0.18 \\
+TNR & 0.88 $\pm$ 0.03 & 0.90 $\pm$ 0.02 & \textbf{0.93 $\pm$ 0.05} \\
+Precision & 0.18 $\pm$ 0.04 & 0.20 $\pm$ 0.03 & \textbf{0.28 $\pm$ 0.11} \\
+Recall & \textbf{0.77 $\pm$ 0.07} & \textbf{0.77 $\pm$ 0.06} & 0.75 $\pm$ 0.18 \\
+HSS & 0.25 $\pm$ 0.05 & 0.28 $\pm$ 0.04 & \textbf{0.35 $\pm$ 0.10} \\
+MCC & 0.33 $\pm$ 0.05 & 0.36 $\pm$ 0.03 & \textbf{0.41 $\pm$ 0.06} \\
+Accuracy & 0.87 $\pm$ 0.03 & 0.90 $\pm$ 0.02 & \textbf{0.92 $\pm$ 0.04} \\
+val. threshold & 0.02 $\pm$ 0.02 & 0.01 $\pm$ 0.01 & 0.01 $\pm$ 0.01 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+Table~\ref{tab:appendix_video_full_m} shows a weaker and more metric-dependent preference for longer temporal context in the rarer $\geq M$ task. The 180-minute cadence gives the strongest AUC, F1, TNR, precision, HSS, MCC, and accuracy, while TSS is essentially tied with the 120-minute cadence at the displayed precision. PR-AUC is also very close across cadences. This pattern indicates that the longest temporal window improves some aspects of model behavior, especially ranking and false-alarm control, but it does not justify a definitive overall ranking because the number of positive $\geq M$ examples is much smaller and the seed-level variation is large.
+
+The extended metrics help explain the trade-off. At 180 minutes, precision and TNR are higher, meaning the model produces fewer false alarms at the selected threshold. TPR and recall, however, do not increase relative to the shorter cadences. Thus, for strong-flare forecasting, longer temporal context appears to improve the reliability of positive predictions more than it improves sensitivity. This is a useful distinction: the model becomes better at deciding which high-risk predictions to trust, even though detecting every positive event remains difficult.
+
+The validation thresholds in Table~\ref{tab:appendix_video_full_m} are also much lower than in the $\geq C$ case. This reflects the strong class imbalance of the $\geq M$ task and reinforces why accuracy alone would be misleading. A high accuracy value can coexist with a difficult precision-recall trade-off. For this reason, the temporal results should be interpreted through the combined behavior of TSS, PR-AUC, F1, HSS, and MCC rather than through a single metric.
+
+\FloatBarrier
+
+\chapter{Diagnostic Operating-Point Visualizations}
+\label{app:diagnostic_visualizations}
+
+This appendix chapter presents qualitative diagnostics for selected runs. Threshold curves are intentionally omitted; confusion matrices, ROC curves, and PR curves provide the most useful complementary views for this appendix. Figures~\ref{fig:appendix_cm_grid}, \ref{fig:appendix_roc_grid}, and~\ref{fig:appendix_pr_grid} show the confusion-matrix, ROC, and precision-recall diagnostics for the same selected runs.
+
+\begin{figure}[!htbp]
+\centering
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a1_cplus_cm_fixed.pdf}
+\\[-1mm]\scriptsize A1 2D MViT 224 Aug ($\geq C$)
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a1_mplus_cm_fixed.pdf}
+\\[-1mm]\scriptsize A1 2D MViT 224 Aug ($\geq M$)
+\end{minipage}
+\vspace{2mm}
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a3_cplus_cm_fixed.pdf}
+\\[-1mm]\scriptsize A3 MViT 180min Aug ($\geq C$)
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a3_mplus_cm_fixed.pdf}
+\\[-1mm]\scriptsize A3 MViT 180min Aug ($\geq M$)
+\end{minipage}
+\caption{Confusion matrices at the validation-selected threshold for selected image and sequence runs.}
+\label{fig:appendix_cm_grid}
+\end{figure}
+
+\begin{figure}[!htbp]
+\centering
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a1_cplus_roc.pdf}
+\\[-1mm]\scriptsize A1 2D MViT 224 Aug ($\geq C$)
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a1_mplus_roc.pdf}
+\\[-1mm]\scriptsize A1 2D MViT 224 Aug ($\geq M$)
+\end{minipage}
+\vspace{2mm}
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a3_cplus_roc.pdf}
+\\[-1mm]\scriptsize A3 MViT 180min Aug ($\geq C$)
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a3_mplus_roc.pdf}
+\\[-1mm]\scriptsize A3 MViT 180min Aug ($\geq M$)
+\end{minipage}
+\caption{ROC curves for the same selected runs.}
+\label{fig:appendix_roc_grid}
+\end{figure}
+
+\begin{figure}[!htbp]
+\centering
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a1_cplus_pr.pdf}
+\\[-1mm]\scriptsize A1 2D MViT 224 Aug ($\geq C$)
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a1_mplus_pr.pdf}
+\\[-1mm]\scriptsize A1 2D MViT 224 Aug ($\geq M$)
+\end{minipage}
+\vspace{2mm}
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a3_cplus_pr.pdf}
+\\[-1mm]\scriptsize A3 MViT 180min Aug ($\geq C$)
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\safeincludegraphics[width=\linewidth]{figures/appendix/a3_mplus_pr.pdf}
+\\[-1mm]\scriptsize A3 MViT 180min Aug ($\geq M$)
+\end{minipage}
+\caption{Precision-recall curves for the same selected runs.}
+\label{fig:appendix_pr_grid}
+\end{figure}
+
+\FloatBarrier
+
+Figures~\ref{fig:appendix_cm_grid}--\ref{fig:appendix_pr_grid} highlight the difference between ranking performance and operational behavior. ROC curves may appear strong even when the positive class is rare, because they summarize the true-positive and false-positive rate tradeoff over all thresholds. PR curves provide a more stringent view for the $\geq M$ task because precision is directly affected by false alarms. Confusion matrices then show how the validation-selected threshold turns the score distribution into actual missed events and false alarms.
+
+Taken together, these figures provide an intuitive complement to the quantitative results. They show why the thesis reports multiple metrics: ranking quality, thresholded skill, and error composition are related, but they are not the same object.
+
+% Restore default behavior after appendix.
+\let\cleardoublepage\origcleardoublepage
