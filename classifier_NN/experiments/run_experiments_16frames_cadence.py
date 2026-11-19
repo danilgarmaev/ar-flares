@@ -328,6 +328,8 @@ def main() -> None:
     ap.add_argument("--batch-size", type=int, default=None)
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--lr", type=float, default=None)
+    ap.add_argument("--optimizer", type=str, default=None, help="Optimizer name (e.g. adamw)")
+    ap.add_argument("--weight-decay", type=float, default=None, help="Weight decay for AdamW")
     ap.add_argument("--scheduler", type=str, default=None, help="LR scheduler name (e.g. cosine)")
     ap.add_argument("--backbone-lr", type=float, default=None, help="Backbone LR for differential fine-tuning")
     ap.add_argument("--head-lr", type=float, default=None, help="Head LR for differential fine-tuning")
@@ -450,6 +452,10 @@ def main() -> None:
         overrides["epochs"] = args.epochs
     if args.lr is not None:
         overrides["lr"] = args.lr
+    if args.optimizer is not None:
+        overrides["optimizer"] = str(args.optimizer)
+    if args.weight_decay is not None:
+        overrides["weight_decay"] = float(args.weight_decay)
     if args.scheduler is not None:
         overrides["scheduler"] = str(args.scheduler)
     if args.backbone_lr is not None:
