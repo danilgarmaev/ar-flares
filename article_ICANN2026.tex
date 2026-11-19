@@ -1,0 +1,447 @@
+\documentclass[runningheads]{llncs}
+
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage[hidelinks]{hyperref}
+\usepackage{array}
+\usepackage{cite}
+\usepackage{bm}
+
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{2pt}
+
+
+\begin{document}
+
+\newcommand{\best}[1]{\bm{#1}}
+
+\title{Solar Flare Prediction from Magnetograms: A Controlled Study of Input Design in Deep Learning}
+\titlerunning{Solar Flare Prediction from Magnetograms}
+
+% \author{ } % Danil Garmaev, Jean Meunier}
+% \authorrunning{} %D . Garmaev and J. Meunier}
+
+\author{Danil Garmaev\inst{1}, Jean Meunier\inst{1}}
+\authorrunning{D. Garmaev and J. Meunier}
+
+\institute{
+\inst{1}Department of Computer Science and Operations Research, \\ Universit\'e de Montr\'eal
+}
+% \institute{ } %Universit\'e de Montr\'eal}
+
+\maketitle
+
+\begin{abstract}
+
+We use the reduced-resolution active-region dataset of Boucheron et al.~\cite{ref_boucheron} to study four input-design choices for magnetogram-based flare prediction under a common fine-tuning protocol: image resolution, solar-disk position, temporal cadence, and number of frames. The main metric is the True Skill Statistic (TSS), with the decision threshold selected on the validation set; we also report AUC, PR-AUC, and F1. Image experiments use a 2D MViT backbone, while sequence experiments use an MViT model for both $\geq C$ and $\geq M$ flare prediction in the next 24 hours. Lower resolutions retained much of the full-resolution performance, and central longitudes gave higher TSS than outer longitudes for $\geq C$. For 16-frame sequences, the 180-minute cadence gave the highest TSS and AUC for both tasks, with significant TSS gains for $\geq C$. When the temporal span was fixed at 45 hours, shorter 4- or 8-frame sequences remained competitive. Overall, temporal span was the clearest temporal driver in our experiments, and several input-efficient configurations retained competitive performance.
+
+
+
+
+\keywords{Solar flare prediction \and Magnetogram \and Deep learning \and Vision transformer \and Spatio-temporal learning}
+\end{abstract}
+
+\section{Introduction}
+
+The Sun appears stable, yet its energy output fluctuates over timescales from hours to years. This space weather is monitored closely because intense solar activity can affect satellites, telecommunications, navigation systems, and electrical power networks. Forecasting solar flares is therefore an important operational problem.
+
+Solar flares are usually produced by magnetic field instabilities associated with active regions (ARs) on the solar surface. While sunspots are visible in optical images, magnetograms give a more direct view of the magnetic field structure; see Fig.~\ref{fig:intro_magnetogram}. This makes magnetograms a natural source of information for automated flare prediction.
+
+\begin{figure}[t]
+\centering
+\begin{minipage}{0.47\textwidth}
+\centering
+% \includegraphics[width=\linewidth]{figures/sunspots_1024_20111106.jpg}
+\includegraphics[width=\linewidth]{figures/20111106_0600_hmimag_512.pdf}
+\end{minipage}
+\hfill
+\begin{minipage}{0.47\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/1339_hmi.M_720s.20111106_060000_TAI.1.magnetogram_224.pdf}
+\end{minipage}
+\caption{(Left) SDO/HMI full-disk magnetogram~\cite{ref_hmi}, with the active region marked in red. (Right) Corresponding Boucheron cutout~\cite{ref_boucheron}. Black and white indicate opposite polarities; local scaling reveals strong-field structure.}
+\label{fig:intro_magnetogram}
+\end{figure}
+
+
+% Machine learning offers many tools for this task. Earlier studies often relied on handcrafted magnetic features and classical classifiers. More recent work applies deep networks directly to AR images or to temporal sequences of AR observations. These approaches include convolutional neural networks, vision transformers, and spatio-temporal architectures. The recent dataset of Boucheron et al.~\cite{ref_boucheron} is especially useful for this line of work because it provides a large and standardized benchmark for image-based flare prediction.
+
+% From a related-work perspective, solar flare forecasting has gradually moved from classical approaches based on handcrafted magnetic features toward deep-learning models operating directly on magnetograms and related solar data~\cite{ref_li_flares,ref_shao_review}. At the same time, benchmarking studies have emphasized standardized evaluation and skill-based metrics such as TSS, since class imbalance can make simpler measures misleading~\cite{ref_bloomfield}. Recent datasets have also made it easier to compare image-based and temporal forecasting approaches under a common protocol~\cite{ref_boucheron}. In this context, our goal is not to introduce another forecasting architecture, but to use established deep models as tools to study how input resolution, disk position, and temporal cadence affect performance.
+
+% From a related-work perspective, the literature has moved from handcrafted magnetic features and classical machine-learning models toward deep models operating directly on AR images or temporal solar observations. Recent work includes convolutional and hybrid deep-learning approaches, such as the fusion model of Li et al.~\cite{ref_li_flares}, while broader reviews describe the growing use of CNNs, recurrent models, vision transformers, and spatio-temporal architectures for flare prediction~\cite{ref_shao_review}. At the same time, benchmarking studies have emphasized standardized evaluation and skill-based metrics such as TSS, since class imbalance can make simpler measures misleading~\cite{ref_bloomfield}. Recent datasets have also made it easier to compare image-based and temporal forecasting approaches under a common protocol~\cite{ref_boucheron}. This context motivates a controlled study of input design choices rather than another architecture comparison.
+
+Solar flare prediction has moved from handcrafted magnetic features and classical classifiers toward deep models operating on AR images and temporal observations~\cite{ref_li_flares,ref_shao_review}. Because class imbalance can make accuracy misleading, benchmarking studies emphasize skill-based metrics such as TSS~\cite{ref_bloomfield}. In this context, the Boucheron dataset~\cite{ref_boucheron} provides a large standardized benchmark for studying how input resolution, disk position, temporal cadence, and sequence length affect performance under a common protocol.
+
+% Our results show that temporal span is more important than dense sampling in the sequence experiments, while lower spatial resolution and sparse temporal inputs can remain competitive. We focus on four questions. First, what is the lowest AR image resolution that can be used without a significant loss of performance? Second, does the position of the AR on the solar disk, in longitude and latitude, have a measurable impact on performance? Third, for a fixed 16-frame sequence model, what temporal cadence provides the most useful temporal context? Fourth, for a fixed temporal span, how many frames are needed for effective prediction?
+
+\section{Dataset}
+
+We use the reduced-resolution solar flare prediction dataset of Boucheron et al.~\cite{ref_boucheron}, which retains comparable classification performance to the full-resolution version. It contains HMI line-of-sight magnetograms from May 1, 2010 to December 31, 2018, with labels for flare occurrence in a 24-hour prediction window.
+
+We use the preconfigured $224 \times 224$ AR images restricted to AR centers within $\pm 60^\circ$ latitude and longitude, which reduces projection effects and removes the most problematic edge cases. The original active-region split is kept unchanged, with 759{,}357 training images, 95{,}933 validation images, and 94{,}757 test images.
+
+The predefined split is partitioned by unique active regions, so an AR present in the training set does not appear in the validation or test sets. This reduces the risk of active-region leakage and provides a standardized benchmark split. The dataset is nevertheless highly imbalanced, with 759{,}465 non-flare samples (79.9\%), 161{,}059 C-class flares (16.9\%), 26{,}680 M-class flares (2.8\%), and 2{,}843 X-class flares (0.3\%)~\cite{ref_shao_review}. This imbalance motivates the use of TSS, PR-AUC, and weighted binary cross-entropy during training.
+
+We study two binary tasks. In the $\geq C$ task, all flares of class C or higher are positive, giving 149{,}249 positive training images (19.7\%). In the $\geq M$ task, only M- or X-class flares are positive, giving 23{,}395 positive training images (3.1\%), so this task is more imbalanced and difficult.
+
+% The dataset also contains overlapping AR cutouts. Boucheron et al.~\cite{ref_boucheron} report that manual inspection suggests roughly 25\% of images contain overlapping active-region content, comparable to earlier estimates that about 20\% of SHARPs include contributions from more than one NOAA AR. Such overlap can introduce label noise if a model cues on a neighboring AR while the label corresponds to the central AR. We keep the original benchmark preprocessing because filtering overlapping ARs would change the benchmark and lead to inconsistent cutout sizes, but we return to this limitation in the discussion.
+
+\section{Performance Metrics}
+
+In solar flare forecasting the data are imbalanced, so accuracy alone is not sufficient to evaluate a model. In this paper we use the True Skill Statistic (TSS), which is widely recommended for flare prediction studies~\cite{ref_bloomfield}. It is defined from the confusion matrix as
+\begin{equation}
+\mathrm{TSS} = \frac{TP}{TP + FN} - \frac{FP}{FP + TN} = \text{Sensitivity} + \text{Specificity} -1 .
+\end{equation}
+
+Throughout the paper, the reported TSS is obtained with the decision threshold selected on the validation set, subject to minimum recall (0.5) and precision (0.15) constraints to avoid degenerate solutions. 
+
+We also report AUC and PR-AUC as threshold-free ranking metrics, and F1 as a compact threshold-dependent summary of precision and recall.
+
+To assess whether observed TSS differences were significant, we used paired two-sided t-tests.
+
+\section{Method}
+
+All experiments were designed to isolate input-related factors while keeping the architecture family and the fine-tuning protocol as consistent as possible.
+
+\subsection{Model Choice and Multiscale Attention}
+
+The model choice was motivated by the need to capture both local magnetic structures and global active-region organization. Multiscale Vision Transformers (MViT) build hierarchical feature pyramids by reducing token resolution while increasing channel dimensionality~\cite{ref_mvit}, which is relevant for magnetograms where flare-related signals may arise at multiple scales.
+
+MViT can be applied to both image and video recognition. In this work, we use MViT-based architectures for both image and sequence experiments. In the image setting, the model operates on single magnetograms, while in the sequence setting it directly supports spatio-temporal tokenization and variable temporal lengths required for the frame-count study.
+
+Architecture choice is not the main object of study; a consistent MViT backbone is used to investigate spatial resolution, disk position, temporal cadence, and sequence length.
+
+
+\subsection{Data Augmentation}
+
+Augmented training was the main setting for both image and sequence experiments. The pipeline used random horizontal and vertical flips, rotations up to $\pm 30^\circ$, magnetic polarity inversion, and small integer noise in $[-5,5]$ after normalization to $[0,255]$. Rotations were limited to avoid unrealistic north-south AR orientations. In resolution ablations, downsampling was applied before augmentation so transforms did not reintroduce removed details. For sequences, geometric transforms and polarity inversion were shared across frames, while integer noise could vary by frame.
+
+
+
+\subsection{Resolution for AR Images}
+
+For image-based flare prediction, we screened several single-image backbones, including ConvNeXt-Tiny~\cite{ref_convnext}, Swin-Tiny~\cite{ref_swin}, ViT-Small/16~\cite{ref_vit}, and a 2D MViT variant~\cite{ref_mvit}. We retained the 2D MViT for the image-based studies to keep the controlled comparisons within a common architectural family.
+
+The original AR images are available at $224 \times 224$. To study lower resolutions, we downsample them to $112 \times 112$ and $56 \times 56$ using nearest-neighbor interpolation, then upsample them back to $224 \times 224$ using bilinear interpolation before sending them to the backbone. This keeps the network architecture unchanged while allowing us to control how much spatial detail is removed from the magnetogram. The goal is to estimate the lowest useful resolution for flare prediction.
+
+Training followed the shared setup described in Sect.~\ref{sec:repro}, and the main comparison metric was the True Skill Statistic (TSS).
+
+\subsection{Longitude and Latitude on the Solar Disk}
+
+The second experiment studied AR position on the solar disk. Active regions far from disk center are more affected by projection and geometric distortion, so prediction may be easier within $\pm 30^\circ$ than farther away.
+
+This experiment reused the image model and selected resolution from the first experiment. We evaluated the same model on $|$longitude$| \leq 30^\circ$ and $30^\circ < |$longitude$| \leq 60^\circ$ test buckets, then compared a model trained only on the central subset against the full-training baseline. The specialization comparison is interpreted separately from the longitude-bucket evaluation, and seed variation quantifies uncertainty in both views.
+
+\subsection{Time Interval Between Frames for AR Sequences}
+
+For the sequence experiments we used a 16-frame MViT model~\cite{ref_mvit}. Each input is a temporal sequence of 16 magnetograms of the same active region, still at $224 \times 224$ resolution. Frames were selected at consecutive steps of the chosen cadence ending at the prediction time. Candidate sequences were kept only when all required magnetograms were present, so no missing frames were interpolated or repeated. Training again followed the shared setup described in Sect.~\ref{sec:repro}.
+
+We study three cadences: 60, 120, and 180 minutes between frames. With 16 frames, these correspond to temporal contexts of 15, 30, and 45 hours, respectively. The goal is to see whether longer temporal context helps the model or whether a shorter cadence is sufficient.
+
+Every sequence setting was repeated with ten random seeds. As in the single-image study, the main comparison metric is TSS.
+
+\subsection{Number of Frames for AR Sequences}
+
+The final experiment studied the number of frames needed when the temporal span was kept fixed. We used the 45-hour span of the 16-frame, 180-minute-cadence setting because this was the strongest setting in the cadence study. Unlike the initial fixed-input design, the MViT implementation used here can accept different temporal lengths, so no interpolation, padding, or repetition of frames was required. We therefore evaluated sequences with $T=4$, $T=8$, and $T=16$ frames directly by selecting evenly spaced temporal subsets that covered the same 45-hour window. For example, the $T=4$ setting used frames at 45, 30, 15, and 0 hours before the prediction time.
+
+This separates temporal span from observation density and tests whether a sparser sequence can preserve most predictive information while reducing input size.
+
+
+
+
+
+
+\subsection{Reproducibility and Training Setup}
+\label{sec:repro}
+
+To keep the study reproducible while limiting changing factors, all main experiments used supervised fine-tuning of pretrained models with AdamW, weight decay of 0.01, weighted binary cross-entropy, and a cosine learning-rate schedule with differential learning rates: $10^{-6}$ for the backbone and $10^{-4}$ for the head. Image models used batch size 32 and a 2-epoch warmup; sequence models used batch size 8 and a 3-epoch warmup. The maximum budget was 50 epochs, with validation-TSS model selection and early stopping. For sequence inputs, geometric transforms and polarity inversion were shared across all frames to preserve temporal coherence. All reportable settings were repeated with ten random seeds. Table~\ref{tab:hparams} summarizes the selected image and sequence settings.
+
+
+% To keep the study reproducible while limiting the number of changing factors, we used a common training recipe across the main experiments. For the image experiments, we first screened several single-image backbones, including ConvNeXt-Tiny~\cite{ref_convnext}, Swin-Tiny~\cite{ref_swin}, ViT-Small/16~\cite{ref_vit}, and a 2D MViT variant from the same model family as the sequence model~\cite{ref_mvit}. We then retained the 2D MViT model for the image-based studies. For the sequence experiments, we used a pretrained 16-frame MViT model. In all cases, the backbone input remained $224 \times 224$. For the resolution study, the lower-resolution variants were obtained by downsampling the AR image to $112 \times 112$ or $56 \times 56$ and then upsampling it back to $224 \times 224$ before the backbone; this downsampling step was applied before augmentation.
+
+% Training followed the same general optimization strategy for both the image and sequence models. We fine-tuned pretrained models with AdamW, weight decay of 0.01, weighted binary cross-entropy, and a cosine learning-rate schedule with differential learning rates: $10^{-6}$ for the pretrained backbone and $10^{-4}$ for the classification head. The image models used a batch size of 32 and a 2-epoch warmup, while the sequence models used a batch size of 8 and a 3-epoch warmup. The maximum training budget was 50 epochs, and model selection was based on validation TSS with early stopping to limit overfitting. The augmentation pipeline combined horizontal and vertical flips, random rotations up to $\pm 30^\circ$, magnetic polarity inversion, and small integer noise. For sequence inputs, the geometric transforms and polarity inversion were shared across all frames of the same sequence in order to preserve temporal coherence. The reported test-set TSS values were computed with the decision threshold selected on the validation set. Table~\ref{tab:hparams} summarizes the main settings used for the selected image and sequence models.
+
+
+\begin{table}[H]
+\caption{Main training settings used for the selected image and sequence models.}
+\label{tab:hparams}
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{0.95}
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.20\textwidth}>{\raggedright\arraybackslash}p{0.34\textwidth}>{\raggedright\arraybackslash}p{0.34\textwidth}@{}}
+\toprule
+Item & Image model & Sequence model \\
+\midrule
+Model & 2D MViT (pretrained) & MViT (pretrained) \\
+Input & $1 \times 224 \times 224$ & $T \times 1 \times 224 \times 224$ \\
+% Resolution / cadence & $224$ input; for the resolution study, downsample to $112$ or $56$, then upsample back to $224$ & 16 frames; 60, 120, or 180 min cadence \\
+Augmentation & H/V flips, rotation up to $\pm 30^\circ$, polarity inversion, integer noise & Same transforms; geometric operations shared across frames \\
+Optimizer & AdamW & AdamW \\
+Backbone LR & $10^{-6}$ & $10^{-6}$ \\
+Head LR & $10^{-4}$ & $10^{-4}$ \\
+Weight decay & 0.01 & 0.01 \\
+Scheduler & Cosine & Cosine \\
+Warmup & 2 epochs & 3 epochs \\
+Loss & Weighted BCE & Weighted BCE \\
+Batch size & 32 & 8 \\
+Epochs & 50 & 50 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\section{Results}
+
+In the result tables, bold values indicate the best mean value for each metric within a given flare-intensity task.
+
+\subsection{Resolution for AR Images}
+
+Table~\ref{tab:single} presents the resolution study. It compares the same image model at $224 \times 224$, $112 \times 112$, and $56 \times 56$. The goal is to see whether reducing spatial detail causes only a small drop in TSS or whether there is a clear performance break at low resolution.
+
+\begin{table}[H]
+\caption{Results for the resolution study with the selected 2D MViT image model.}
+\label{tab:single}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+Resolution & TSS & AUC & PR-AUC & F1 \\
+\midrule
+\multicolumn{5}{c}{$\geq C$ task} \\
+\midrule
+224 & $0.534 \pm 0.026$ & $0.833 \pm 0.010$ & $\best{0.641 \pm 0.024}$ & $\best{0.620 \pm 0.013}$ \\
+112 & $\best{0.539 \pm 0.061}$ & $\best{0.834 \pm 0.031}$ & $0.640 \pm 0.048$ & $0.613 \pm 0.041$ \\
+56 & $0.522 \pm 0.064$ & $0.829 \pm 0.032$ & $0.626 \pm 0.049$ & $0.605 \pm 0.043$ \\
+\addlinespace
+\multicolumn{5}{c}{$\geq M$ task} \\
+\midrule
+224 & $\best{0.647 \pm 0.046}$ & $\best{0.910 \pm 0.007}$ & $\best{0.391 \pm 0.047}$ & $\best{0.309 \pm 0.028}$ \\
+112 & $0.618 \pm 0.050$ & $0.902 \pm 0.013$ & $0.373 \pm 0.055$ & $0.296 \pm 0.048$ \\
+56 & $0.618 \pm 0.062$ & $0.898 \pm 0.018$ & $0.324 \pm 0.055$ & $0.296 \pm 0.032$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+The performance drop from full resolution to lower resolution was moderate. For $\geq C$, the three resolutions were close in TSS and AUC; for $\geq M$, full resolution gave the highest TSS and AUC, but pairwise TSS differences were not significant. The $\geq M$ PR-AUC values remain far above the 3\% no-skill baseline despite their lower absolute scale.
+
+
+\subsection{Longitude and Latitude on the Solar Disk}
+
+The second experiment studied disk position. Since geometric distortion is weaker near disk center, and Pandey et al.~\cite{ref_long} reported declining performance with increasing longitudinal coverage, we compared inner and outer longitude buckets. Most ARs already lie within $\pm30^\circ$ latitude, so we focused on longitude. Table~\ref{tab:a2} and Fig.~\ref{fig:a2_graph} report both full-training and central-only-training evaluations.
+
+
+\begin{table}[H]
+\caption{Results for the longitude experiment.}
+\label{tab:a2}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Train longitudes & Test longitudes & TSS & AUC & PR-AUC & F1 \\
+\midrule
+\multicolumn{6}{c}{$\geq C$ task} \\
+\midrule
+Full $\pm60^\circ$ & Full $\pm60^\circ$ & $0.534 \pm 0.026$ & $0.833 \pm 0.010$ & $0.641 \pm 0.024$ & $0.620 \pm 0.013$ \\
+Full $\pm60^\circ$ & $|$lon$| \leq 30^\circ$ & $\best{0.593 \pm 0.017}$ & $\best{0.863 \pm 0.015}$ & $0.637 \pm 0.038$ & $0.610 \pm 0.023$ \\
+Full $\pm60^\circ$ & $30^\circ < |$lon$| \leq 60^\circ$ & $0.557 \pm 0.016$ & $0.843 \pm 0.015$ & $\best{0.726 \pm 0.023}$ & $\best{0.667 \pm 0.011}$ \\
+$|$lon$| \leq 30^\circ$ & $|$lon$| \leq 30^\circ$ & $0.567 \pm 0.022$ & $0.852 \pm 0.010$ & $0.623 \pm 0.025$ & $0.583 \pm 0.023$ \\
+$|$lon$| \leq 30^\circ$ & $30^\circ < |$lon$| \leq 60^\circ$ & $0.544 \pm 0.010$ & $0.830 \pm 0.007$ & $0.712 \pm 0.015$ & $0.665 \pm 0.011$ \\
+\addlinespace
+\multicolumn{6}{c}{$\geq M$ task} \\
+\midrule
+Full $\pm60^\circ$ & Full $\pm60^\circ$ & $0.647 \pm 0.046$ & $0.910 \pm 0.007$ & $0.391 \pm 0.047$ & $0.309 \pm 0.028$ \\
+Full $\pm60^\circ$ & $|$lon$| \leq 30^\circ$ & $0.652 \pm 0.094$ & $0.916 \pm 0.013$ & $0.455 \pm 0.060$ & $0.248 \pm 0.018$ \\
+Full $\pm60^\circ$ & $30^\circ < |$lon$| \leq 60^\circ$ & $0.624 \pm 0.063$ & $0.887 \pm 0.025$ & $0.359 \pm 0.049$ & $0.297 \pm 0.041$ \\
+$|$lon$| \leq 30^\circ$ & $|$lon$| \leq 30^\circ$ & $\best{0.705 \pm 0.061}$ & $\best{0.920 \pm 0.010}$ & $\best{0.470 \pm 0.066}$ & $0.239 \pm 0.026$ \\
+$|$lon$| \leq 30^\circ$ & $30^\circ < |$lon$| \leq 60^\circ$ & $0.673 \pm 0.060$ & $0.907 \pm 0.008$ & $0.316 \pm 0.045$ & $\best{0.347 \pm 0.033}$ \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/a2_longitude_tss_std.png}
+\caption{Longitude experiment summarized by TSS. Panel A shows the full-training model; Panel B shows the central-only model. Bars show means and standard deviations across ten seeds.}
+\label{fig:a2_graph}
+\end{figure}
+
+For $\geq C$, the baseline model gave significantly higher TSS on the inner than the outer longitude bucket (paired t-test, $p=0.00030$). For $\geq M$, the inner bucket had higher TSS and AUC, but the TSS difference was not significant.
+
+Central-only training was not uniformly beneficial. On the central test bucket, TSS decreased from 0.593 to 0.567 for $\geq C$ ($p=0.0025$) but increased from 0.652 to 0.705 for $\geq M$ without reaching significance ($p=0.057$); $\geq M$ AUC and PR-AUC were also highest in this setting. For the central-only model, outer-bucket TSS was significantly lower for $\geq C$ (0.544 vs. 0.567, $p=0.011$) and numerically lower for $\geq M$ (0.673 vs. 0.705, $p=0.189$), although threshold-dependent metrics such as F1 did not degrade in the same way.
+
+
+
+
+\subsection{Cadence Study with 16-Frame MViT}
+
+Table~\ref{tab:video} summarizes the sequence experiments. For $\geq C$, TSS increased with cadence, from 0.674 at 60 minutes to 0.742 at 120 minutes and 0.789 at 180 minutes. All three pairwise differences were significant ($p=6.4\times10^{-5}$ for 120 vs. 60, $p=0.0013$ for 180 vs. 120, and $p=5.0\times10^{-8}$ for 180 vs. 60), indicating that temporal span mattered more than dense short-interval sampling.
+
+
+For $\geq M$, the 180-minute cadence also gave the highest TSS and AUC, although TSS differences were not significant and variance was larger. With 16 frames, this setting spans 45 hours of AR evolution, compared with 30 hours at 120 minutes and 15 hours at 60 minutes.
+
+
+\begin{table}[H]
+\caption{Cadence study for the 16-frame MViT model.}
+\centering
+\label{tab:video}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+Cadence (min) & TSS & AUC & PR-AUC & F1 \\
+\midrule
+\multicolumn{5}{c}{$\geq C$ task} \\
+\midrule
+60  & $0.674 \pm 0.021$ & $0.910 \pm 0.015$ & $0.766 \pm 0.033$ & $0.677 \pm 0.015$ \\
+120 & $0.742 \pm 0.028$ & $0.934 \pm 0.011$ & $0.810 \pm 0.033$ & $0.718 \pm 0.022$ \\
+180 & $\best{0.789 \pm 0.021}$ & $\best{0.958 \pm 0.005}$ & $\best{0.855 \pm 0.029}$ & $\best{0.736 \pm 0.025}$ \\
+\addlinespace
+\multicolumn{5}{c}{$\geq M$ task} \\
+\midrule
+60  & $0.626 \pm 0.062$ & $0.896 \pm 0.013$ & $\best{0.405 \pm 0.070}$ & $0.277 \pm 0.039$ \\
+120 & $0.671 \pm 0.039$ & $0.914 \pm 0.010$ & $0.366 \pm 0.076$ & $0.289 \pm 0.040$ \\
+180 & $\best{0.706 \pm 0.107}$ & $\best{0.947 \pm 0.013}$ & $0.393 \pm 0.065$ & $\best{0.362 \pm 0.078}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The lower $\geq M$ PR-AUC reflects its positive rate: values near 0.39 are still far above the 0.03 no-skill baseline.
+
+\subsection{Number of Frames over a Fixed 45-Hour Window}
+
+Table~\ref{tab:frames} summarizes the frame-number experiment, where the temporal span was fixed at 45 hours and the MViT model used $T=4$, $T=8$, or $T=16$ input frames. 
+
+% Since TSS and F1 depend on a selected operating threshold, PR-AUC is included here together with ROC-AUC to provide threshold-free views of performance, with PR-AUC being especially relevant for the imbalanced $\geq M$ task and its much lower positive-rate baseline.
+
+For $\geq C$, sparser sequences performed at least as well as $T=16$, with best TSS at $T=4$ and best PR-AUC at $T=8$, but TSS differences were not significant. For $\geq M$, $T=4$ and $T=8$ gave nearly identical TSS, whereas $T=16$ retained the highest PR-AUC and F1. Thus the full 16-frame input was not always necessary when the 45-hour span was preserved, although no frame count was significantly best across all metrics.
+
+\begin{table}[H]
+% \caption{Results for the frame-number study over a fixed 45-hour window with the MViT sequence model.}
+\caption{Effect of frame count over a fixed 45-hour window (MViT).}
+\centering
+\label{tab:frames}
+\scriptsize
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+Frames & TSS & AUC & PR-AUC & F1 \\
+\midrule
+\multicolumn{5}{c}{$\geq C$ task} \\
+\midrule
+16 & $0.789 \pm 0.021$ & $0.958 \pm 0.005$ & $0.855 \pm 0.029$ & $0.736 \pm 0.025$ \\
+8  & $0.802 \pm 0.033$ & $\best{0.962 \pm 0.006}$ & $\best{0.871 \pm 0.017}$ & $0.737 \pm 0.037$ \\
+4  & $\best{0.805 \pm 0.025}$ & $0.960 \pm 0.005$ & $0.862 \pm 0.015$ & $\best{0.741 \pm 0.028}$ \\
+\addlinespace
+\multicolumn{5}{c}{$\geq M$ task} \\
+\midrule
+16 & $0.706 \pm 0.107$ & $0.947 \pm 0.013$ & $\best{0.393 \pm 0.065}$ & $\best{0.362 \pm 0.078}$ \\
+8  & $0.751 \pm 0.075$ & $\best{0.952 \pm 0.010}$ & $0.389 \pm 0.081$ & $0.352 \pm 0.059$ \\
+4  & $\best{0.752 \pm 0.069}$ & $0.945 \pm 0.012$ & $0.359 \pm 0.061$ & $0.327 \pm 0.057$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+
+This study complements architecture-focused work by isolating input-design choices under a controlled fine-tuning setup. The clearest effect was temporal span: for $\geq C$, increasing the 16-frame cadence from 60 to 120 to 180 minutes produced significant TSS gains. For $\geq M$, the 180-minute setting gave the highest TSS and AUC, but the paired TSS differences were not significant. The frame-number experiment further suggests that sparse sampling over a long window can be viable.
+
+The 16-frame sequence model outperformed the native-resolution single-image model in TSS and AUC, especially for $\geq C$. This is suggestive evidence for temporal context, but not a fully controlled 3D-versus-2D architecture test because the sequence dataset requires complete temporal coverage. A matched comparison using static inputs derived from the same valid sequences is left for future work.
+
+The image-based experiments give complementary pipeline guidance. The resolution study suggests that large-scale magnetic organization carries much of the predictive information, even if finer detail may still matter for some $\geq M$ metrics. The longitude study is consistent with projection effects away from disk center, but specialization was metric-dependent: central-only training decreased central-bucket TSS for $\geq C$ ($p=0.0025$) while increasing it non-significantly for $\geq M$ ($p=0.057$). For the central-only model, the outer bucket was significantly worse for $\geq C$ ($p=0.011$) but only numerically lower for $\geq M$ ($p=0.189$).
+
+% Possibly exclude this due to lack of space 
+% Table~\ref{tab:context_compare} gives a compact external comparison. The Boucheron rows are the closest reference point because they use the same reduced-resolution benchmark family, while the remaining rows are representative literature values compiled by Shao et al.~\cite{ref_shao_review}. These values should not be read as a ranking: datasets, AR selection, preprocessing, train-test splits, and even the exact label definitions differ across studies.
+
+% \begin{table}[H]
+% \caption{Contextual comparison with selected published flare-prediction results. Literature values are reported as published and are not directly comparable across rows.}
+% \label{tab:context_compare}
+% \centering
+% \scriptsize
+% \setlength{\tabcolsep}{3pt}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{@{}llllc@{}}
+% \toprule
+% Source & Model / input & Data and protocol & Level & TSS \\
+% \midrule
+% Boucheron et al.~\cite{ref_boucheron} & VGG, AR image & Boucheron reduced-res., holdout & flare/no-flare & 0.5325 \\
+% Boucheron et al.~\cite{ref_boucheron} & SVM, static features & Boucheron reduced-res., holdout & flare/no-flare & 0.5348 \\
+% Huang et al., in~\cite{ref_shao_review} & CNN, single image & AR.C, cross-validation & C / M / X & 0.49 / 0.66 / 0.71 \\
+% Liu et al., in~\cite{ref_shao_review} & LSTM, image series & AR.C, holdout/CV & C+ / M+ / M5.0+ & 0.61 / 0.79 / 0.88 \\
+% Li et al., in~\cite{ref_shao_review} & Transformer, image series & AR.C, cross-validation & M+ & 0.78 \\
+% Ours & MViT, single image & Boucheron reduced-res., AR split & C+ / M+ & $0.534 \pm 0.026$ / $0.647 \pm 0.046$ \\
+% Ours & MViT, 16-frame sequence & Boucheron-derived sequences, AR split & C+ / M+ & $0.789 \pm 0.021$ / $0.706 \pm 0.107$ \\
+% \bottomrule
+% \end{tabular}
+% }
+% \end{table}
+
+% Under this cautious interpretation, our single-image MViT results for $\geq C$ are close to the original Boucheron reduced-resolution VGG and SVM baselines. The higher TSS of the sequence setting suggests that temporal input is valuable, but it should not be treated as a direct architecture ranking against studies using different datasets or validation protocols.
+
+Several limitations remain. All experiments use the reduced-resolution Boucheron benchmark, so the conclusions should be validated on independent magnetogram data or different solar-cycle intervals. Class imbalance likely contributes to larger $\geq M$ variance, and overlapping AR cutouts in roughly one quarter of images~\cite{ref_boucheron} may introduce label noise; we kept the original preprocessing to preserve benchmark consistency. Finally, the models rely on natural-image and video pretraining, whereas magnetograms differ substantially from such data. Future work should test overlap-aware filtering, domain-specific pretraining, additional temporal windows, handcrafted magnetic features, and a matched static-versus-sequence comparison.
+
+\section{Conclusion}
+
+We presented a controlled study of four input-design questions for magnetogram-based flare prediction: image resolution, disk position, temporal cadence, and sequence length. Lower resolution caused only moderate loss, longer temporal span was most beneficial, sparse 4- or 8-frame sequences remained competitive, and longitude effects were task- and metric-dependent. These findings provide practical guidance for efficient flare-prediction pipelines and motivate further study of spatial detail, temporal context, and domain-specific pretraining.
+
+\begin{credits}
+\subsubsection{\discintname}
+The authors have no competing interests to declare that are relevant to the content of this article.
+\end{credits}
+
+\begin{thebibliography}{10}
+
+\bibitem{ref_boucheron}
+Boucheron, L.E., Vincent, T., Grajeda, J.A., Wuest, E.: Solar active region magnetogram image dataset for studies of space weather. Sci. Data \textbf{10}, 825 (2023). \doi{10.1038/s41597-023-02628-8}
+
+\bibitem{ref_bloomfield}
+Bloomfield, D.S., Higgins, P.A., Gallagher, P.T., McAteer, R.T.J.: Toward reliable benchmarking of solar flare forecasting methods. Astrophys. J. Lett. \textbf{747}, L41 (2012). \doi{10.1088/2041-8205/747/2/L41}
+
+\bibitem{ref_li_flares}
+Li, Y.Y., et al.: Solar flare forecasting based on a fusion model. Earth Planet. Phys. \textbf{9}, 171--181 (2025). \doi{10.26464/epp2024058}
+
+\bibitem{ref_shao_review}
+Shao, M., et al.: Advances and challenges in solar flare prediction: A review. arXiv preprint arXiv:2511.20465 (2025). \doi{10.48550/arXiv.2511.20465}
+
+\bibitem{ref_vit}
+Dosovitskiy, A., et al.: An image is worth 16x16 words: Transformers for image recognition at scale. In: ICLR (2021)
+
+\bibitem{ref_swin}
+Liu, Z., et al.: Swin Transformer: Hierarchical vision transformer using shifted windows. In: ICCV, pp. 10012--10022 (2021)
+
+\bibitem{ref_convnext}
+Liu, Z., et al.: A ConvNet for the 2020s. In: CVPR, pp. 11976--11986 (2022)
+
+\bibitem{ref_mvit}
+Fan, H., et al.: Multiscale Vision Transformers. In: ICCV, pp. 6824--6835 (2021)
+
+% \bibitem{ref_mvitv2}
+% Li, Y., Wu, C.-Y., Fan, H., Mangalam, K., Xiong, B., Malik, J., Feichtenhofer, C.: MViTv2: Improved Multiscale Vision Transformers for Classification and Detection. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pp. 4804--4814 (2022)
+
+
+\bibitem{ref_long}
+Pandey, C., Adeyeha, T., Hong, J., Angryk, R.A., Aydin, B.: Advancing solar flare prediction using deep learning with active region patches. In: ECML PKDD 2024, LNCS \textbf{14950}. Springer (2024). \doi{10.1007/978-3-031-70381-2_4}
+
+
+\bibitem{ref_hmi}
+Scherrer, P.H., et al.: The Helioseismic and Magnetic Imager (HMI) investigation for the Solar Dynamics Observatory (SDO). Sol. Phys. \textbf{275}, 207--227 (2012). \doi{10.1007/s11207-011-9834-2}
+% \bibitem{ref_soho_web}
+% NASA/ESA, ``SOHO: Solar and Heliospheric Observatory,'' 
+% NASA Goddard Space Flight Center, 
+% \url{https://soho.nascom.nasa.gov/}, accessed: 2026-03-29.
+
+\end{thebibliography}
+
+\end{document}

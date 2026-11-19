@@ -1,0 +1,163 @@
+Paper ID
+750
+Paper Title
+Solar Flare Prediction from Magnetograms: A Controlled Study of Input Design in Deep Learning
+Track Name
+ICANN2026
+Reviewer #1
+Questions
+
+1. Summary of the Paper
+This study revisits solar flare forecasting using deep learning on active-region magnetogram data. It
+systematically tests input design: spatial resolution (224×224 downsampled to 112×112, 56×56),
+solar-disk position, and temporal context (16-frame sequences at various cadences). The key finding is that longer
+temporal coverage greatly improves performance, indicating that temporal context dominates other input factors.
+2. Novelty and Originality:
+Moderate
+3. Technical Quality and Correctness
+Good
+4. Significance and Impact
+Moderate
+5. Clarity and Presentation
+Good
+6. Relevance to ICANN Topics
+Relevant
+8. Review (Comments to the Authors)
+- Limited Dataset: The study uses only the reduced-resolution dataset from Boucheron et al. It would strengthen the work to test on another independent magnetogram dataset or at least
+acknowledge this limitation explicitly. If no other labeled data is available, discuss how Boucheron’s dataset
+characteristics (class balance, event rates) might affect generality.
+
+- Event Rates and Class Balance: Flare forecasting has severe class imbalance (few flares vs many nonflares).
+The paper should report baseline event frequencies in the dataset and confirm that cross-validation
+or threshold selection is not biased by imbalance. If not already done, consider stratified splits or repeated
+trials to quantify variance.
+
+- Hyperparameter Details: Some key choices are not fully described in the text: e.g., the exact
+downsampling method (it says “downsample to 112×112 and 56×56, then upsample to 224×224”); limbangle
+binning details; the process for sampling frames at different cadences (are they contiguous or spaced
+at fixed intervals?). Provide clarifications so others can replicate
+
+- Comparison to Prior Work: The introduction mentions classical ML and deep learning studies. It would
+help to briefly compare your results to those prior methods (e.g. did previous models use 180-min cadence
+or similar inputs?). At least citing key prior results could contextualize the performance
+levels (TSS values).
+
+- Ablation Study: The resolution and limb tests are mentioned in the abstract but not quantified in the
+provided text. Please include quantitative results for these (even if only in text), as readers will want to know
+if using 112×112 or including limbs significantly hurts performance. If 112×112 works nearly as well, that is
+also a useful outcome.
+
+- Metric and Threshold: Using TSS with a threshold from validation is sound, but specify the positive rate
+(e.g., skill over flaring vs non-flaring). Also, clarify whether results are averaged over multiple splits or just
+one.
+Reviewer #2
+Questions
+
+1. Summary of the Paper
+This paper investigates how specific input-design choices specifically spatial resolution, solar disk position, and temporal cadence impact the performance of deep learning models in forecasting solar flares. Using a standardized dataset of solar active-region (AR) magnetograms, the authors fine-tuned Multiscale Vision Transformers (MViT) to isolate the effects of these variables.
+2. Novelty and Originality:
+Moderate
+3. Technical Quality and Correctness
+Good
+4. Significance and Impact
+Moderate
+5. Clarity and Presentation
+Acceptable
+6. Relevance to ICANN Topics
+Somewhat Relevant
+8. Review (Comments to the Authors)
+Strengths
+Clear practical focus: The paper addresses real-world design questions (resolution, position, temporal sampling), making it highly relevant for practitioners.
+Controlled experimental setup: A unified fine-tuning protocol helps isolate the impact of individual input factors, improving result reliability.
+Insightful findings: Demonstrates that temporal context is more critical than spatial resolution or positional effects.
+Strong evaluation metric: Use of TSS is appropriate and standard for imbalanced solar flare prediction tasks.
+Actionable guidance: Provides concrete recommendations (e.g., 180-minute cadence) for future model design.
+Weaknesses
+Limited novelty: The work focuses on empirical evaluation of input configurations rather than proposing new models or algorithms.
+Dataset constraint: Experiments rely on a reduced-resolution dataset, which may limit generalizability to higher-resolution or operational settings.
+Model diversity: Primarily evaluates a single architecture (MViT), making it unclear whether conclusions generalize across models.
+Lack of comparison with state-of-the-art: The paper does not sufficiently benchmark against recent flare prediction methods.
+Marginal gains analysis: The improvement from different cadences is not deeply analyzed in terms of statistical significance or robustness.
+Reviewer #3
+Questions
+
+1. Summary of the Paper
+This paper investigates practical input-design choices for solar flare prediction using deep learning on magnetogram data. Using the reduced-resolution active-region dataset from Boucheron et al., the authors systematically study three factors: (1) the effect of spatial resolution on image-based prediction, (2) the impact of solar disk position on performance, and (3) the temporal cadence for a 16-frame spatio-temporal MViT model.
+2. Novelty and Originality:
+High
+3. Technical Quality and Correctness
+Good
+4. Significance and Impact
+Significant
+5. Clarity and Presentation
+Good
+6. Relevance to ICANN Topics
+Somewhat Relevant
+8. Review (Comments to the Authors)
+Summary: This paper presents a systematic study of input design choices (spatial resolution, disk position, temporal cadence) for solar flare prediction using magnetograms and a fixed MViT architecture. The results offer practical guidance, particularly that a 180-minute cadence over 16 frames (45-hour window) works best, and that reducing resolution to 56×56 causes only modest performance loss. The work is clearly presented and methodologically sound in many aspects.
+Major Comments:
+1. Statistical significance testing needed: You report means and standard deviations across 5 seeds, but you do not perform any pairwise tests (e.g., t-test or Wilcoxon) to support claims like "the 180-minute cadence gave the best mean TSS for both tasks". For ≥M, 180-min TSS (0.674±0.134) and 120-min (0.671±0.052) overlap considerably. Please add significance tests (e.g., whether the difference between cadences is significant at p<0.05) and adjust your conclusions accordingly. For ≥C, the trend is clearer, but still test.
+2. Missing baseline: You should compare your temporal MViT against a simpler non-temporal baseline (e.g., single-frame model on the last frame, or average of frames) on the same dataset. This would demonstrate how much value the temporal context actually adds. Currently, you compare across cadences but not against a static model.
+3. Resolution study interpretation: For the ≥C task, the TSS at 56×56 (0.510±0.054) is not statistically different from full resolution (0.535±0.024) given the overlap. Please rephrase to avoid claiming that full resolution is "best" for ≥C; instead say "differences are not significant" or "full resolution shows a slight advantage that is not statistically robust." For ≥M, the advantage of full resolution is clearer.
+4. Longitude specialization experiment (Fig 2B): You show that training only on central longitudes improves TSS on the central test subset. But does that model perform worse on outer longitudes? That is important to know if one wants a general model. Please report the performance of the central-only model on the outer test bucket. Also, report significance for the improvement (0.545→0.570 and 0.580→0.678) – given the standard deviations, the 0.678 improvement for ≥M may be within noise (0.580±0.125 vs 0.678±? – you don't report the std for the central-only model. Please add).
+5. Overlapping ARs limitation: You mention in Discussion that overlapping ARs could introduce errors because the model learns from only the central AR. This is an important caveat. Please quantify how many samples are affected, or at least estimate potential impact. If possible, re-run experiments after filtering overlapping ARs to see if results change.
+Reviewer #4
+Questions
+
+1. Summary of the Paper
+The paper studies input design choices for deep learning-based solar flare prediction from magnetogram images. Instead of proposing a new architecture, it compares the effects of spatial resolution, solar-disk position, and temporal cadence under a controlled fine-tuning setup. The main finding is that temporal context is the most important factor: a 16-frame MViT model with 180-minute cadence performs best for both ≥C and ≥M flare prediction.
+2. Novelty and Originality:
+Moderate
+3. Technical Quality and Correctness
+Fair
+4. Significance and Impact
+Moderate
+5. Clarity and Presentation
+Good
+6. Relevance to ICANN Topics
+Somewhat Relevant
+8. Review (Comments to the Authors)
+The paper addresses a practical and relevant problem: how to design inputs for deep learning models in solar flare forecasting. The focus on controlled input comparisons is useful, since many works emphasize architecture changes without isolating the role of resolution, disk position, or temporal context.
+
+The study is generally well organized and clearly written. The dataset, metrics, augmentation strategy, and training setup are described in a mostly understandable way. The use of TSS is appropriate for this imbalanced prediction task, and reporting AUC, precision, recall, and F1 gives a broader view of model behavior. The cadence study is the strongest part of the paper, and the result that longer temporal coverage outperforms denser short-interval sampling is interesting and practically useful.
+
+However, the novelty is moderate. The paper is mainly an empirical input-design study using existing pretrained models and an existing dataset. This is valuable, but the contribution is more practical than methodological. The paper would be stronger if it more clearly positioned itself as a controlled benchmark-style study rather than as a main paper contribution.
+
+The experimental scope is somewhat limited. The cadence study is repeated with five seeds, but the resolution and disk-position analyses appear more compact and have relatively high variance, especially for the ≥M task. More seeds, confidence intervals, and statistical significance testing would make the conclusions more convincing.
+
+The comparison is also limited to a small set of input settings. For cadence, only 60, 120, and 180 minutes are tested. Since 180 minutes is best, it is unclear whether even longer cadences or longer sequences would perform better. Similarly, the resolution study only tests 224, 112, and 56, and the longitude study only uses two broad buckets.
+
+Another concern is the reliance on pretrained natural-image/video models. The paper should discuss more deeply whether these pretrained representations are appropriate for magnetograms, which differ substantially from natural images. A comparison with training from scratch or with domain-specific pretraining would strengthen the conclusions.
+
+The presentation is good overall, but some details could be improved. The authors should clarify the exact data split, number of positive/negative samples for each task, threshold-selection procedure, and whether there is any temporal or active-region leakage risk.
+
+Overall, this is a clear and useful empirical study. Its main contribution is practical guidance for solar flare prediction pipelines, especially the finding that longer temporal context is more beneficial than dense short-cadence sampling. The paper would benefit from broader experiments, stronger statistical analysis, and deeper discussion of pretrained model suitability for magnetogram data.
+Reviewer #5
+Questions
+
+1. Summary of the Paper
+This paper presents a controlled empirical study on three input design choices for deep‑learning‑based solar flare prediction. Key findings: temporal context is the most influential factor – the 180‑minute cadence yields the best TSS for both ≥C and ≥M flare prediction; reducing spatial resolution causes only moderate performance loss; active regions closer to disk center achieve higher TSS, and training exclusively on central regions further improves performance on central test data.
+2. Novelty and Originality:
+Moderate
+3. Technical Quality and Correctness
+Fair
+4. Significance and Impact
+Moderate
+5. Clarity and Presentation
+Acceptable
+6. Relevance to ICANN Topics
+Somewhat Relevant
+8. Review (Comments to the Authors)
+Major concerns:
+1. Lack of statistical significance testing: The paper reports means and standard deviations over 5 seeds but never performs any statistical test (e.g., paired t‑test, ANOVA) to confirm whether observed differences (e.g., between 120 and 180 minutes for ≥M, TSS 0.671 vs 0.674) are meaningful or just noise. Given the large standard deviations (e.g., 0.134 for 180‑min ≥M TSS), the claim that “180‑minute cadence gave the highest mean TSS” is weak. Please add significance tests (e.g., Welch’s t‑test) and report p‑values or confidence intervals. If differences are not significant, state so explicitly.
+2. Ablation on data augmentation: Augmentation is applied throughout, but its effect is not isolated. Could the 180‑minute cadence benefit more from augmentation because longer sequences have more frame‑to‑frame variability that augmentation can exploit? Please run at least one control experiment (e.g., 60 vs 180 minutes without augmentation) or provide a clear argument why augmentation does not bias the cadence comparison.
+3. Handling of overlapping active regions: The dataset issue (overlapping ARs) is mentioned in the discussion but not addressed. This could introduce systematic label noise, especially for the position study (an AR at the edge may be contaminated by a central AR). Please either: (a) quantify the proportion of overlapping samples, (b) rerun key experiments on a cleaned subset (e.g., excluding overlapping instances), or (c) at least show that the results are robust by a sensitivity analysis.
+4. Missing details for reproducibility: (1) How exactly are the 16 frames selected for each sequence? Are they consecutive in time? What happens when an AR is not observed for a required period? (2) The “common fine‑tuning protocol” is described, but the pretrained MViT weights – are they from Kinetics‑400 or a similar video dataset? Please specify. (3) The decision threshold selection on validation set uses minimum recall (0.5) and precision (0.15). How sensitive are the TSS results to these constraints? A short analysis would be helpful.
+5. Insufficient analysis of the position study: (1) Table 3 shows that for ≥C, the outer longitude bucket has higher recall (0.769 vs 0.723) and F1 (0.622 vs 0.591) than the inner bucket, despite lower TSS. This is an interesting finding but is not discussed. Please explain why recall and F1 behave differently – does the model become more conservative (higher precision) near the center? (2) The central‑only training experiment (Fig. 2 panel B) shows large variance (e.g., ≥M TSS 0.678 ± 0.139). The paper claims an improvement, but the overlapping error bars suggest no statistical difference. Please add significance tests.
+
+Minor comments:
+1. Abstract: “The sequence study used a 16‑frame MViT model and was reported for both ≥C and ≥M” – the phrase “reported for” is vague. Consider “evaluated for”.
+2. Section 4.1: “magnetic polarity inversion” – does this mean multiplying the magnetogram by -1? Please clarify.
+3. Table 4: For ≥M at 180 minutes, the standard deviation of TSS is 0.134, which is very large. The manuscript should comment on this instability – is it due to the highly imbalanced nature of ≥M?
+4. Fig. 2: The error bars are standard deviations across seeds; it would be helpful to also show individual seed results (e.g., as scatter points) to assess consistency.
+5. References: The dataset citation [1] is correct and publicly available, which is good for reproducibility. However, reference [10] (SOHO website) is not a standard academic citation – please use a more formal source if possible.
