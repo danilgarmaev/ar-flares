@@ -40,6 +40,30 @@ def add_norm_cli_args(ap) -> None:
         default=None,
         help="Optional JSON object passed to registered custom norm builders",
     )
+    ap.add_argument(
+        "--learnable-scaler",
+        action="store_true",
+        default=None,
+        help="Replace model normalization layers using an external learnable_scaler.py module",
+    )
+    ap.add_argument(
+        "--learnable-scaler-module",
+        type=str,
+        default=None,
+        help="Python module containing LearnableScaler and replace_norm (default: learnable_scaler)",
+    )
+    ap.add_argument(
+        "--learnable-scaler-class",
+        type=str,
+        default=None,
+        help="Class name in the learnable scaler module (default: LearnableScaler)",
+    )
+    ap.add_argument(
+        "--learnable-scaler-lr",
+        type=float,
+        default=None,
+        help="Learning rate for LearnableScaler parameters (default: 1e-3 when enabled)",
+    )
 
 
 def apply_norm_cli_overrides(args, overrides: dict) -> None:
@@ -47,6 +71,15 @@ def apply_norm_cli_overrides(args, overrides: dict) -> None:
         value = getattr(args, key, None)
         if value is not None:
             overrides[key] = value
+
+    if getattr(args, "learnable_scaler", None) is not None:
+        overrides["use_learnable_scaler"] = bool(args.learnable_scaler)
+    for key in ("learnable_scaler_module", "learnable_scaler_class"):
+        value = getattr(args, key, None)
+        if value is not None:
+            overrides[key] = value
+    if getattr(args, "learnable_scaler_lr", None) is not None:
+        overrides["learnable_scaler_lr"] = float(args.learnable_scaler_lr)
 
     params_json = getattr(args, "norm_custom_params_json", None)
     if params_json is not None:

@@ -284,6 +284,10 @@ CFG = {
     "norm_group_count": 8,
     "norm_custom_name": None,
     "norm_custom_params": {},
+    "use_learnable_scaler": False,
+    "learnable_scaler_module": "learnable_scaler",
+    "learnable_scaler_class": "LearnableScaler",
+    "learnable_scaler_lr": 1e-3,
 
     # Optional metadata for experiment tracking
     "run_id": None,

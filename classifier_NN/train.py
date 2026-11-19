@@ -7,6 +7,7 @@ import sys
 import json
 import subprocess
 import random
+import importlib
 import numpy as np
 import torch
 import torch.distributed as dist
@@ -136,6 +137,48 @@ def _is_head_like_param(name: str) -> bool:
     return any(tok in _HEAD_PARAM_TOKENS for tok in tokens)
 
 
+def _is_learnable_scaler_module(module: torch.nn.Module) -> bool:
+    return module.__class__.__name__.lower().startswith("learnablescaler")
+
+
+def _maybe_apply_learnable_scaler(model: torch.nn.Module, cfg: dict) -> torch.nn.Module:
+    if not bool(cfg.get("use_learnable_scaler", False)):
+        return model
+
+    module_name = str(cfg.get("learnable_scaler_module") or "learnable_scaler")
+    class_name = str(cfg.get("learnable_scaler_class") or "LearnableScaler")
+    try:
+        scaler_module = importlib.import_module(module_name)
+    except ModuleNotFoundError as e:
+        raise ModuleNotFoundError(
+            f"LearnableScaler requested, but Python module '{module_name}' was not found. "
+            "Place Anh Tuan's learnable_scaler.py in the project root or pass "
+            "--learnable-scaler-module with an importable module path."
+        ) from e
+
+    scaler_cls = getattr(scaler_module, class_name, None)
+    replace_norm = getattr(scaler_module, "replace_norm", None)
+    if scaler_cls is None or replace_norm is None:
+        raise AttributeError(
+            f"Module '{module_name}' must define {class_name} and replace_norm(model, norm_cls)."
+        )
+
+    before_ln = sum(1 for m in model.modules() if isinstance(m, torch.nn.LayerNorm))
+    before_scaler = sum(1 for m in model.modules() if isinstance(m, scaler_cls))
+    replaced = replace_norm(model, scaler_cls)
+    if replaced is not None:
+        model = replaced
+    after_ln = sum(1 for m in model.modules() if isinstance(m, torch.nn.LayerNorm))
+    after_scaler = sum(1 for m in model.modules() if isinstance(m, scaler_cls))
+    print(
+        "Applied LearnableScaler norm replacement "
+        f"| module={module_name}.{class_name} "
+        f"| LayerNorm {before_ln}->{after_ln} "
+        f"| LearnableScaler {before_scaler}->{after_scaler}"
+    )
+    return model
+
+
 def _snapshot_trainable_flags(model: torch.nn.Module) -> dict[str, bool]:
     base = _unwrap_model(model)
     return {name: bool(param.requires_grad) for name, param in base.named_parameters()}
@@ -169,32 +212,59 @@ def _get_optimizer_param_groups(model: torch.nn.Module, cfg: dict) -> tuple[list
     if not named_params:
         raise RuntimeError("No trainable parameters found while building optimizer")
 
+    scaler_param_ids: set[int] = set()
+    if bool(cfg.get("use_learnable_scaler", False)):
+        for module in base.modules():
+            if _is_learnable_scaler_module(module):
+                scaler_param_ids.update(id(param) for param in module.parameters(recurse=True))
+
+    scaler_params = [param for _, param in named_params if id(param) in scaler_param_ids]
+    named_params = [(name, param) for name, param in named_params if id(param) not in scaler_param_ids]
+
     use_split = cfg.get("backbone_lr") is not None or cfg.get("head_lr") is not None
     default_lr = float(cfg["lr"])
     backbone_lr = float(cfg.get("backbone_lr", default_lr) or default_lr)
     head_lr = float(cfg.get("head_lr", default_lr) or default_lr)
 
+    groups: list[dict] = []
+    group_counts: dict[str, int] = {}
+
     if not use_split:
         params = [param for _, param in named_params]
-        return ([{"params": params, "lr": default_lr, "group_name": "all"}], {"all": len(params)})
+        if params:
+            groups.append({"params": params, "lr": default_lr, "group_name": "all"})
+            group_counts["all"] = len(params)
+    else:
+        head_params = []
+        backbone_params = []
+        for name, param in named_params:
+            if _is_head_like_param(name):
+                head_params.append(param)
+            else:
+                backbone_params.append(param)
 
-    head_params = []
-    backbone_params = []
-    for name, param in named_params:
-        if _is_head_like_param(name):
-            head_params.append(param)
+        if not head_params or not backbone_params:
+            params = [param for _, param in named_params]
+            if params:
+                groups.append({"params": params, "lr": default_lr, "group_name": "all"})
+                group_counts["all"] = len(params)
         else:
-            backbone_params.append(param)
+            groups.extend([
+                {"params": backbone_params, "lr": backbone_lr, "group_name": "backbone"},
+                {"params": head_params, "lr": head_lr, "group_name": "head"},
+            ])
+            group_counts.update({"backbone": len(backbone_params), "head": len(head_params)})
 
-    if not head_params or not backbone_params:
-        params = [param for _, param in named_params]
-        return ([{"params": params, "lr": default_lr, "group_name": "all"}], {"all": len(params)})
+    if scaler_params:
+        scaler_lr = float(cfg.get("learnable_scaler_lr", 1e-3) or 1e-3)
+        groups.append({"params": scaler_params, "lr": scaler_lr, "group_name": "learnable_scaler"})
+        group_counts["learnable_scaler"] = len(scaler_params)
+    elif bool(cfg.get("use_learnable_scaler", False)):
+        print("Warning: LearnableScaler requested, but no trainable LearnableScaler parameters were found.")
 
-    groups = [
-        {"params": backbone_params, "lr": backbone_lr, "group_name": "backbone"},
-        {"params": head_params, "lr": head_lr, "group_name": "head"},
-    ]
-    return groups, {"backbone": len(backbone_params), "head": len(head_params)}
+    if not groups:
+        raise RuntimeError("No trainable optimizer groups found after LearnableScaler grouping")
+    return groups, group_counts
 
 
 def _build_optimizer(model: torch.nn.Module, cfg: dict) -> torch.optim.Optimizer:
@@ -358,6 +428,10 @@ def _trim_cfg_for_logging(cfg: dict) -> dict:
         "norm_token",
         "norm_group_count",
         "norm_custom_name",
+        "use_learnable_scaler",
+        "learnable_scaler_module",
+        "learnable_scaler_class",
+        "learnable_scaler_lr",
         # optimization / runtime
         "batch_size",
         "num_workers",
@@ -913,6 +987,7 @@ def main(cfg=None):
         print(f"Train samples (raw): {total_train_raw:,} | effective (est): {effective_train:,} | steps/epoch: {steps_per_epoch:,}")
 
     model = build_model(cfg=cfg, num_classes=2)
+    model = _maybe_apply_learnable_scaler(model, cfg)
 
     # For VGG-style experiments, optionally freeze all backbone layers and
     # train only the final classifier, matching the original Keras notebook
