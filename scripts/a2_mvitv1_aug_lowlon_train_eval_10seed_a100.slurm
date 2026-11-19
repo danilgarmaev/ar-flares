@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# A2 longitude evaluation and central-only training for A1 MViT-v1 seeds 0..9.
+# Discovers the corresponding A1-224 result directories and infers thresholds
+# from each run's metrics.json.
+
+#SBATCH --job-name=arfl-a2mvitv1-low30-10s
+#SBATCH --gres=gpu:a100:1
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=48G
+#SBATCH --time=10:00:00
+#SBATCH --account=def-jeandiro
+#SBATCH --output=logs/%x_%A_%a.out
+#SBATCH --error=logs/%x_%A_%a.err
+#SBATCH --array=0-19
+
+set -euo pipefail
+export PYTHONUNBUFFERED=1
+
+cd /home/dgarmaev/scratch/ar-flares
+mkdir -p logs results
+
+module load gcc opencv
+source /home/dgarmaev/envs/ar-flares/bin/activate
+
+export AR_FLARES_WDS_BASE=/home/dgarmaev/scratch/ar-flares/data/wds_out
+export AR_FLARES_WDS_FLOW_BASE=/home/dgarmaev/scratch/ar-flares/data/wds_flow
+export AR_FLARES_RESULTS_BASE=/home/dgarmaev/scratch/ar-flares/results
+export AR_FLARES_INTENSITY_LABELS_ROOT=/home/dgarmaev/scratch/ar-flares/data
+
+export OFFLINE=1
+export HF_DATASETS_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_HUB_OFFLINE=1
+export HF_HOME=/home/dgarmaev/scratch/ar-flares/.cache/hf
+export TORCH_HOME=/home/dgarmaev/scratch/ar-flares/.cache/torch
+mkdir -p "$HF_HOME" "$TORCH_HOME"
+
+idx="${SLURM_ARRAY_TASK_ID}"
+if (( idx < 10 )); then
+  LABEL_CLASS="C"
+  SEED="${idx}"
+  NAME_SUFFIX="screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug"
+else
+  LABEL_CLASS="M"
+  SEED="$(( idx - 10 ))"
+  NAME_SUFFIX="screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug"
+fi
+
+mapfile -d '' MATCHES < <(
+  find results -maxdepth 1 -type d \
+    -name "*A1-224_mvit_seed${SEED}_${NAME_SUFFIX}" \
+    -print0 | sort -z
+)
+
+if (( ${#MATCHES[@]} == 0 )); then
+  echo "No completed A1-224 directory found for class=${LABEL_CLASS}+ seed=${SEED}" >&2
+  exit 1
+fi
+
+EXP_DIR="${MATCHES[$(( ${#MATCHES[@]} - 1 ))]}"
+if [[ ! -f "${EXP_DIR}/best_tss.pt" || ! -f "${EXP_DIR}/metrics.json" ]]; then
+  echo "A1 directory is missing best_tss.pt or metrics.json: ${EXP_DIR}" >&2
+  exit 1
+fi
+
+cmd=(python -m classifier_NN.legacy.run_experiments_A2
+  --exp-dir "$EXP_DIR"
+  --checkpoint best_tss.pt
+  --srs-root /home/dgarmaev/scratch/ar-flares/data/SRS
+  --train-lon-abs-max 30
+  --train-seed "$SEED"
+  --train-name-suffix "seed${SEED}_mvitv1_10seed"
+)
+
+echo "=========================================="
+echo "A2 MViT-v1 10-seed: baseline longitude eval + low-lon training"
+echo "task=${idx} class=${LABEL_CLASS}+ seed=${SEED}"
+echo "exp_dir=${EXP_DIR}"
+echo "threshold will be inferred from metrics.json"
+echo "Running: ${cmd[*]}"
+echo "=========================================="
+"${cmd[@]}"
