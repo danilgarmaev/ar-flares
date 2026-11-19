@@ -1,0 +1,18 @@
+{
+  "pptx_slides": 22,
+  "visible_main_slides": 14,
+  "hidden_backups": 8,
+  "slides_with_notes": 22,
+  "target_talk_seconds": 865,
+  "main_script_words": 1593,
+  "native_shape_count": 836,
+  "out_of_bounds_shapes": [],
+  "text_height_overflows": [],
+  "zip_and_xml_valid": true,
+  "all_images_embedded": true,
+  "companion_preview_pages": 22,
+  "printable_notes_pages": 22,
+  "actual_powerpoint_or_libreoffice_render_performed": false,
+  "render_method": "Companion vector PDF from shared drawing commands; Arial-compatible Liberation Sans metrics.",
+  "pptx_size_bytes": 1648652
+}

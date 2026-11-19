@@ -1,0 +1,1322 @@
+[
+  {
+    "group": [
+      "cadence",
+      60,
+      "C"
+    ],
+    "n": 10,
+    "aggregate": {
+      "fixed_TSS": [
+        0.674,
+        0.021
+      ],
+      "AUC": [
+        0.91,
+        0.015
+      ],
+      "PR_AUC": [
+        0.766,
+        0.033
+      ],
+      "fixed_F1": [
+        0.677,
+        0.015
+      ],
+      "F1": [
+        0.688,
+        0.021
+      ]
+    },
+    "runs": {
+      "1": {
+        "path": "results/2026-03-29 18:52:14_A3-16-cadence-60min_mvit_seed1_cplus_aug_dsnone100000_224_diag_mvit_c60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6430005137721548,
+          "AUC": 0.8848088041988991,
+          "PR_AUC": 0.7159139764965496,
+          "fixed_F1": 0.6722944432730459,
+          "F1": 0.6722944432730459
+        }
+      },
+      "2": {
+        "path": "results/2026-03-29 18:53:07_A3-16-cadence-60min_mvit_seed2_cplus_aug_dsnone100000_224_diag_mvit_c60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6868483144361757,
+          "AUC": 0.9150002842461563,
+          "PR_AUC": 0.773049222646118,
+          "fixed_F1": 0.6847033859956791,
+          "F1": 0.6989159406076885
+        }
+      },
+      "4": {
+        "path": "results/2026-03-29 18:56:18_A3-16-cadence-60min_mvit_seed4_cplus_aug_dsnone100000_224_diag_mvit_c60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6365981180684892,
+          "AUC": 0.8814310123766865,
+          "PR_AUC": 0.6974696433628252,
+          "fixed_F1": 0.6491115463816706,
+          "F1": 0.6562499519223097
+        }
+      },
+      "9": {
+        "path": "results/2026-06-06 14:38:52_A3-16-cadence-60min_mvit_seed9_cplus_aug_dsnone100000_224_diag_mvit_c60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6624805658079311,
+          "AUC": 0.9055746646364833,
+          "PR_AUC": 0.7731248572766092,
+          "fixed_F1": 0.6660677141031257,
+          "F1": 0.6933961775434454
+        }
+      },
+      "7": {
+        "path": "results/2026-06-09 03:40:34_A3-16-cadence-60min_mvit_seed7_cplus_aug_dsnone100000_224_diag_mvit_c60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6766812932152964,
+          "AUC": 0.9160695363407432,
+          "PR_AUC": 0.7734329617039694,
+          "fixed_F1": 0.662915804429918,
+          "F1": 0.684826902800891
+        }
+      },
+      "0": {
+        "path": "results/2026-06-09 04:54:40_A3-16-cadence-60min_mvit_seed0_cplus_aug_dsnone100000_224_diag_mvit_c60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6780385614989375,
+          "AUC": 0.9159540026553542,
+          "PR_AUC": 0.7823656198341251,
+          "fixed_F1": 0.6906669803478498,
+          "F1": 0.6859033270439646
+        }
+      },
+      "3": {
+        "path": "results/2026-06-09 06:19:53_A3-16-cadence-60min_mvit_seed3_cplus_aug_dsnone100000_224_diag_mvit_c60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6835955596251524,
+          "AUC": 0.9234435758860698,
+          "PR_AUC": 0.7713740413446551,
+          "fixed_F1": 0.6996260417206454,
+          "F1": 0.6728719678291728
+        }
+      },
+      "5": {
+        "path": "results/2026-06-10 16:03:18_A3-16-cadence-60min_mvit_seed5_cplus_aug_dsnone100000_224_diag_mvit_c60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.675988062650811,
+          "AUC": 0.9164698141109807,
+          "PR_AUC": 0.785083246925162,
+          "fixed_F1": 0.6797693439885719,
+          "F1": 0.6737980900626898
+        }
+      },
+      "6": {
+        "path": "results/2026-06-10 22:24:55_A3-16-cadence-60min_mvit_seed6_cplus_aug_dsnone100000_224_diag_mvit_c60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.692257413511093,
+          "AUC": 0.9245855682507457,
+          "PR_AUC": 0.7987714567790255,
+          "fixed_F1": 0.6869576001158624,
+          "F1": 0.7145241581039075
+        }
+      },
+      "8": {
+        "path": "results/2026-06-10 22:28:35_A3-16-cadence-60min_mvit_seed8_cplus_aug_dsnone100000_224_diag_mvit_c60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7001339911547073,
+          "AUC": 0.9198265506623675,
+          "PR_AUC": 0.7896234118767415,
+          "fixed_F1": 0.68004454600943,
+          "F1": 0.7261802082716523
+        }
+      }
+    }
+  },
+  {
+    "group": [
+      "cadence",
+      60,
+      "M"
+    ],
+    "n": 10,
+    "aggregate": {
+      "fixed_TSS": [
+        0.626,
+        0.062
+      ],
+      "AUC": [
+        0.896,
+        0.013
+      ],
+      "PR_AUC": [
+        0.405,
+        0.07
+      ],
+      "fixed_F1": [
+        0.277,
+        0.039
+      ],
+      "F1": [
+        0.279,
+        0.029
+      ]
+    },
+    "runs": {
+      "0": {
+        "path": "results/2026-03-29 18:56:29_A3-16-cadence-60min_mvit_seed0_mplus_aug_dsnone100000_224_diag_mvit_m60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6578666555178234,
+          "AUC": 0.8965739978842647,
+          "PR_AUC": 0.48834872768880305,
+          "fixed_F1": 0.28529623957384337,
+          "F1": 0.3026004414381652
+        }
+      },
+      "2": {
+        "path": "results/2026-03-29 19:04:24_A3-16-cadence-60min_mvit_seed2_mplus_aug_dsnone100000_224_diag_mvit_m60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7188010409349661,
+          "AUC": 0.9046749800335765,
+          "PR_AUC": 0.5027492762215614,
+          "fixed_F1": 0.36832409005406486,
+          "F1": 0.3450585936220777
+        }
+      },
+      "3": {
+        "path": "results/2026-03-29 19:04:44_A3-16-cadence-60min_mvit_seed3_mplus_aug_dsnone100000_224_diag_mvit_m60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.5712411784156677,
+          "AUC": 0.9068228286280353,
+          "PR_AUC": 0.3234386290902318,
+          "fixed_F1": 0.31202286470585977,
+          "F1": 0.2629336323799437
+        }
+      },
+      "4": {
+        "path": "results/2026-03-29 19:05:30_A3-16-cadence-60min_mvit_seed4_mplus_aug_dsnone100000_224_diag_mvit_m60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6812728049658114,
+          "AUC": 0.9109416865226857,
+          "PR_AUC": 0.31279485666418744,
+          "fixed_F1": 0.26989843338770547,
+          "F1": 0.2951058871317916
+        }
+      },
+      "5": {
+        "path": "results/2026-06-06 14:43:23_A3-16-cadence-60min_mvit_seed5_mplus_aug_dsnone100000_224_diag_mvit_m60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.5250712900047878,
+          "AUC": 0.8749685707036045,
+          "PR_AUC": 0.44506570934612494,
+          "fixed_F1": 0.26104912073842784,
+          "F1": 0.2517109960865165
+        }
+      },
+      "6": {
+        "path": "results/2026-06-06 14:43:47_A3-16-cadence-60min_mvit_seed6_mplus_aug_dsnone100000_224_diag_mvit_m60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6252526222548067,
+          "AUC": 0.8926943338558828,
+          "PR_AUC": 0.395244013576043,
+          "fixed_F1": 0.2459689903830169,
+          "F1": 0.2656911513055664
+        }
+      },
+      "7": {
+        "path": "results/2026-06-06 14:45:49_A3-16-cadence-60min_mvit_seed7_mplus_aug_dsnone100000_224_diag_mvit_m60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6227698158404671,
+          "AUC": 0.8905523175019926,
+          "PR_AUC": 0.3473369020133534,
+          "fixed_F1": 0.2298584797135271,
+          "F1": 0.25531912002002244
+        }
+      },
+      "8": {
+        "path": "results/2026-06-06 14:48:35_A3-16-cadence-60min_mvit_seed8_mplus_aug_dsnone100000_224_diag_mvit_m60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6024796669283634,
+          "AUC": 0.8943065523566716,
+          "PR_AUC": 0.47067897275265125,
+          "fixed_F1": 0.2785991907141703,
+          "F1": 0.278054354591081
+        }
+      },
+      "9": {
+        "path": "results/2026-06-09 04:38:10_A3-16-cadence-60min_mvit_seed9_mplus_aug_dsnone100000_224_diag_mvit_m60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6913104509950052,
+          "AUC": 0.9092409763717935,
+          "PR_AUC": 0.413054923636866,
+          "fixed_F1": 0.26502987614405776,
+          "F1": 0.2802160424111243
+        }
+      },
+      "1": {
+        "path": "results/2026-06-09 06:26:13_A3-16-cadence-60min_mvit_seed1_mplus_aug_dsnone100000_224_diag_mvit_m60_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.5636758263525679,
+          "AUC": 0.876182468774472,
+          "PR_AUC": 0.34849911112608417,
+          "fixed_F1": 0.2505430553297842,
+          "F1": 0.24954919536637765
+        }
+      }
+    }
+  },
+  {
+    "group": [
+      "cadence",
+      120,
+      "C"
+    ],
+    "n": 10,
+    "aggregate": {
+      "fixed_TSS": [
+        0.742,
+        0.028
+      ],
+      "AUC": [
+        0.934,
+        0.011
+      ],
+      "PR_AUC": [
+        0.81,
+        0.033
+      ],
+      "fixed_F1": [
+        0.718,
+        0.022
+      ],
+      "F1": [
+        0.723,
+        0.03
+      ]
+    },
+    "runs": {
+      "0": {
+        "path": "results/2026-03-28 13:09:16_A3-16-cadence-120min_mvit_seed0_cplus_aug_dsnone100000_224_diag_mvit_c120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7615538373657846,
+          "AUC": 0.9454399968685641,
+          "PR_AUC": 0.8323411285752017,
+          "fixed_F1": 0.7182569018206857,
+          "F1": 0.7441676065662075
+        }
+      },
+      "1": {
+        "path": "results/2026-03-28 13:09:16_A3-16-cadence-120min_mvit_seed1_cplus_aug_dsnone100000_224_diag_mvit_c120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7187372569353545,
+          "AUC": 0.9244179744426646,
+          "PR_AUC": 0.769812265046278,
+          "fixed_F1": 0.7254491775905835,
+          "F1": 0.7107631609094666
+        }
+      },
+      "2": {
+        "path": "results/2026-03-28 14:10:22_A3-16-cadence-120min_mvit_seed2_cplus_aug_dsnone100000_224_diag_mvit_c120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.704270710823566,
+          "AUC": 0.9168218763495715,
+          "PR_AUC": 0.745499298191007,
+          "fixed_F1": 0.7065526575389942,
+          "F1": 0.702343701545505
+        }
+      },
+      "3": {
+        "path": "results/2026-03-28 19:05:34_A3-16-cadence-120min_mvit_seed3_cplus_aug_dsnone100000_224_diag_mvit_c120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7782964815027587,
+          "AUC": 0.9489021047723429,
+          "PR_AUC": 0.8474425393901374,
+          "fixed_F1": 0.7491053190819963,
+          "F1": 0.7496024950143911
+        }
+      },
+      "4": {
+        "path": "results/2026-03-28 19:05:43_A3-16-cadence-120min_mvit_seed4_cplus_aug_dsnone100000_224_diag_mvit_c120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7612804819289472,
+          "AUC": 0.939098086210842,
+          "PR_AUC": 0.8228398901653059,
+          "fixed_F1": 0.7185853546920582,
+          "F1": 0.7487960988370843
+        }
+      },
+      "5": {
+        "path": "results/2026-06-06 14:55:10_A3-16-cadence-120min_mvit_seed5_cplus_aug_dsnone100000_224_diag_mvit_c120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7282784585432429,
+          "AUC": 0.9320760130281502,
+          "PR_AUC": 0.8199284088400034,
+          "fixed_F1": 0.7069766958475184,
+          "F1": 0.7112152700228377
+        }
+      },
+      "6": {
+        "path": "results/2026-06-06 14:58:42_A3-16-cadence-120min_mvit_seed6_cplus_aug_dsnone100000_224_diag_mvit_c120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.773744070384202,
+          "AUC": 0.9447497259993497,
+          "PR_AUC": 0.8394218561443704,
+          "fixed_F1": 0.7545787055611328,
+          "F1": 0.7598360164709449
+        }
+      },
+      "7": {
+        "path": "results/2026-06-06 15:02:03_A3-16-cadence-120min_mvit_seed7_cplus_aug_dsnone100000_224_diag_mvit_c120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7102531300435553,
+          "AUC": 0.9256616233914827,
+          "PR_AUC": 0.8000432093273885,
+          "fixed_F1": 0.6822741998363074,
+          "F1": 0.6811751431971066
+        }
+      },
+      "8": {
+        "path": "results/2026-06-06 15:04:19_A3-16-cadence-120min_mvit_seed8_cplus_aug_dsnone100000_224_diag_mvit_c120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7599610203986003,
+          "AUC": 0.9377119526224056,
+          "PR_AUC": 0.8366038372060844,
+          "fixed_F1": 0.719636728430946,
+          "F1": 0.7420634433802942
+        }
+      },
+      "9": {
+        "path": "results/2026-06-06 15:04:40_A3-16-cadence-120min_mvit_seed9_cplus_aug_dsnone100000_224_diag_mvit_c120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7208191457043518,
+          "AUC": 0.9259406782139804,
+          "PR_AUC": 0.7885473179492459,
+          "fixed_F1": 0.698048172295053,
+          "F1": 0.6752883141848225
+        }
+      }
+    }
+  },
+  {
+    "group": [
+      "cadence",
+      120,
+      "M"
+    ],
+    "n": 10,
+    "aggregate": {
+      "fixed_TSS": [
+        0.671,
+        0.039
+      ],
+      "AUC": [
+        0.914,
+        0.01
+      ],
+      "PR_AUC": [
+        0.366,
+        0.076
+      ],
+      "fixed_F1": [
+        0.289,
+        0.04
+      ],
+      "F1": [
+        0.277,
+        0.028
+      ]
+    },
+    "runs": {
+      "0": {
+        "path": "results/2026-03-28 19:16:03_A3-16-cadence-120min_mvit_seed0_mplus_aug_dsnone100000_224_diag_mvit_m120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.661256633651158,
+          "AUC": 0.9086252354048964,
+          "PR_AUC": 0.4329732966142509,
+          "fixed_F1": 0.284128715856229,
+          "F1": 0.2552380686996853
+        }
+      },
+      "1": {
+        "path": "results/2026-03-28 19:16:10_A3-16-cadence-120min_mvit_seed1_mplus_aug_dsnone100000_224_diag_mvit_m120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6525423724196007,
+          "AUC": 0.9210055355818068,
+          "PR_AUC": 0.4603238328052347,
+          "fixed_F1": 0.33846150286390914,
+          "F1": 0.30985912362544127
+        }
+      },
+      "2": {
+        "path": "results/2026-03-28 19:17:41_A3-16-cadence-120min_mvit_seed2_mplus_aug_dsnone100000_224_diag_mvit_m120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6267591161461501,
+          "AUC": 0.9171614449580551,
+          "PR_AUC": 0.36208384330228693,
+          "fixed_F1": 0.33819238319195627,
+          "F1": 0.2552342695689631
+        }
+      },
+      "4": {
+        "path": "results/2026-03-28 19:18:01_A3-16-cadence-120min_mvit_seed4_mplus_aug_dsnone100000_224_diag_mvit_m120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6516521138773275,
+          "AUC": 0.9051052901900359,
+          "PR_AUC": 0.3253829508054451,
+          "fixed_F1": 0.2689075343127723,
+          "F1": 0.29822482057295246
+        }
+      },
+      "3": {
+        "path": "results/2026-03-28 19:18:26_A3-16-cadence-120min_mvit_seed3_mplus_aug_dsnone100000_224_diag_mvit_m120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7609827079018001,
+          "AUC": 0.9198596130799521,
+          "PR_AUC": 0.4167237300032052,
+          "fixed_F1": 0.33971288689619356,
+          "F1": 0.3321718620878164
+        }
+      },
+      "5": {
+        "path": "results/2026-06-06 15:07:48_A3-16-cadence-120min_mvit_seed5_mplus_aug_dsnone100000_224_diag_mvit_m120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6560520453887024,
+          "AUC": 0.9191839296924043,
+          "PR_AUC": 0.26174632610196524,
+          "fixed_F1": 0.26130650494482754,
+          "F1": 0.25378785237262813
+        }
+      },
+      "6": {
+        "path": "results/2026-06-06 15:08:59_A3-16-cadence-120min_mvit_seed6_mplus_aug_dsnone100000_224_diag_mvit_m120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.677760656902501,
+          "AUC": 0.9127255606916626,
+          "PR_AUC": 0.3225589812001382,
+          "fixed_F1": 0.24640285238067,
+          "F1": 0.2718446308731612
+        }
+      },
+      "7": {
+        "path": "results/2026-06-06 15:09:43_A3-16-cadence-120min_mvit_seed7_mplus_aug_dsnone100000_224_diag_mvit_m120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6492895047457787,
+          "AUC": 0.9279712378017462,
+          "PR_AUC": 0.39870724177986683,
+          "fixed_F1": 0.2890173101005747,
+          "F1": 0.2571428319733762
+        }
+      },
+      "8": {
+        "path": "results/2026-06-06 15:16:53_A3-16-cadence-120min_mvit_seed8_mplus_aug_dsnone100000_224_diag_mvit_m120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.714860468577885,
+          "AUC": 0.9154151686355076,
+          "PR_AUC": 0.43847589813898763,
+          "fixed_F1": 0.2994535222851712,
+          "F1": 0.28428425665024654
+        }
+      },
+      "9": {
+        "path": "results/2026-06-06 15:21:21_A3-16-cadence-120min_mvit_seed9_mplus_aug_dsnone100000_224_diag_mvit_m120_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6568224613919873,
+          "AUC": 0.8942772356331677,
+          "PR_AUC": 0.24507011412927338,
+          "fixed_F1": 0.22857140464699066,
+          "F1": 0.2548028032908024
+        }
+      }
+    }
+  },
+  {
+    "group": [
+      "cadence",
+      180,
+      "C"
+    ],
+    "n": 10,
+    "aggregate": {
+      "fixed_TSS": [
+        0.789,
+        0.021
+      ],
+      "AUC": [
+        0.958,
+        0.005
+      ],
+      "PR_AUC": [
+        0.855,
+        0.029
+      ],
+      "fixed_F1": [
+        0.736,
+        0.025
+      ],
+      "F1": [
+        0.743,
+        0.033
+      ]
+    },
+    "runs": {
+      "1": {
+        "path": "results/2026-03-29 14:01:58_A3-16-cadence-180min_mvit_seed1_cplus_aug_dsnone100000_224_diag_mvit_c180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7798379835712832,
+          "AUC": 0.9510407290729073,
+          "PR_AUC": 0.8113185997119781,
+          "fixed_F1": 0.7328243790817713,
+          "F1": 0.7284878382210082
+        }
+      },
+      "0": {
+        "path": "results/2026-03-29 14:02:07_A3-16-cadence-180min_mvit_seed0_cplus_aug_dsnone100000_224_diag_mvit_c180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8085546052273931,
+          "AUC": 0.9621104297929793,
+          "PR_AUC": 0.8426803673156043,
+          "fixed_F1": 0.7470686285121898,
+          "F1": 0.7959743330283653
+        }
+      },
+      "2": {
+        "path": "results/2026-03-29 14:03:11_A3-16-cadence-180min_mvit_seed2_cplus_aug_dsnone100000_224_diag_mvit_c180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8081701917843651,
+          "AUC": 0.9542918354335432,
+          "PR_AUC": 0.8173919057785055,
+          "fixed_F1": 0.7375306144974154,
+          "F1": 0.7712304538790583
+        }
+      },
+      "3": {
+        "path": "results/2026-03-29 14:03:41_A3-16-cadence-180min_mvit_seed3_cplus_aug_dsnone100000_224_diag_mvit_c180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.762741898972779,
+          "AUC": 0.9590960658565856,
+          "PR_AUC": 0.8663979288866416,
+          "fixed_F1": 0.7605633306248792,
+          "F1": 0.7245901160865389
+        }
+      },
+      "4": {
+        "path": "results/2026-03-29 17:07:56_A3-16-cadence-180min_mvit_seed4_cplus_aug_dsnone100000_224_diag_mvit_c180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7862698767569101,
+          "AUC": 0.956464708970897,
+          "PR_AUC": 0.8713194165754158,
+          "fixed_F1": 0.7239966761627865,
+          "F1": 0.7403684610091247
+        }
+      },
+      "5": {
+        "path": "results/2026-06-06 15:53:15_A3-16-cadence-180min_mvit_seed5_cplus_aug_dsnone100000_224_diag_mvit_c180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.807857035474532,
+          "AUC": 0.9641886063606362,
+          "PR_AUC": 0.8767879763872825,
+          "fixed_F1": 0.7695034970719563,
+          "F1": 0.759429960162139
+        }
+      },
+      "6": {
+        "path": "results/2026-06-06 15:56:02_A3-16-cadence-180min_mvit_seed6_cplus_aug_dsnone100000_224_diag_mvit_c180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8021883436032184,
+          "AUC": 0.9632547629762976,
+          "PR_AUC": 0.8725181025248061,
+          "fixed_F1": 0.7474575787299658,
+          "F1": 0.7245461248811927
+        }
+      },
+      "7": {
+        "path": "results/2026-06-06 16:00:04_A3-16-cadence-180min_mvit_seed7_cplus_aug_dsnone100000_224_diag_mvit_c180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7711652412889394,
+          "AUC": 0.9602779027902791,
+          "PR_AUC": 0.8744071880504161,
+          "fixed_F1": 0.6825989083474429,
+          "F1": 0.7272726794382531
+        }
+      },
+      "8": {
+        "path": "results/2026-06-06 16:20:37_A3-16-cadence-180min_mvit_seed8_cplus_aug_dsnone100000_224_diag_mvit_c180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8098541101768091,
+          "AUC": 0.9631863186318632,
+          "PR_AUC": 0.8934662022379937,
+          "fixed_F1": 0.7433774354279996,
+          "F1": 0.7742503919577371
+        }
+      },
+      "9": {
+        "path": "results/2026-06-06 16:54:11_A3-16-cadence-180min_mvit_seed9_cplus_aug_dsnone100000_224_diag_mvit_c180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7565369034663627,
+          "AUC": 0.9484304680468048,
+          "PR_AUC": 0.826578639161898,
+          "fixed_F1": 0.7117794004627306,
+          "F1": 0.6805348722872709
+        }
+      }
+    }
+  },
+  {
+    "group": [
+      "cadence",
+      180,
+      "M"
+    ],
+    "n": 10,
+    "aggregate": {
+      "fixed_TSS": [
+        0.706,
+        0.107
+      ],
+      "AUC": [
+        0.947,
+        0.013
+      ],
+      "PR_AUC": [
+        0.393,
+        0.065
+      ],
+      "fixed_F1": [
+        0.362,
+        0.078
+      ],
+      "F1": [
+        0.317,
+        0.065
+      ]
+    },
+    "runs": {
+      "0": {
+        "path": "results/2026-03-29 17:23:01_A3-16-cadence-180min_mvit_seed0_mplus_aug_dsnone100000_224_diag_mvit_m180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.661749609460315,
+          "AUC": 0.9322154889874269,
+          "PR_AUC": 0.324783519460357,
+          "fixed_F1": 0.325301170316813,
+          "F1": 0.2666666407647594
+        }
+      },
+      "1": {
+        "path": "results/2026-03-29 17:34:43_A3-16-cadence-180min_mvit_seed1_mplus_aug_dsnone100000_224_diag_mvit_m180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.534637368473043,
+          "AUC": 0.9388485647441341,
+          "PR_AUC": 0.42952788136512127,
+          "fixed_F1": 0.4432431949861265,
+          "F1": 0.47191007227482834
+        }
+      },
+      "2": {
+        "path": "results/2026-03-29 17:34:54_A3-16-cadence-180min_mvit_seed2_mplus_aug_dsnone100000_224_diag_mvit_m180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.5532808445401061,
+          "AUC": 0.9549232220178514,
+          "PR_AUC": 0.42278217889556485,
+          "fixed_F1": 0.48554908360453564,
+          "F1": 0.3412073179242386
+        }
+      },
+      "3": {
+        "path": "results/2026-03-29 17:34:54_A3-16-cadence-180min_mvit_seed3_mplus_aug_dsnone100000_224_diag_mvit_m180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7858240788928046,
+          "AUC": 0.9501034301286493,
+          "PR_AUC": 0.38864399730656,
+          "fixed_F1": 0.2595419606527905,
+          "F1": 0.29580571234790143
+        }
+      },
+      "4": {
+        "path": "results/2026-03-29 18:47:36_A3-16-cadence-180min_mvit_seed4_mplus_aug_dsnone100000_224_diag_mvit_m180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8341262095177555,
+          "AUC": 0.9585862638536451,
+          "PR_AUC": 0.39925534425330816,
+          "fixed_F1": 0.37222218968364473,
+          "F1": 0.31767335060583085
+        }
+      },
+      "5": {
+        "path": "results/2026-06-06 17:05:18_A3-16-cadence-180min_mvit_seed5_mplus_aug_dsnone100000_224_diag_mvit_m180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.774767215861325,
+          "AUC": 0.9521720327016366,
+          "PR_AUC": 0.3841882742106845,
+          "fixed_F1": 0.34239127235793054,
+          "F1": 0.27800827293693525
+        }
+      },
+      "6": {
+        "path": "results/2026-06-06 17:55:52_A3-16-cadence-180min_mvit_seed6_mplus_aug_dsnone100000_224_diag_mvit_m180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6754430290109543,
+          "AUC": 0.9487226248847158,
+          "PR_AUC": 0.277598130431832,
+          "fixed_F1": 0.3648648274584589,
+          "F1": 0.29501081920375166
+        }
+      },
+      "7": {
+        "path": "results/2026-06-06 17:55:52_A3-16-cadence-180min_mvit_seed7_mplus_aug_dsnone100000_224_diag_mvit_m180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7195766909204,
+          "AUC": 0.9576118843041523,
+          "PR_AUC": 0.4380598762213949,
+          "fixed_F1": 0.44094484058218497,
+          "F1": 0.26930690585472233
+        }
+      },
+      "8": {
+        "path": "results/2026-06-06 17:59:59_A3-16-cadence-180min_mvit_seed8_mplus_aug_dsnone100000_224_diag_mvit_m180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8440263225506031,
+          "AUC": 0.9574711984868458,
+          "PR_AUC": 0.5111424594487957,
+          "fixed_F1": 0.33823526457011976,
+          "F1": 0.3709677101904871
+        }
+      },
+      "9": {
+        "path": "results/2026-06-06 18:04:22_A3-16-cadence-180min_mvit_seed9_mplus_aug_dsnone100000_224_diag_mvit_m180_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6769905729100454,
+          "AUC": 0.9202832474455103,
+          "PR_AUC": 0.35256975116786626,
+          "fixed_F1": 0.247379428899176,
+          "F1": 0.2645739635353645
+        }
+      }
+    }
+  },
+  {
+    "group": [
+      "frames",
+      4,
+      "C"
+    ],
+    "n": 10,
+    "aggregate": {
+      "fixed_TSS": [
+        0.805,
+        0.025
+      ],
+      "AUC": [
+        0.96,
+        0.005
+      ],
+      "PR_AUC": [
+        0.862,
+        0.015
+      ],
+      "fixed_F1": [
+        0.741,
+        0.028
+      ],
+      "F1": [
+        0.749,
+        0.027
+      ]
+    },
+    "runs": {
+      "0": {
+        "path": "results/2026-04-09 22:44:44_A3-T4-cadence-180min_mvit_seed0_cplus_aug_dsnone100000_224_diag_mvit_c180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8133175815180032,
+          "AUC": 0.9591387263726372,
+          "PR_AUC": 0.8534055724557967,
+          "fixed_F1": 0.7191357557189293,
+          "F1": 0.7272726802252366
+        }
+      },
+      "1": {
+        "path": "results/2026-04-09 22:44:44_A3-T4-cadence-180min_mvit_seed1_cplus_aug_dsnone100000_224_diag_mvit_c180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7608348332550654,
+          "AUC": 0.950742105460546,
+          "PR_AUC": 0.8347924943891275,
+          "fixed_F1": 0.6980079207789115,
+          "F1": 0.7246861442809506
+        }
+      },
+      "2": {
+        "path": "results/2026-04-09 22:44:44_A3-T4-cadence-180min_mvit_seed2_cplus_aug_dsnone100000_224_diag_mvit_c180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8425555053117888,
+          "AUC": 0.965198394839484,
+          "PR_AUC": 0.8823076077901466,
+          "fixed_F1": 0.7723439651760734,
+          "F1": 0.7946902164777225
+        }
+      },
+      "3": {
+        "path": "results/2026-04-09 22:48:38_A3-T4-cadence-180min_mvit_seed3_cplus_aug_dsnone100000_224_diag_mvit_c180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8339390186652131,
+          "AUC": 0.9683838696369639,
+          "PR_AUC": 0.8787064012270837,
+          "fixed_F1": 0.7697535624438702,
+          "F1": 0.7836663283041031
+        }
+      },
+      "4": {
+        "path": "results/2026-04-09 23:04:01_A3-T4-cadence-180min_mvit_seed4_cplus_aug_dsnone100000_224_diag_mvit_c180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8010051002792795,
+          "AUC": 0.9613462908790877,
+          "PR_AUC": 0.8580438695650061,
+          "fixed_F1": 0.7476635029743868,
+          "F1": 0.747376869283141
+        }
+      },
+      "5": {
+        "path": "results/2026-06-06 20:42:11_A3-T4-cadence-180min_mvit_seed5_cplus_aug_dsnone100000_224_diag_mvit_c180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7803536601372154,
+          "AUC": 0.955145983348335,
+          "PR_AUC": 0.8523606474525897,
+          "fixed_F1": 0.7247097363714902,
+          "F1": 0.7171314267519595
+        }
+      },
+      "6": {
+        "path": "results/2026-06-06 20:45:58_A3-T4-cadence-180min_mvit_seed6_cplus_aug_dsnone100000_224_diag_mvit_c180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8033509598579869,
+          "AUC": 0.9600730385538554,
+          "PR_AUC": 0.8679175392561606,
+          "fixed_F1": 0.714728635331774,
+          "F1": 0.7470881382584796
+        }
+      },
+      "7": {
+        "path": "results/2026-06-06 20:45:58_A3-T4-cadence-180min_mvit_seed7_cplus_aug_dsnone100000_224_diag_mvit_c180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7907703268017119,
+          "AUC": 0.9586474272427242,
+          "PR_AUC": 0.8566809397432109,
+          "fixed_F1": 0.729975179112474,
+          "F1": 0.7234726212999276
+        }
+      },
+      "8": {
+        "path": "results/2026-06-06 20:45:58_A3-T4-cadence-180min_mvit_seed8_cplus_aug_dsnone100000_224_diag_mvit_c180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7948919889752291,
+          "AUC": 0.9642448619861986,
+          "PR_AUC": 0.8805389359109361,
+          "fixed_F1": 0.7792207296753105,
+          "F1": 0.7720847566716434
+        }
+      },
+      "9": {
+        "path": "results/2026-06-06 20:49:46_A3-T4-cadence-180min_mvit_seed9_cplus_aug_dsnone100000_224_diag_mvit_c180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8268545602190067,
+          "AUC": 0.9608760876087608,
+          "PR_AUC": 0.8544965748195783,
+          "fixed_F1": 0.755813905416334,
+          "F1": 0.7528641092946851
+        }
+      }
+    }
+  },
+  {
+    "group": [
+      "frames",
+      4,
+      "M"
+    ],
+    "n": 10,
+    "aggregate": {
+      "fixed_TSS": [
+        0.752,
+        0.069
+      ],
+      "AUC": [
+        0.945,
+        0.012
+      ],
+      "PR_AUC": [
+        0.359,
+        0.061
+      ],
+      "fixed_F1": [
+        0.327,
+        0.057
+      ],
+      "F1": [
+        0.314,
+        0.051
+      ]
+    },
+    "runs": {
+      "0": {
+        "path": "results/2026-04-10 01:44:43_A3-T4-cadence-180min_mvit_seed0_mplus_aug_dsnone100000_224_diag_mvit_m180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7112189112190617,
+          "AUC": 0.9535059426731348,
+          "PR_AUC": 0.31727520176292207,
+          "fixed_F1": 0.3314285382253094,
+          "F1": 0.295652147082233
+        }
+      },
+      "1": {
+        "path": "results/2026-04-10 01:48:54_A3-T4-cadence-180min_mvit_seed1_mplus_aug_dsnone100000_224_diag_mvit_m180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6632606793863336,
+          "AUC": 0.9276458052178805,
+          "PR_AUC": 0.47244526206316434,
+          "fixed_F1": 0.4094487776148593,
+          "F1": 0.2627118381472663
+        }
+      },
+      "2": {
+        "path": "results/2026-04-10 01:53:04_A3-T4-cadence-180min_mvit_seed2_mplus_aug_dsnone100000_224_diag_mvit_m180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8600123998281792,
+          "AUC": 0.9574295138002364,
+          "PR_AUC": 0.3802672644258548,
+          "fixed_F1": 0.322727244903928,
+          "F1": 0.4303029955867795
+        }
+      },
+      "3": {
+        "path": "results/2026-04-10 02:01:05_A3-T4-cadence-180min_mvit_seed3_mplus_aug_dsnone100000_224_diag_mvit_m180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7367299393317714,
+          "AUC": 0.9417612822209601,
+          "PR_AUC": 0.3490781389772703,
+          "fixed_F1": 0.2692307427852681,
+          "F1": 0.33701654220109584
+        }
+      },
+      "4": {
+        "path": "results/2026-04-10 02:25:47_A3-T4-cadence-180min_mvit_seed4_mplus_aug_dsnone100000_224_diag_mvit_m180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7873299382512413,
+          "AUC": 0.9483891473918413,
+          "PR_AUC": 0.2869867020826962,
+          "fixed_F1": 0.3178483812770156,
+          "F1": 0.2978723140597578
+        }
+      },
+      "6": {
+        "path": "results/2026-06-06 21:38:14_A3-T4-cadence-180min_mvit_seed6_mplus_aug_dsnone100000_224_diag_mvit_m180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6769801517748817,
+          "AUC": 0.9349510465461631,
+          "PR_AUC": 0.41030871257319496,
+          "fixed_F1": 0.2828783821044431,
+          "F1": 0.2603036608673993
+        }
+      },
+      "7": {
+        "path": "results/2026-06-06 22:00:52_A3-T4-cadence-180min_mvit_seed7_mplus_aug_dsnone100000_224_diag_mvit_m180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7538258714997434,
+          "AUC": 0.9464299671212035,
+          "PR_AUC": 0.3326398426994099,
+          "fixed_F1": 0.4290908697811606,
+          "F1": 0.3569404769061655
+        }
+      },
+      "8": {
+        "path": "results/2026-06-06 22:16:01_A3-T4-cadence-180min_mvit_seed8_mplus_aug_dsnone100000_224_diag_mvit_m180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8166499045844882,
+          "AUC": 0.954495953980106,
+          "PR_AUC": 0.4230046877169942,
+          "fixed_F1": 0.25631766655697524,
+          "F1": 0.28629854299037105
+        }
+      },
+      "9": {
+        "path": "results/2026-06-06 22:24:22_A3-T4-cadence-180min_mvit_seed9_mplus_aug_dsnone100000_224_diag_mvit_m180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.6834464887849059,
+          "AUC": 0.9298238300932173,
+          "PR_AUC": 0.2882413174798694,
+          "fixed_F1": 0.29533675674112375,
+          "F1": 0.2884160469549402
+        }
+      },
+      "5": {
+        "path": "results/2026-06-09 06:32:47_A3-T4-cadence-180min_mvit_seed5_mplus_aug_dsnone100000_224_diag_mvit_m180_t4_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8291813635689138,
+          "AUC": 0.9605558652959352,
+          "PR_AUC": 0.3292460038470539,
+          "fixed_F1": 0.35924929808451417,
+          "F1": 0.32710277529151255
+        }
+      }
+    }
+  },
+  {
+    "group": [
+      "frames",
+      8,
+      "C"
+    ],
+    "n": 10,
+    "aggregate": {
+      "fixed_TSS": [
+        0.802,
+        0.033
+      ],
+      "AUC": [
+        0.962,
+        0.006
+      ],
+      "PR_AUC": [
+        0.871,
+        0.017
+      ],
+      "fixed_F1": [
+        0.737,
+        0.037
+      ],
+      "F1": [
+        0.757,
+        0.039
+      ]
+    },
+    "runs": {
+      "0": {
+        "path": "results/2026-04-09 21:28:32_A3-T8-cadence-180min_mvit_seed0_cplus_aug_dsnone100000_224_diag_mvit_c180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7899508698516307,
+          "AUC": 0.9580717446744674,
+          "PR_AUC": 0.8601959013606908,
+          "fixed_F1": 0.7076204818744302,
+          "F1": 0.7686894849375288
+        }
+      },
+      "1": {
+        "path": "results/2026-04-09 21:32:17_A3-T8-cadence-180min_mvit_seed1_cplus_aug_dsnone100000_224_diag_mvit_c180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7340196517449256,
+          "AUC": 0.9476105423042304,
+          "PR_AUC": 0.8293274428799464,
+          "fixed_F1": 0.6955074394317878,
+          "F1": 0.6676557403935084
+        }
+      },
+      "2": {
+        "path": "results/2026-04-09 22:03:15_A3-T8-cadence-180min_mvit_seed2_cplus_aug_dsnone100000_224_diag_mvit_c180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8427223970012907,
+          "AUC": 0.9671223372337235,
+          "PR_AUC": 0.8865092076003672,
+          "fixed_F1": 0.7745762227931658,
+          "F1": 0.7940662688050735
+        }
+      },
+      "3": {
+        "path": "results/2026-04-09 22:14:15_A3-T8-cadence-180min_mvit_seed3_cplus_aug_dsnone100000_224_diag_mvit_c180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8376556403265316,
+          "AUC": 0.9674898739873986,
+          "PR_AUC": 0.8742620851675957,
+          "fixed_F1": 0.7711863922852659,
+          "F1": 0.7888306667117464
+        }
+      },
+      "4": {
+        "path": "results/2026-04-09 22:36:59_A3-T8-cadence-180min_mvit_seed4_cplus_aug_dsnone100000_224_diag_mvit_c180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7936674915129491,
+          "AUC": 0.9581448769876988,
+          "PR_AUC": 0.8733311327944129,
+          "fixed_F1": 0.7090767568710868,
+          "F1": 0.7256777835735884
+        }
+      },
+      "5": {
+        "path": "results/2026-06-06 19:05:45_A3-T8-cadence-180min_mvit_seed5_cplus_aug_dsnone100000_224_diag_mvit_c180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7953514099053929,
+          "AUC": 0.9621540279027903,
+          "PR_AUC": 0.8743073484202825,
+          "fixed_F1": 0.7142856672109038,
+          "F1": 0.7417218062892009
+        }
+      },
+      "6": {
+        "path": "results/2026-06-06 20:30:56_A3-T8-cadence-180min_mvit_seed6_cplus_aug_dsnone100000_224_diag_mvit_c180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.815355910358621,
+          "AUC": 0.9625103135313532,
+          "PR_AUC": 0.8728332258914112,
+          "fixed_F1": 0.7624784367498053,
+          "F1": 0.7793593815307587
+        }
+      },
+      "7": {
+        "path": "results/2026-06-06 20:34:47_A3-T8-cadence-180min_mvit_seed7_cplus_aug_dsnone100000_224_diag_mvit_c180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7731829430603865,
+          "AUC": 0.9615277152715271,
+          "PR_AUC": 0.8761974916445455,
+          "fixed_F1": 0.6905487339815896,
+          "F1": 0.7733812457591511
+        }
+      },
+      "8": {
+        "path": "results/2026-06-06 20:38:36_A3-T8-cadence-180min_mvit_seed8_cplus_aug_dsnone100000_224_diag_mvit_c180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8251912688957335,
+          "AUC": 0.964128600360036,
+          "PR_AUC": 0.8801997032166059,
+          "fixed_F1": 0.7877697349651963,
+          "F1": 0.7853962109313195
+        }
+      },
+      "9": {
+        "path": "results/2026-06-06 20:42:11_A3-T8-cadence-180min_mvit_seed9_cplus_aug_dsnone100000_224_diag_mvit_c180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.814971496915593,
+          "AUC": 0.9676164491449144,
+          "PR_AUC": 0.886012601038729,
+          "fixed_F1": 0.7523089358016105,
+          "F1": 0.7422186277951301
+        }
+      }
+    }
+  },
+  {
+    "group": [
+      "frames",
+      8,
+      "M"
+    ],
+    "n": 10,
+    "aggregate": {
+      "fixed_TSS": [
+        0.751,
+        0.075
+      ],
+      "AUC": [
+        0.952,
+        0.01
+      ],
+      "PR_AUC": [
+        0.389,
+        0.081
+      ],
+      "fixed_F1": [
+        0.352,
+        0.059
+      ],
+      "F1": [
+        0.326,
+        0.051
+      ]
+    },
+    "runs": {
+      "0": {
+        "path": "results/2026-04-09 23:03:45_A3-T8-cadence-180min_mvit_seed0_mplus_aug_dsnone100000_224_diag_mvit_m180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7888514293124236,
+          "AUC": 0.9437465154207287,
+          "PR_AUC": 0.28561256264292806,
+          "fixed_F1": 0.32098762461088515,
+          "F1": 0.2771084086038957
+        }
+      },
+      "1": {
+        "path": "results/2026-04-10 00:15:44_A3-T8-cadence-180min_mvit_seed1_mplus_aug_dsnone100000_224_diag_mvit_m180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.5856281612929719,
+          "AUC": 0.9565332930381363,
+          "PR_AUC": 0.478928822724193,
+          "fixed_F1": 0.45226125962476177,
+          "F1": 0.41860461414333494
+        }
+      },
+      "2": {
+        "path": "results/2026-04-10 00:31:59_A3-T8-cadence-180min_mvit_seed2_mplus_aug_dsnone100000_224_diag_mvit_m180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8455426030442035,
+          "AUC": 0.9643543823632091,
+          "PR_AUC": 0.39141864225607287,
+          "fixed_F1": 0.37057217501355244,
+          "F1": 0.3404255031951245
+        }
+      },
+      "3": {
+        "path": "results/2026-04-10 00:53:19_A3-T8-cadence-180min_mvit_seed3_mplus_aug_dsnone100000_224_diag_mvit_m180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7557381564613848,
+          "AUC": 0.9392758327818796,
+          "PR_AUC": 0.3118683272524148,
+          "fixed_F1": 0.3546511291492053,
+          "F1": 0.3132529829049235
+        }
+      },
+      "4": {
+        "path": "results/2026-04-10 01:14:50_A3-T8-cadence-180min_mvit_seed4_mplus_aug_dsnone100000_224_diag_mvit_m180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8135756590566332,
+          "AUC": 0.9563248696050896,
+          "PR_AUC": 0.3537623877225325,
+          "fixed_F1": 0.38235290723010673,
+          "F1": 0.3044397200684779
+        }
+      },
+      "5": {
+        "path": "results/2026-06-06 20:49:46_A3-T8-cadence-180min_mvit_seed5_mplus_aug_dsnone100000_224_diag_mvit_m180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7565093231271394,
+          "AUC": 0.9517239223205864,
+          "PR_AUC": 0.45012424471207213,
+          "fixed_F1": 0.30288458630154674,
+          "F1": 0.2672064524373476
+        }
+      },
+      "6": {
+        "path": "results/2026-06-06 20:53:38_A3-T8-cadence-180min_mvit_seed6_mplus_aug_dsnone100000_224_diag_mvit_m180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7005632632232048,
+          "AUC": 0.9499106384530812,
+          "PR_AUC": 0.37216513685820934,
+          "fixed_F1": 0.3343108165942879,
+          "F1": 0.2850467005448102
+        }
+      },
+      "7": {
+        "path": "results/2026-06-06 20:57:16_A3-T8-cadence-180min_mvit_seed7_mplus_aug_dsnone100000_224_diag_mvit_m180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7420291052080001,
+          "AUC": 0.9471281856219096,
+          "PR_AUC": 0.4266415062262233,
+          "fixed_F1": 0.43122672593248107,
+          "F1": 0.4025973661684128
+        }
+      },
+      "8": {
+        "path": "results/2026-06-06 21:04:50_A3-T8-cadence-180min_mvit_seed8_mplus_aug_dsnone100000_224_diag_mvit_m180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.8154931545858561,
+          "AUC": 0.9690960154650188,
+          "PR_AUC": 0.527871391995537,
+          "fixed_F1": 0.3049327079118848,
+          "F1": 0.30869562533743133
+        }
+      },
+      "9": {
+        "path": "results/2026-06-06 21:15:56_A3-T8-cadence-180min_mvit_seed9_mplus_aug_dsnone100000_224_diag_mvit_m180_t8_framecount_augprobe/metrics.json",
+        "metrics": {
+          "fixed_TSS": 0.7108541701565114,
+          "AUC": 0.9417300187060031,
+          "PR_AUC": 0.29599900330241263,
+          "fixed_F1": 0.2640692373465666,
+          "F1": 0.3470587896038095
+        }
+      }
+    }
+  }
+]

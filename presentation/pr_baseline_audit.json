@@ -1,0 +1,67 @@
+[
+  {
+    "group": [
+      "cadence",
+      60,
+      "M"
+    ],
+    "test_counts": [
+      [
+        14551,
+        494
+      ]
+    ]
+  },
+  {
+    "group": [
+      "cadence",
+      120,
+      "M"
+    ],
+    "test_counts": [
+      [
+        5475,
+        165
+      ]
+    ]
+  },
+  {
+    "group": [
+      "cadence",
+      180,
+      "M"
+    ],
+    "test_counts": [
+      [
+        2702,
+        73
+      ]
+    ]
+  },
+  {
+    "group": [
+      "frames",
+      4,
+      "M"
+    ],
+    "test_counts": [
+      [
+        2702,
+        73
+      ]
+    ]
+  },
+  {
+    "group": [
+      "frames",
+      8,
+      "M"
+    ],
+    "test_counts": [
+      [
+        2702,
+        73
+      ]
+    ]
+  }
+]

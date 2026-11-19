@@ -1,0 +1,140 @@
+[
+  {
+    "group": [
+      56,
+      "C"
+    ],
+    "n": 10,
+    "TSS": [
+      0.522,
+      0.064
+    ],
+    "paths": [
+      "results/2026-04-27 19:26:57_A1-56_mvit_seed0_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:26:57_A1-56_mvit_seed1_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:32:02_A1-56_mvit_seed3_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:32:02_A1-56_mvit_seed4_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-10 15:54:27_A1-56_mvit_seed2_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:15:56_A1-56_mvit_seed5_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:19:44_A1-56_mvit_seed6_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:23:19_A1-56_mvit_seed7_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:30:40_A1-56_mvit_seed8_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-08 21:55:53_A1-56_mvit_seed9_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json"
+    ]
+  },
+  {
+    "group": [
+      56,
+      "M"
+    ],
+    "n": 10,
+    "TSS": [
+      0.618,
+      0.062
+    ],
+    "paths": [
+      "results/2026-06-08 20:52:38_A1-56_mvit_seed0_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:42:51_A1-56_mvit_seed1_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:42:51_A1-56_mvit_seed2_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-10 15:54:27_A1-56_mvit_seed3_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:42:51_A1-56_mvit_seed4_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:45:49_A1-56_mvit_seed5_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:57:06_A1-56_mvit_seed6_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 22:04:47_A1-56_mvit_seed7_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-08 22:48:54_A1-56_mvit_seed8_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-08 22:52:42_A1-56_mvit_seed9_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json"
+    ]
+  },
+  {
+    "group": [
+      112,
+      "C"
+    ],
+    "n": 10,
+    "TSS": [
+      0.539,
+      0.061
+    ],
+    "paths": [
+      "results/2026-04-27 19:26:57_A1-112_mvit_seed0_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:26:57_A1-112_mvit_seed1_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-08 20:38:10_A1-112_mvit_seed2_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:26:57_A1-112_mvit_seed3_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:26:57_A1-112_mvit_seed4_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:04:50_A1-112_mvit_seed6_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:04:51_A1-112_mvit_seed7_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:12:00_A1-112_mvit_seed8_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:15:56_A1-112_mvit_seed9_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-08 21:52:00_A1-112_mvit_seed5_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/metrics.json"
+    ]
+  },
+  {
+    "group": [
+      112,
+      "M"
+    ],
+    "n": 10,
+    "TSS": [
+      0.618,
+      0.05
+    ],
+    "paths": [
+      "results/2026-04-27 19:37:42_A1-112_mvit_seed0_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:37:43_A1-112_mvit_seed1_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:37:49_A1-112_mvit_seed2_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:42:45_A1-112_mvit_seed4_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-04-27 19:42:51_A1-112_mvit_seed3_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:41:56_A1-112_mvit_seed7_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:42:02_A1-112_mvit_seed5_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:42:02_A1-112_mvit_seed6_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-06 21:42:02_A1-112_mvit_seed8_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json",
+      "results/2026-06-08 22:07:07_A1-112_mvit_seed9_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/metrics.json"
+    ]
+  },
+  {
+    "group": [
+      224,
+      "C"
+    ],
+    "n": 10,
+    "TSS": [
+      0.534,
+      0.026
+    ],
+    "paths": [
+      "results/2026-06-11 03:01:32_A2-lowLon30_2026-04-27 19:21:56_A1-224_mvit_seed0_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug_seed0_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:01:32_A2-lowLon30_2026-04-27 19:21:56_A1-224_mvit_seed1_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug_seed1_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:01:32_A2-lowLon30_2026-04-27 19:26:57_A1-224_mvit_seed2_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug_seed2_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:01:32_A2-lowLon30_2026-04-27 19:26:57_A1-224_mvit_seed3_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug_seed3_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:01:35_A2-lowLon30_2026-04-27 19:26:57_A1-224_mvit_seed4_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug_seed4_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:01:32_A2-lowLon30_2026-06-06 20:57:16_A1-224_mvit_seed6_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug_seed6_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:08:08_A2-lowLon30_2026-06-06 21:01:02_A1-224_mvit_seed7_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug_seed7_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:08:08_A2-lowLon30_2026-06-06 21:01:03_A1-224_mvit_seed8_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug_seed8_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:01:33_A2-lowLon30_2026-06-08 21:40:47_A1-224_mvit_seed5_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug_seed5_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:10:57_A2-lowLon30_2026-06-10 15:58:56_A1-224_mvit_seed9_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug_seed9_mvitv1_10seed/metrics.json"
+    ]
+  },
+  {
+    "group": [
+      224,
+      "M"
+    ],
+    "n": 10,
+    "TSS": [
+      0.647,
+      0.046
+    ],
+    "paths": [
+      "results/2026-06-11 03:10:57_A2-lowLon30_2026-04-27 19:37:49_A1-224_mvit_seed0_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug_seed0_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:05:39_A2-lowLon30_2026-06-08 20:45:16_A1-224_mvit_seed1_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug_seed1_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:09:07_A2-lowLon30_2026-04-27 19:37:49_A1-224_mvit_seed2_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug_seed2_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:11:01_A2-lowLon30_2026-04-27 19:37:49_A1-224_mvit_seed3_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug_seed3_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:09:31_A2-lowLon30_2026-04-27 19:37:49_A1-224_mvit_seed4_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug_seed4_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:11:06_A2-lowLon30_2026-06-06 21:34:36_A1-224_mvit_seed5_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug_seed5_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:11:08_A2-lowLon30_2026-06-06 21:38:19_A1-224_mvit_seed6_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug_seed6_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:13:57_A2-lowLon30_2026-06-06 21:38:19_A1-224_mvit_seed7_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug_seed7_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:13:55_A2-lowLon30_2026-06-06 21:41:56_A1-224_mvit_seed9_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug_seed9_mvitv1_10seed/metrics.json",
+      "results/2026-06-11 03:12:40_A2-lowLon30_2026-06-06 21:42:02_A1-224_mvit_seed8_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug_seed8_mvitv1_10seed/metrics.json"
+    ]
+  }
+]

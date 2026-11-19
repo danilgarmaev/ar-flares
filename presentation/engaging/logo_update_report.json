@@ -1,0 +1,22 @@
+{
+  "original_backup": "/lustre07/scratch/dgarmaev/ar-flares/presentation/engaging/archive_user_edits/20260915_before_logo.pptx",
+  "changed_existing_parts": [
+    "ppt/slides/_rels/slide1.xml.rels",
+    "ppt/slides/slide1.xml"
+  ],
+  "all_other_slides_and_notes_byte_identical": true,
+  "original_title_shapes_preserved": true,
+  "embedded_logo": "ppt/media/udem_logo_white_official.png",
+  "logo_bounds_inches": [
+    10.7,
+    0.33,
+    2.05,
+    0.7831988188976378
+  ],
+  "logo_source": "https://www.umontreal.ca/typo3temp/udemlessc/lessphp_9477013ded911f281ce354ea476ce0ead34a363a.css?1769692499",
+  "source_selector": ".udem-logo-udem-inv",
+  "brand_guidance": "https://marque.umontreal.ca/",
+  "source_svg_sha256": "4125eb2dce07010829a9ce67b66de0a0b3425cd87029e772f88a284c2e43447a",
+  "method": "Original white SVG rasterized at 1406px width; unchanged proportions and colors.",
+  "zip_and_xml_valid": true
+}

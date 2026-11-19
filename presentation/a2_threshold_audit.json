@@ -1,0 +1,162 @@
+[
+  {
+    "a2_record": "results/2026-06-11_030131_A2_longitude_eval_2026-04-27 19:21:56_A1-224_mvit_seed0_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.012184037035796791,
+    "test_best": 0.012184037035796791,
+    "validation_selected": 0.019,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_030131_A2_longitude_eval_2026-04-27 19:21:56_A1-224_mvit_seed1_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.03061074159666896,
+    "test_best": 0.03061074159666896,
+    "validation_selected": 0.027,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_030131_A2_longitude_eval_2026-04-27 19:26:57_A1-224_mvit_seed2_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.5,
+    "test_best": 0.5,
+    "validation_selected": 0.47600000000000003,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_030131_A2_longitude_eval_2026-04-27 19:26:57_A1-224_mvit_seed3_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.02,
+    "test_best": 0.02,
+    "validation_selected": 0.01244539571646601,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_030131_A2_longitude_eval_2026-06-06 20:57:16_A1-224_mvit_seed6_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.008422763053327799,
+    "test_best": 0.008422763053327799,
+    "validation_selected": 0.007,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_030133_A2_longitude_eval_2026-06-08 21:40:47_A1-224_mvit_seed5_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.033,
+    "test_best": 0.033,
+    "validation_selected": 0.03749593001935864,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_030135_A2_longitude_eval_2026-04-27 19:26:57_A1-224_mvit_seed4_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.003250761520117521,
+    "test_best": 0.003250761520117521,
+    "validation_selected": 0.003,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_030539_A2_longitude_eval_2026-06-08 20:45:16_A1-224_mvit_seed1_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.006,
+    "test_best": 0.006,
+    "validation_selected": 0.006622128484304994,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_030808_A2_longitude_eval_2026-06-06 21:01:02_A1-224_mvit_seed7_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.275,
+    "test_best": 0.275,
+    "validation_selected": 0.29562072913302107,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_030808_A2_longitude_eval_2026-06-06 21:01:03_A1-224_mvit_seed8_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.11800000000000001,
+    "test_best": 0.11800000000000001,
+    "validation_selected": 0.05051906479243189,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_030906_A2_longitude_eval_2026-04-27 19:37:49_A1-224_mvit_seed2_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.021,
+    "test_best": 0.021,
+    "validation_selected": 0.030202701448462904,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_030931_A2_longitude_eval_2026-04-27 19:37:49_A1-224_mvit_seed4_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.002,
+    "test_best": 0.002,
+    "validation_selected": 0.00219669553739368,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_031057_A2_longitude_eval_2026-04-27 19:37:49_A1-224_mvit_seed0_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.041095770112122405,
+    "test_best": 0.041095770112122405,
+    "validation_selected": 0.06168997320331983,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_031057_A2_longitude_eval_2026-06-10 15:58:56_A1-224_mvit_seed9_screen2dres_mvitv1_notemporal_cplus_dsnone300k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.08769389481749386,
+    "test_best": 0.08769389481749386,
+    "validation_selected": 0.101,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_031101_A2_longitude_eval_2026-04-27 19:37:49_A1-224_mvit_seed3_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.025757857372198486,
+    "test_best": 0.025757857372198486,
+    "validation_selected": 0.023,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_031106_A2_longitude_eval_2026-06-06 21:34:36_A1-224_mvit_seed5_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.013000000000000001,
+    "test_best": 0.013000000000000001,
+    "validation_selected": 0.025349017389817166,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_031107_A2_longitude_eval_2026-06-06 21:38:19_A1-224_mvit_seed6_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.016,
+    "test_best": 0.016,
+    "validation_selected": 0.023,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_031239_A2_longitude_eval_2026-06-06 21:42:02_A1-224_mvit_seed8_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.0008526072182357894,
+    "test_best": 0.0008526072182357894,
+    "validation_selected": 0.0007067330428471905,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_031355_A2_longitude_eval_2026-06-06 21:41:56_A1-224_mvit_seed9_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.0017991198936651927,
+    "test_best": 0.0017991198936651927,
+    "validation_selected": 0.0018004110049223527,
+    "matches_test_best": true,
+    "matches_validation": false
+  },
+  {
+    "a2_record": "results/2026-06-11_031356_A2_longitude_eval_2026-06-06 21:38:19_A1-224_mvit_seed7_screen2dres_mvitv1_notemporal_mplus_dsnone100k_wbce_ftv2_aug/a2_metrics.json",
+    "threshold": 0.0028778993216037633,
+    "test_best": 0.0028778993216037633,
+    "validation_selected": 0.002723877985888976,
+    "matches_test_best": true,
+    "matches_validation": false
+  }
+]

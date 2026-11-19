@@ -1,0 +1,5602 @@
+[
+  {
+    "slide": 1,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 1,
+    "text": "01 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 1,
+    "text": "ICANN 2026  •  ORAL PRESENTATION  •  PAPER 750",
+    "need_pt": 12.6,
+    "height_pt": 25.2,
+    "x": 0.62,
+    "y": 0.57,
+    "w": 12,
+    "h": 0.35
+  },
+  {
+    "slide": 1,
+    "text": "Solar Flare Prediction\nfrom Magnetograms",
+    "need_pt": 75.1,
+    "height_pt": 118.8,
+    "x": 0.62,
+    "y": 1.46,
+    "w": 7.08,
+    "h": 1.65
+  },
+  {
+    "slide": 1,
+    "text": "A Controlled Study of Input Design\nin Deep Learning",
+    "need_pt": 53.0,
+    "height_pt": 72.0,
+    "x": 0.65,
+    "y": 3.31,
+    "w": 6.95,
+    "h": 1.0
+  },
+  {
+    "slide": 1,
+    "text": "Danil Garmaev  ·  Jean Meunier",
+    "need_pt": 21.0,
+    "height_pt": 33.1,
+    "x": 0.65,
+    "y": 5.03,
+    "w": 7.0,
+    "h": 0.46
+  },
+  {
+    "slide": 1,
+    "text": "Université de Montréal\nComputer Science and Operations Research",
+    "need_pt": 35.4,
+    "height_pt": 57.6,
+    "x": 0.65,
+    "y": 5.69,
+    "w": 7.0,
+    "h": 0.8
+  },
+  {
+    "slide": 1,
+    "text": "SDO/HMI magnetogram • reproduced from paper, Fig. 1",
+    "need_pt": 9.5,
+    "height_pt": 18.7,
+    "x": 7.95,
+    "y": 6.43,
+    "w": 4.78,
+    "h": 0.26
+  },
+  {
+    "slide": 2,
+    "text": "BACKGROUND",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 2,
+    "text": "Solar flares: what they are and why we predict them",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 2,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 2,
+    "text": "02 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 2,
+    "text": "A solar flare",
+    "need_pt": 21.0,
+    "height_pt": 28.8,
+    "x": 0.73,
+    "y": 5.15,
+    "w": 3.0,
+    "h": 0.4
+  },
+  {
+    "slide": 2,
+    "text": "NASA image via NOAA",
+    "need_pt": 11.6,
+    "height_pt": 20.2,
+    "x": 0.73,
+    "y": 5.64,
+    "w": 3.0,
+    "h": 0.28
+  },
+  {
+    "slide": 2,
+    "text": "A sudden release of magnetic energy",
+    "need_pt": 26.2,
+    "height_pt": 34.6,
+    "x": 4.12,
+    "y": 2.09,
+    "w": 8.36,
+    "h": 0.48
+  },
+  {
+    "slide": 2,
+    "text": "Seen as a burst of radiation from the Sun’s atmosphere.",
+    "need_pt": 21.0,
+    "height_pt": 46.8,
+    "x": 4.13,
+    "y": 2.76,
+    "w": 8.2,
+    "h": 0.65
+  },
+  {
+    "slide": 2,
+    "text": "Why predict it?",
+    "need_pt": 24.2,
+    "height_pt": 32.4,
+    "x": 4.13,
+    "y": 3.71,
+    "w": 8.2,
+    "h": 0.45
+  },
+  {
+    "slide": 2,
+    "text": "Strong flares can disrupt radio communication.\nAdvance forecasts help people prepare.",
+    "need_pt": 46.4,
+    "height_pt": 63.4,
+    "x": 4.13,
+    "y": 4.34,
+    "w": 8.2,
+    "h": 0.88
+  },
+  {
+    "slide": 2,
+    "text": "X-RAY STRENGTH",
+    "need_pt": 10.5,
+    "height_pt": 19.4,
+    "x": 0.74,
+    "y": 6.16,
+    "w": 1.95,
+    "h": 0.27
+  },
+  {
+    "slide": 2,
+    "text": "A",
+    "need_pt": 26.2,
+    "height_pt": 31.7,
+    "x": 2.84,
+    "y": 6.07,
+    "w": 0.7,
+    "h": 0.44
+  },
+  {
+    "slide": 2,
+    "text": "→",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 3.61,
+    "y": 6.12,
+    "w": 0.23,
+    "h": 0.3
+  },
+  {
+    "slide": 2,
+    "text": "B",
+    "need_pt": 26.2,
+    "height_pt": 31.7,
+    "x": 3.87,
+    "y": 6.07,
+    "w": 0.7,
+    "h": 0.44
+  },
+  {
+    "slide": 2,
+    "text": "→",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 4.640000000000001,
+    "y": 6.12,
+    "w": 0.23,
+    "h": 0.3
+  },
+  {
+    "slide": 2,
+    "text": "C",
+    "need_pt": 26.2,
+    "height_pt": 31.7,
+    "x": 4.8999999999999995,
+    "y": 6.07,
+    "w": 0.7,
+    "h": 0.44
+  },
+  {
+    "slide": 2,
+    "text": "→",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 5.67,
+    "y": 6.12,
+    "w": 0.23,
+    "h": 0.3
+  },
+  {
+    "slide": 2,
+    "text": "M",
+    "need_pt": 26.2,
+    "height_pt": 31.7,
+    "x": 5.93,
+    "y": 6.07,
+    "w": 0.7,
+    "h": 0.44
+  },
+  {
+    "slide": 2,
+    "text": "→",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 6.699999999999999,
+    "y": 6.12,
+    "w": 0.23,
+    "h": 0.3
+  },
+  {
+    "slide": 2,
+    "text": "X",
+    "need_pt": 26.2,
+    "height_pt": 31.7,
+    "x": 6.96,
+    "y": 6.07,
+    "w": 0.7,
+    "h": 0.44
+  },
+  {
+    "slide": 2,
+    "text": "M1 = 10 × C1\nX1 = 10 × M1",
+    "need_pt": 37.6,
+    "height_pt": 46.8,
+    "x": 8.19,
+    "y": 6.03,
+    "w": 3.8,
+    "h": 0.65
+  },
+  {
+    "slide": 2,
+    "text": "Sources: thesis §1.1 and Table 1.1; NOAA, Solar Flares (Radio Blackouts). Image courtesy of NASA, ho",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 3,
+    "text": "THE PREDICTION TASK",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 3,
+    "text": "What the model sees",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 3,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 3,
+    "text": "03 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 3,
+    "text": "Full solar disk",
+    "need_pt": 17.9,
+    "height_pt": 28.8,
+    "x": 0.68,
+    "y": 5.63,
+    "w": 3.45,
+    "h": 0.4
+  },
+  {
+    "slide": 3,
+    "text": "Active-region cutout",
+    "need_pt": 17.9,
+    "height_pt": 28.8,
+    "x": 4.45,
+    "y": 5.63,
+    "w": 2.88,
+    "h": 0.4
+  },
+  {
+    "slide": 3,
+    "text": "Black / white = opposite magnetic polarities",
+    "need_pt": 14.7,
+    "height_pt": 23.8,
+    "x": 0.7,
+    "y": 6.15,
+    "w": 6.6,
+    "h": 0.33
+  },
+  {
+    "slide": 3,
+    "text": "INPUT",
+    "need_pt": 12.6,
+    "height_pt": 21.6,
+    "x": 7.92,
+    "y": 2.31,
+    "w": 4.44,
+    "h": 0.3
+  },
+  {
+    "slide": 3,
+    "text": "One magnetogram\nor a sequence from\none region",
+    "need_pt": 70.8,
+    "height_pt": 82.8,
+    "x": 7.92,
+    "y": 2.81,
+    "w": 4.42,
+    "h": 1.15
+  },
+  {
+    "slide": 3,
+    "text": "TWO PREDICTION TASKS",
+    "need_pt": 12.6,
+    "height_pt": 21.6,
+    "x": 7.92,
+    "y": 4.34,
+    "w": 4.44,
+    "h": 0.3
+  },
+  {
+    "slide": 3,
+    "text": "C-class or stronger\nM-class or stronger\nin the next 24 hours",
+    "need_pt": 67.4,
+    "height_pt": 72.0,
+    "x": 7.92,
+    "y": 4.84,
+    "w": 4.4,
+    "h": 1.0
+  },
+  {
+    "slide": 3,
+    "text": "Sources: paper §1–2 and Fig. 1; Boucheron et al. (2023); Scherrer et al. (2012).",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 4,
+    "text": "THE CONTRIBUTION",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 4,
+    "text": "Input design as a research question",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 4,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 4,
+    "text": "04 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 4,
+    "text": "01  Spatial detail",
+    "need_pt": 22.1,
+    "height_pt": 39.6,
+    "x": 0.87,
+    "y": 2.21,
+    "w": 5.45,
+    "h": 0.55
+  },
+  {
+    "slide": 4,
+    "text": "Original and smaller images\nHow much detail do we need?",
+    "need_pt": 39.8,
+    "height_pt": 51.1,
+    "x": 0.87,
+    "y": 2.93,
+    "w": 5.43,
+    "h": 0.71
+  },
+  {
+    "slide": 4,
+    "text": "02  Disk position",
+    "need_pt": 22.1,
+    "height_pt": 39.6,
+    "x": 7.02,
+    "y": 2.21,
+    "w": 5.45,
+    "h": 0.55
+  },
+  {
+    "slide": 4,
+    "text": "Central and outer regions\nDoes position affect prediction?",
+    "need_pt": 39.8,
+    "height_pt": 51.1,
+    "x": 7.02,
+    "y": 2.93,
+    "w": 5.43,
+    "h": 0.71
+  },
+  {
+    "slide": 4,
+    "text": "03  Temporal span",
+    "need_pt": 22.1,
+    "height_pt": 39.6,
+    "x": 0.87,
+    "y": 4.2,
+    "w": 5.45,
+    "h": 0.55
+  },
+  {
+    "slide": 4,
+    "text": "16 images over different periods\nHow far back should we look?",
+    "need_pt": 39.8,
+    "height_pt": 51.1,
+    "x": 0.87,
+    "y": 4.92,
+    "w": 5.43,
+    "h": 0.71
+  },
+  {
+    "slide": 4,
+    "text": "04  Frame count",
+    "need_pt": 22.1,
+    "height_pt": 39.6,
+    "x": 7.02,
+    "y": 4.2,
+    "w": 5.45,
+    "h": 0.55
+  },
+  {
+    "slide": 4,
+    "text": "Fewer images over the same period\nHow many images do we need?",
+    "need_pt": 39.8,
+    "height_pt": 51.1,
+    "x": 7.02,
+    "y": 4.92,
+    "w": 5.43,
+    "h": 0.71
+  },
+  {
+    "slide": 4,
+    "text": "We change the input while keeping the model family and training setup consistent.",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 0.78,
+    "y": 6.2250000000000005,
+    "w": 11.75,
+    "h": 0.3
+  },
+  {
+    "slide": 4,
+    "text": "Source: paper §4. Comparisons retain the architecture family and a shared training protocol.",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 5,
+    "text": "DATA & EVALUATION",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 5,
+    "text": "Data and evaluation",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 5,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 5,
+    "text": "05 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 5,
+    "text": "SDO/HMI  •  2010–2018  •  224 × 224 pixels",
+    "need_pt": 23.1,
+    "height_pt": 32.4,
+    "x": 0.7,
+    "y": 1.93,
+    "w": 11.8,
+    "h": 0.45
+  },
+  {
+    "slide": 5,
+    "text": "TRAIN",
+    "need_pt": 11.6,
+    "height_pt": 18.0,
+    "x": 0.8799999999999999,
+    "y": 2.79,
+    "w": 5.32,
+    "h": 0.25
+  },
+  {
+    "slide": 5,
+    "text": "759,357",
+    "need_pt": 25.2,
+    "height_pt": 31.0,
+    "x": 0.8799999999999999,
+    "y": 3.15,
+    "w": 5.32,
+    "h": 0.43
+  },
+  {
+    "slide": 5,
+    "text": "VALIDATION",
+    "need_pt": 11.6,
+    "height_pt": 18.0,
+    "x": 6.77,
+    "y": 2.79,
+    "w": 2.58,
+    "h": 0.25
+  },
+  {
+    "slide": 5,
+    "text": "95,933",
+    "need_pt": 25.2,
+    "height_pt": 31.0,
+    "x": 6.77,
+    "y": 3.15,
+    "w": 2.58,
+    "h": 0.43
+  },
+  {
+    "slide": 5,
+    "text": "TEST",
+    "need_pt": 11.6,
+    "height_pt": 18.0,
+    "x": 9.92,
+    "y": 2.79,
+    "w": 2.58,
+    "h": 0.25
+  },
+  {
+    "slide": 5,
+    "text": "94,757",
+    "need_pt": 25.2,
+    "height_pt": 31.0,
+    "x": 9.92,
+    "y": 3.15,
+    "w": 2.58,
+    "h": 0.43
+  },
+  {
+    "slide": 5,
+    "text": "Different active regions in training, validation and test sets",
+    "need_pt": 21.0,
+    "height_pt": 28.8,
+    "x": 0.76,
+    "y": 4.02,
+    "w": 11.8,
+    "h": 0.4
+  },
+  {
+    "slide": 5,
+    "text": "POSITIVE FRACTION IN TRAINING",
+    "need_pt": 12.6,
+    "height_pt": 23.0,
+    "x": 0.75,
+    "y": 4.72,
+    "w": 5.8,
+    "h": 0.32
+  },
+  {
+    "slide": 5,
+    "text": "≥C",
+    "need_pt": 19.9,
+    "height_pt": 25.9,
+    "x": 0.76,
+    "y": 5.25,
+    "w": 0.7,
+    "h": 0.36
+  },
+  {
+    "slide": 5,
+    "text": "19.7%",
+    "need_pt": 21.0,
+    "height_pt": 28.8,
+    "x": 5.3,
+    "y": 5.24,
+    "w": 1.0,
+    "h": 0.4
+  },
+  {
+    "slide": 5,
+    "text": "≥M",
+    "need_pt": 19.9,
+    "height_pt": 25.9,
+    "x": 0.76,
+    "y": 5.859999999999999,
+    "w": 0.7,
+    "h": 0.36
+  },
+  {
+    "slide": 5,
+    "text": "3.1%",
+    "need_pt": 21.0,
+    "height_pt": 28.8,
+    "x": 5.3,
+    "y": 5.85,
+    "w": 1.0,
+    "h": 0.4
+  },
+  {
+    "slide": 5,
+    "text": "Primary metric: TSS",
+    "need_pt": 22.1,
+    "height_pt": 28.8,
+    "x": 7.3,
+    "y": 4.82,
+    "w": 5.07,
+    "h": 0.4
+  },
+  {
+    "slide": 5,
+    "text": "TSS = sensitivity − false-positive rate",
+    "need_pt": 18.9,
+    "height_pt": 25.9,
+    "x": 7.3,
+    "y": 5.34,
+    "w": 5.07,
+    "h": 0.36
+  },
+  {
+    "slide": 5,
+    "text": "= sensitivity + specificity − 1",
+    "need_pt": 16.8,
+    "height_pt": 23.0,
+    "x": 7.3,
+    "y": 5.79,
+    "w": 5.07,
+    "h": 0.32
+  },
+  {
+    "slide": 5,
+    "text": "1 = perfect; 0 = no skill.",
+    "need_pt": 14.7,
+    "height_pt": 19.4,
+    "x": 7.3,
+    "y": 6.23,
+    "w": 5.07,
+    "h": 0.27
+  },
+  {
+    "slide": 5,
+    "text": "Sources: paper §2–3. Counts describe the image benchmark; eligible sequence counts differ. TSS: Bloo",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 6,
+    "text": "METHOD",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 6,
+    "text": "A common framework for input comparisons",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 6,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 6,
+    "text": "06 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 6,
+    "text": "Image / sequence",
+    "need_pt": 18.9,
+    "height_pt": 27.4,
+    "x": 0.73,
+    "y": 4.85,
+    "w": 2.8,
+    "h": 0.38
+  },
+  {
+    "slide": 6,
+    "text": "Same active region",
+    "need_pt": 15.8,
+    "height_pt": 25.2,
+    "x": 0.73,
+    "y": 5.35,
+    "w": 2.8,
+    "h": 0.35
+  },
+  {
+    "slide": 6,
+    "text": "MViT backbone",
+    "need_pt": 24.2,
+    "height_pt": 54.0,
+    "x": 3.85,
+    "y": 3.0,
+    "w": 3.43,
+    "h": 0.75
+  },
+  {
+    "slide": 6,
+    "text": "Looks at small patterns\nand larger structures",
+    "need_pt": 37.6,
+    "height_pt": 51.8,
+    "x": 3.85,
+    "y": 3.86,
+    "w": 3.43,
+    "h": 0.72
+  },
+  {
+    "slide": 6,
+    "text": "Binary prediction",
+    "need_pt": 24.2,
+    "height_pt": 54.0,
+    "x": 8.219999999999999,
+    "y": 3.0,
+    "w": 3.43,
+    "h": 0.75
+  },
+  {
+    "slide": 6,
+    "text": "A prediction for the\nfollowing day",
+    "need_pt": 37.6,
+    "height_pt": 51.8,
+    "x": 8.219999999999999,
+    "y": 3.86,
+    "w": 3.43,
+    "h": 0.72
+  },
+  {
+    "slide": 6,
+    "text": "Pretrained image / video models",
+    "need_pt": 17.9,
+    "height_pt": 57.6,
+    "x": 3.68,
+    "y": 5.17,
+    "w": 4.08,
+    "h": 0.8
+  },
+  {
+    "slide": 6,
+    "text": "10 random seeds per setting",
+    "need_pt": 17.9,
+    "height_pt": 57.6,
+    "x": 8.05,
+    "y": 5.17,
+    "w": 4.04,
+    "h": 0.8
+  },
+  {
+    "slide": 6,
+    "text": "We repeat training 10 times to see how much the results vary.",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 0.78,
+    "y": 6.155,
+    "w": 11.75,
+    "h": 0.3
+  },
+  {
+    "slide": 6,
+    "text": "Sources: paper §4 and Table 1; Fan et al. (2021). Real input frames: repository AR 1339, 2011-11-04 ",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 7,
+    "text": "01 / SPATIAL DETAIL",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 7,
+    "text": "Forecasting with less spatial detail",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 7,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 7,
+    "text": "07 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 7,
+    "text": "224 × 224",
+    "need_pt": 16.8,
+    "height_pt": 27.4,
+    "x": 0.7,
+    "y": 3.9,
+    "w": 1.5,
+    "h": 0.38
+  },
+  {
+    "slide": 7,
+    "text": "112 × 112",
+    "need_pt": 16.8,
+    "height_pt": 27.4,
+    "x": 2.37,
+    "y": 3.9,
+    "w": 1.5,
+    "h": 0.38
+  },
+  {
+    "slide": 7,
+    "text": "56 × 56",
+    "need_pt": 16.8,
+    "height_pt": 27.4,
+    "x": 4.04,
+    "y": 3.9,
+    "w": 1.5,
+    "h": 0.38
+  },
+  {
+    "slide": 7,
+    "text": "Same input size.\nLess image detail.",
+    "need_pt": 44.2,
+    "height_pt": 59.8,
+    "x": 0.75,
+    "y": 4.67,
+    "w": 4.93,
+    "h": 0.83
+  },
+  {
+    "slide": 7,
+    "text": "Useful signal survives coarser detail.\nSpeed is not measured here.",
+    "need_pt": 35.4,
+    "height_pt": 46.8,
+    "x": 0.75,
+    "y": 5.61,
+    "w": 4.93,
+    "h": 0.65
+  },
+  {
+    "slide": 7,
+    "text": "≥C",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 6.239999999999999,
+    "y": 1.95,
+    "w": 0.65,
+    "h": 0.3
+  },
+  {
+    "slide": 7,
+    "text": "≥M",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 7.239999999999999,
+    "y": 1.95,
+    "w": 0.65,
+    "h": 0.3
+  },
+  {
+    "slide": 7,
+    "text": "TSS",
+    "need_pt": 12.6,
+    "height_pt": 19.4,
+    "x": 5.85,
+    "y": 2.48,
+    "w": 6.61,
+    "h": 0.27
+  },
+  {
+    "slide": 7,
+    "text": "0.45",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 5.85,
+    "y": 5.076666666666667,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 7,
+    "text": "0.50",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 5.85,
+    "y": 4.668333333333333,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 7,
+    "text": "0.55",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 5.85,
+    "y": 4.26,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 7,
+    "text": "0.60",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 5.85,
+    "y": 3.8516666666666666,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 7,
+    "text": "0.65",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 5.85,
+    "y": 3.443333333333333,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 7,
+    "text": "0.70",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 5.85,
+    "y": 3.035,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 7,
+    "text": "224",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 6.773333333333333,
+    "y": 5.49,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 7,
+    "text": "112",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 8.700000000000001,
+    "y": 5.49,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 7,
+    "text": "56",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 10.626666666666667,
+    "y": 5.49,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 7,
+    "text": "Spatial resolution before resizing",
+    "need_pt": 12.6,
+    "height_pt": 21.6,
+    "x": 6.449999999999999,
+    "y": 5.930000000000001,
+    "w": 5.8100000000000005,
+    "h": 0.3
+  },
+  {
+    "slide": 7,
+    "text": "Source: paper Table 2 and §4.3. Points: mean TSS; bars: ±1 SD over 10 seeds. No significant pairwise",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 8,
+    "text": "02 / SOLAR LONGITUDE",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 8,
+    "text": "Viewing geometry affects the comparison",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 8,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 8,
+    "text": "08 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 8,
+    "text": "Full range: ±60°",
+    "need_pt": 19.9,
+    "height_pt": 28.8,
+    "x": 0.71,
+    "y": 4.87,
+    "w": 2.57,
+    "h": 0.4
+  },
+  {
+    "slide": 8,
+    "text": "Central region: ±30°",
+    "need_pt": 19.9,
+    "height_pt": 28.8,
+    "x": 3.28,
+    "y": 4.87,
+    "w": 2.89,
+    "h": 0.4
+  },
+  {
+    "slide": 8,
+    "text": "Blue dots: active-region centers\nRegions near the edge are viewed at an angle.",
+    "need_pt": 37.6,
+    "height_pt": 59.8,
+    "x": 0.81,
+    "y": 5.55,
+    "w": 5.43,
+    "h": 0.83
+  },
+  {
+    "slide": 8,
+    "text": "One model, two viewing regions",
+    "need_pt": 22.1,
+    "height_pt": 33.1,
+    "x": 6.58,
+    "y": 1.98,
+    "w": 5.72,
+    "h": 0.46
+  },
+  {
+    "slide": 8,
+    "text": "≥C",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 6.92,
+    "y": 2.58,
+    "w": 0.65,
+    "h": 0.3
+  },
+  {
+    "slide": 8,
+    "text": "≥M",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 7.92,
+    "y": 2.58,
+    "w": 0.65,
+    "h": 0.3
+  },
+  {
+    "slide": 8,
+    "text": "ROC-AUC  •  higher is better",
+    "need_pt": 12.6,
+    "height_pt": 19.4,
+    "x": 6.33,
+    "y": 3.09,
+    "w": 6.15,
+    "h": 0.27
+  },
+  {
+    "slide": 8,
+    "text": "0.80",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 6.33,
+    "y": 4.96,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 8,
+    "text": "0.85",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 6.33,
+    "y": 4.44,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 8,
+    "text": "0.90",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 6.33,
+    "y": 3.92,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 8,
+    "text": "0.95",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 6.33,
+    "y": 3.4,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 8,
+    "text": "Central",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 7.62,
+    "y": 5.21,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 8,
+    "text": "Outer",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 10.280000000000001,
+    "y": 5.21,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 8,
+    "text": "Central-only training: mixed results.",
+    "need_pt": 16.8,
+    "height_pt": 24.5,
+    "x": 6.8,
+    "y": 6.03,
+    "w": 5.42,
+    "h": 0.34
+  },
+  {
+    "slide": 8,
+    "text": "Sources: thesis Fig. 2.2 (restored latlon_60 / latlon_30 figures); paper Table 3. Mean ROC-AUC ±1 SD",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 9,
+    "text": "03–04 / TEMPORAL DESIGN",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 9,
+    "text": "Temporal coverage and sampling density",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 9,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 9,
+    "text": "09 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 9,
+    "text": "A. Temporal coverage: 16 images over more time",
+    "need_pt": 24.2,
+    "height_pt": 34.6,
+    "x": 0.74,
+    "y": 1.94,
+    "w": 11.85,
+    "h": 0.48
+  },
+  {
+    "slide": 9,
+    "text": "60 min → 15 h",
+    "need_pt": 19.9,
+    "height_pt": 26.6,
+    "x": 0.77,
+    "y": 2.65,
+    "w": 2.5,
+    "h": 0.37
+  },
+  {
+    "slide": 9,
+    "text": "120 min → 30 h",
+    "need_pt": 19.9,
+    "height_pt": 26.6,
+    "x": 0.77,
+    "y": 3.21,
+    "w": 2.5,
+    "h": 0.37
+  },
+  {
+    "slide": 9,
+    "text": "180 min → 45 h",
+    "need_pt": 19.9,
+    "height_pt": 26.6,
+    "x": 0.77,
+    "y": 3.77,
+    "w": 2.5,
+    "h": 0.37
+  },
+  {
+    "slide": 9,
+    "text": "B. Sampling density: fewer images over the same period",
+    "need_pt": 24.2,
+    "height_pt": 34.6,
+    "x": 0.74,
+    "y": 4.65,
+    "w": 11.85,
+    "h": 0.48
+  },
+  {
+    "slide": 9,
+    "text": "4 images",
+    "need_pt": 19.9,
+    "height_pt": 26.6,
+    "x": 0.77,
+    "y": 5.59,
+    "w": 2.5,
+    "h": 0.37
+  },
+  {
+    "slide": 9,
+    "text": "−45 h",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 3.209999999999999,
+    "y": 6.05,
+    "w": 0.98,
+    "h": 0.3
+  },
+  {
+    "slide": 9,
+    "text": "−30 h",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 6.043333333333333,
+    "y": 6.05,
+    "w": 0.98,
+    "h": 0.3
+  },
+  {
+    "slide": 9,
+    "text": "−15 h",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 8.876666666666667,
+    "y": 6.05,
+    "w": 0.98,
+    "h": 0.3
+  },
+  {
+    "slide": 9,
+    "text": "Now",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 11.709999999999999,
+    "y": 6.05,
+    "w": 0.98,
+    "h": 0.3
+  },
+  {
+    "slide": 9,
+    "text": "Make the prediction",
+    "need_pt": 10.5,
+    "height_pt": 19.4,
+    "x": 10.91,
+    "y": 2.28,
+    "w": 1.83,
+    "h": 0.27
+  },
+  {
+    "slide": 9,
+    "text": "Sources: paper §4.5–4.6. Temporal span = (T − 1) × cadence for uniformly spaced frames. Forecast hor",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 10,
+    "text": "03 / TEMPORAL SPAN",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 10,
+    "text": "Longer windows improve C-class prediction",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 10,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 10,
+    "text": "10 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 10,
+    "text": "≥C",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 1.06,
+    "y": 1.96,
+    "w": 0.65,
+    "h": 0.3
+  },
+  {
+    "slide": 10,
+    "text": "≥M",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 2.06,
+    "y": 1.96,
+    "w": 0.65,
+    "h": 0.3
+  },
+  {
+    "slide": 10,
+    "text": "TSS",
+    "need_pt": 12.6,
+    "height_pt": 19.4,
+    "x": 0.69,
+    "y": 2.54,
+    "w": 8.2,
+    "h": 0.27
+  },
+  {
+    "slide": 10,
+    "text": "0.50",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 0.69,
+    "y": 5.69,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 10,
+    "text": "0.60",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 0.69,
+    "y": 4.878571428571429,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 10,
+    "text": "0.70",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 0.69,
+    "y": 4.067142857142858,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 10,
+    "text": "0.80",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 0.69,
+    "y": 3.2557142857142853,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 10,
+    "text": "15 h\n60 min",
+    "need_pt": 28.7,
+    "height_pt": 30.2,
+    "x": 1.878333333333333,
+    "y": 5.94,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 10,
+    "text": "30 h\n120 min",
+    "need_pt": 28.7,
+    "height_pt": 30.2,
+    "x": 4.335,
+    "y": 5.94,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 10,
+    "text": "45 h\n180 min",
+    "need_pt": 28.7,
+    "height_pt": 30.2,
+    "x": 6.791666666666665,
+    "y": 5.94,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 10,
+    "text": "0.674",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 2.003333333333333,
+    "y": 4.038114285714285,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 10,
+    "text": "0.742",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 4.46,
+    "y": 3.4863428571428567,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 10,
+    "text": "0.789",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 6.916666666666665,
+    "y": 3.104971428571428,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 10,
+    "text": "0.626",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 2.1133333333333333,
+    "y": 4.8776,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 10,
+    "text": "0.671",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 4.569999999999999,
+    "y": 4.5124571428571425,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 10,
+    "text": "0.706",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 7.026666666666665,
+    "y": 4.228457142857143,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 10,
+    "text": "+0.115",
+    "need_pt": 37.8,
+    "height_pt": 49.7,
+    "x": 9.49,
+    "y": 2.75,
+    "w": 2.86,
+    "h": 0.69
+  },
+  {
+    "slide": 10,
+    "text": "TSS improvement\nfor C-class or stronger",
+    "need_pt": 67.4,
+    "height_pt": 68.4,
+    "x": 9.49,
+    "y": 3.58,
+    "w": 2.86,
+    "h": 0.95
+  },
+  {
+    "slide": 10,
+    "text": "Significant improvement\nover 10 training runs",
+    "need_pt": 37.6,
+    "height_pt": 59.8,
+    "x": 9.49,
+    "y": 4.83,
+    "w": 2.84,
+    "h": 0.83
+  },
+  {
+    "slide": 10,
+    "text": "M-class or stronger:\na less certain result",
+    "need_pt": 28.7,
+    "height_pt": 43.9,
+    "x": 9.49,
+    "y": 5.69,
+    "w": 2.85,
+    "h": 0.61
+  },
+  {
+    "slide": 10,
+    "text": "Source: paper Table 4. Mean ±1 SD, 10 seeds. ≥C paired tests: p < 0.001, p = 0.0013, p < 0.001. Elig",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 11,
+    "text": "04 / FRAME COUNT",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 11,
+    "text": "Four images remain competitive",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 11,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 11,
+    "text": "11 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 11,
+    "text": "−45 h",
+    "need_pt": 15.8,
+    "height_pt": 23.0,
+    "x": 0.73,
+    "y": 3.8,
+    "w": 1.22,
+    "h": 0.32
+  },
+  {
+    "slide": 11,
+    "text": "−30 h",
+    "need_pt": 15.8,
+    "height_pt": 23.0,
+    "x": 2.04,
+    "y": 3.8,
+    "w": 1.22,
+    "h": 0.32
+  },
+  {
+    "slide": 11,
+    "text": "−15 h",
+    "need_pt": 15.8,
+    "height_pt": 23.0,
+    "x": 3.35,
+    "y": 3.8,
+    "w": 1.22,
+    "h": 0.32
+  },
+  {
+    "slide": 11,
+    "text": "Now",
+    "need_pt": 15.8,
+    "height_pt": 23.0,
+    "x": 4.66,
+    "y": 3.8,
+    "w": 1.22,
+    "h": 0.32
+  },
+  {
+    "slide": 11,
+    "text": "Competitive TSS with four images",
+    "need_pt": 53.0,
+    "height_pt": 61.2,
+    "x": 0.79,
+    "y": 4.57,
+    "w": 5.25,
+    "h": 0.85
+  },
+  {
+    "slide": 11,
+    "text": "First and last images: 45 hours apart\nThree quarters fewer input images",
+    "need_pt": 37.6,
+    "height_pt": 61.2,
+    "x": 0.79,
+    "y": 5.57,
+    "w": 5.14,
+    "h": 0.85
+  },
+  {
+    "slide": 11,
+    "text": "≥C",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 6.76,
+    "y": 1.99,
+    "w": 0.65,
+    "h": 0.3
+  },
+  {
+    "slide": 11,
+    "text": "≥M",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 7.76,
+    "y": 1.99,
+    "w": 0.65,
+    "h": 0.3
+  },
+  {
+    "slide": 11,
+    "text": "TSS",
+    "need_pt": 12.6,
+    "height_pt": 19.4,
+    "x": 6.16,
+    "y": 2.6,
+    "w": 6.35,
+    "h": 0.27
+  },
+  {
+    "slide": 11,
+    "text": "0.60",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 6.16,
+    "y": 5.19,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 11,
+    "text": "0.70",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 6.16,
+    "y": 4.430000000000001,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 11,
+    "text": "0.80",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 6.16,
+    "y": 3.67,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 11,
+    "text": "0.90",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 6.16,
+    "y": 2.91,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 11,
+    "text": "16",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 7.04,
+    "y": 5.82,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 11,
+    "text": "8",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 8.88,
+    "y": 5.82,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 11,
+    "text": "4",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 10.72,
+    "y": 5.82,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 11,
+    "text": "0.789",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 7.165,
+    "y": 3.5136000000000003,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 11,
+    "text": "0.802",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 9.005,
+    "y": 3.4147999999999996,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 11,
+    "text": "0.805",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 10.845,
+    "y": 3.3919999999999995,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 11,
+    "text": "0.706",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 7.2749999999999995,
+    "y": 4.594400000000001,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 11,
+    "text": "0.751",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 9.115,
+    "y": 4.252400000000001,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 11,
+    "text": "0.752",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 10.955,
+    "y": 4.244800000000001,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 11,
+    "text": "Images over the same 45-hour period",
+    "need_pt": 12.6,
+    "height_pt": 21.6,
+    "x": 6.76,
+    "y": 6.260000000000001,
+    "w": 5.55,
+    "h": 0.3
+  },
+  {
+    "slide": 11,
+    "text": "Source: paper Table 5. Mean ±1 SD over 10 seeds. TSS differences were not significant. Real example:",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 12,
+    "text": "READING THE RESULTS",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 12,
+    "text": "Rare events: interpreting PR-AUC",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 12,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 12,
+    "text": "12 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 12,
+    "text": "M-class or stronger  •  same 45-hour period",
+    "need_pt": 22.1,
+    "height_pt": 32.4,
+    "x": 0.76,
+    "y": 1.94,
+    "w": 11.83,
+    "h": 0.45
+  },
+  {
+    "slide": 12,
+    "text": "PR-AUC  •  1 is a perfect ranking",
+    "need_pt": 12.6,
+    "height_pt": 19.4,
+    "x": 0.72,
+    "y": 2.81,
+    "w": 6.45,
+    "h": 0.27
+  },
+  {
+    "slide": 12,
+    "text": "0.00",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 0.72,
+    "y": 5.36,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 12,
+    "text": "0.20",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 0.72,
+    "y": 4.912,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 12,
+    "text": "0.40",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 0.72,
+    "y": 4.464,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 12,
+    "text": "0.60",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 0.72,
+    "y": 4.016,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 12,
+    "text": "0.80",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 0.72,
+    "y": 3.568,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 12,
+    "text": "1.00",
+    "need_pt": 11.6,
+    "height_pt": 15.8,
+    "x": 0.72,
+    "y": 3.12,
+    "w": 0.46,
+    "h": 0.22
+  },
+  {
+    "slide": 12,
+    "text": "16 images",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 1.6166666666666663,
+    "y": 5.61,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 12,
+    "text": "8 images",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 3.4899999999999993,
+    "y": 5.61,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 12,
+    "text": "4 images",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 5.363333333333333,
+    "y": 5.61,
+    "w": 1.24,
+    "h": 0.42
+  },
+  {
+    "slide": 12,
+    "text": "0.393",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 1.7966666666666664,
+    "y": 4.23968,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 12,
+    "text": "0.389",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 3.6699999999999995,
+    "y": 4.24864,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 12,
+    "text": "0.359",
+    "need_pt": 13.7,
+    "height_pt": 20.2,
+    "x": 5.543333333333333,
+    "y": 4.31584,
+    "w": 0.88,
+    "h": 0.28
+  },
+  {
+    "slide": 12,
+    "text": "Random ranking ≈ 0.03",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 1.46,
+    "y": 4.989481865284974,
+    "w": 4.43,
+    "h": 0.3
+  },
+  {
+    "slide": 12,
+    "text": "About 3 in 100",
+    "need_pt": 30.5,
+    "height_pt": 42.5,
+    "x": 7.83,
+    "y": 3.05,
+    "w": 4.51,
+    "h": 0.59
+  },
+  {
+    "slide": 12,
+    "text": "test examples are followed\nby an M-class flare or stronger.",
+    "need_pt": 44.2,
+    "height_pt": 59.0,
+    "x": 7.83,
+    "y": 3.85,
+    "w": 4.48,
+    "h": 0.82
+  },
+  {
+    "slide": 12,
+    "text": "0.36–0.39 is well above the\nrandom-ranking reference.",
+    "need_pt": 44.2,
+    "height_pt": 57.6,
+    "x": 7.83,
+    "y": 5.03,
+    "w": 4.46,
+    "h": 0.8
+  },
+  {
+    "slide": 12,
+    "text": "PR-AUC is not accuracy. It summarizes the balance between finding flares and reliable warnings.",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 0.78,
+    "y": 6.285,
+    "w": 11.75,
+    "h": 0.3
+  },
+  {
+    "slide": 12,
+    "text": "Sources: paper Table 5; thesis §1.2. Reference = 73 positives / 2,702 evaluated examples. Plotted sc",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 13,
+    "text": "SCOPE & NEXT EXPERIMENTS",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 13,
+    "text": "From input findings to stronger benchmarks",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 13,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 13,
+    "text": "13 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 13,
+    "text": "01",
+    "need_pt": 27.3,
+    "height_pt": 39.6,
+    "x": 0.75,
+    "y": 2.12,
+    "w": 0.65,
+    "h": 0.55
+  },
+  {
+    "slide": 13,
+    "text": "Match examples and benchmark models",
+    "need_pt": 24.2,
+    "height_pt": 32.4,
+    "x": 1.67,
+    "y": 2.13,
+    "w": 10.87,
+    "h": 0.45
+  },
+  {
+    "slide": 13,
+    "text": "Use the same examples for input settings and strong published baselines",
+    "need_pt": 19.9,
+    "height_pt": 36.0,
+    "x": 1.68,
+    "y": 2.71,
+    "w": 10.75,
+    "h": 0.5
+  },
+  {
+    "slide": 13,
+    "text": "02",
+    "need_pt": 27.3,
+    "height_pt": 39.6,
+    "x": 0.75,
+    "y": 3.37,
+    "w": 0.65,
+    "h": 0.55
+  },
+  {
+    "slide": 13,
+    "text": "Measure the practical savings",
+    "need_pt": 24.2,
+    "height_pt": 32.4,
+    "x": 1.67,
+    "y": 3.38,
+    "w": 10.87,
+    "h": 0.45
+  },
+  {
+    "slide": 13,
+    "text": "Check speed and memory use when the model receives fewer images",
+    "need_pt": 19.9,
+    "height_pt": 36.0,
+    "x": 1.68,
+    "y": 3.96,
+    "w": 10.75,
+    "h": 0.5
+  },
+  {
+    "slide": 13,
+    "text": "03",
+    "need_pt": 27.3,
+    "height_pt": 39.6,
+    "x": 0.75,
+    "y": 4.62,
+    "w": 0.65,
+    "h": 0.55
+  },
+  {
+    "slide": 13,
+    "text": "Test on other data",
+    "need_pt": 24.2,
+    "height_pt": 32.4,
+    "x": 1.67,
+    "y": 4.63,
+    "w": 10.87,
+    "h": 0.45
+  },
+  {
+    "slide": 13,
+    "text": "Check whether the results hold for other regions and time periods",
+    "need_pt": 19.9,
+    "height_pt": 36.0,
+    "x": 1.68,
+    "y": 5.21,
+    "w": 10.75,
+    "h": 0.5
+  },
+  {
+    "slide": 13,
+    "text": "Compare input designs and model architectures under the same evaluation protocol.",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 0.78,
+    "y": 6.255000000000001,
+    "w": 11.75,
+    "h": 0.3
+  },
+  {
+    "slide": 13,
+    "text": "Source: paper §6; repository sequence-count audit. Seed variation does not measure generalization un",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 14,
+    "text": "TAKEAWAYS",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 14,
+    "text": "What this study contributes",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 14,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 14,
+    "text": "14 / 14",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 14,
+    "text": "01",
+    "need_pt": 28.4,
+    "height_pt": 36.0,
+    "x": 0.72,
+    "y": 2.23,
+    "w": 0.75,
+    "h": 0.5
+  },
+  {
+    "slide": 14,
+    "text": "Longer observation windows improved skill",
+    "need_pt": 25.2,
+    "height_pt": 43.2,
+    "x": 1.73,
+    "y": 2.23,
+    "w": 10.8,
+    "h": 0.6
+  },
+  {
+    "slide": 14,
+    "text": "A significant TSS improvement for C-class flares or stronger.",
+    "need_pt": 17.9,
+    "height_pt": 35.3,
+    "x": 1.74,
+    "y": 2.87,
+    "w": 10.72,
+    "h": 0.49
+  },
+  {
+    "slide": 14,
+    "text": "02",
+    "need_pt": 28.4,
+    "height_pt": 36.0,
+    "x": 0.72,
+    "y": 3.58,
+    "w": 0.75,
+    "h": 0.5
+  },
+  {
+    "slide": 14,
+    "text": "Four observations remained competitive",
+    "need_pt": 25.2,
+    "height_pt": 43.2,
+    "x": 1.73,
+    "y": 3.58,
+    "w": 10.8,
+    "h": 0.6
+  },
+  {
+    "slide": 14,
+    "text": "Sparse sequences retained useful information over almost two days.",
+    "need_pt": 17.9,
+    "height_pt": 35.3,
+    "x": 1.74,
+    "y": 4.22,
+    "w": 10.72,
+    "h": 0.49
+  },
+  {
+    "slide": 14,
+    "text": "03",
+    "need_pt": 28.4,
+    "height_pt": 36.0,
+    "x": 0.72,
+    "y": 4.93,
+    "w": 0.75,
+    "h": 0.5
+  },
+  {
+    "slide": 14,
+    "text": "Coarser images retained predictive information",
+    "need_pt": 25.2,
+    "height_pt": 43.2,
+    "x": 1.73,
+    "y": 4.93,
+    "w": 10.8,
+    "h": 0.6
+  },
+  {
+    "slide": 14,
+    "text": "Limited TSS changes after reducing spatial detail; geometry effects were mixed.",
+    "need_pt": 17.9,
+    "height_pt": 35.3,
+    "x": 1.74,
+    "y": 5.569999999999999,
+    "w": 10.72,
+    "h": 0.49
+  },
+  {
+    "slide": 14,
+    "text": "Thank you  •  Questions",
+    "need_pt": 19.9,
+    "height_pt": 24.5,
+    "x": 0.74,
+    "y": 6.49,
+    "w": 7,
+    "h": 0.34
+  },
+  {
+    "slide": 14,
+    "text": "danil.garmaev@umontreal.ca",
+    "need_pt": 14.7,
+    "height_pt": 23.0,
+    "x": 8.45,
+    "y": 6.54,
+    "w": 4.22,
+    "h": 0.32
+  },
+  {
+    "slide": 15,
+    "text": "BACKUP B01",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 15,
+    "text": "Training and evaluation details",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 15,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 15,
+    "text": "B01",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 15,
+    "text": "Setting",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 0.8,
+    "y": 2.08,
+    "w": 3.0,
+    "h": 0.3
+  },
+  {
+    "slide": 15,
+    "text": "Image model",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 4.0,
+    "y": 2.08,
+    "w": 4.2,
+    "h": 0.3
+  },
+  {
+    "slide": 15,
+    "text": "Sequence model",
+    "need_pt": 15.8,
+    "height_pt": 21.6,
+    "x": 8.4,
+    "y": 2.08,
+    "w": 4.2,
+    "h": 0.3
+  },
+  {
+    "slide": 15,
+    "text": "Backbone",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 0.8,
+    "y": 2.55,
+    "w": 3.0,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Pretrained 2D MViT",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 4.0,
+    "y": 2.55,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Pretrained MViT",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 8.4,
+    "y": 2.55,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Input",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 0.8,
+    "y": 3.0199999999999996,
+    "w": 3.0,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "1 × 224 × 224",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 4.0,
+    "y": 3.0199999999999996,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "T × 1 × 224 × 224",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 8.4,
+    "y": 3.0199999999999996,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Optimizer / decay",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 0.8,
+    "y": 3.4899999999999998,
+    "w": 3.0,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "AdamW / 0.01",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 4.0,
+    "y": 3.4899999999999998,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "AdamW / 0.01",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 8.4,
+    "y": 3.4899999999999998,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Learning rates",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 0.8,
+    "y": 3.96,
+    "w": 3.0,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Backbone 1e-6; head 1e-4",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 4.0,
+    "y": 3.96,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Backbone 1e-6; head 1e-4",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 8.4,
+    "y": 3.96,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Schedule / warmup",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 0.8,
+    "y": 4.43,
+    "w": 3.0,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Cosine / 2 epochs",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 4.0,
+    "y": 4.43,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Cosine / 3 epochs",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 8.4,
+    "y": 4.43,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Batch / max epochs",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 0.8,
+    "y": 4.8999999999999995,
+    "w": 3.0,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "32 / 50",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 4.0,
+    "y": 4.8999999999999995,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "8 / 50",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 8.4,
+    "y": 4.8999999999999995,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Loss / repetitions",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 0.8,
+    "y": 5.37,
+    "w": 3.0,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Weighted BCE / 10 seeds",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 4.0,
+    "y": 5.37,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Weighted BCE / 10 seeds",
+    "need_pt": 15.8,
+    "height_pt": 24.5,
+    "x": 8.4,
+    "y": 5.37,
+    "w": 4.2,
+    "h": 0.33999999999999997
+  },
+  {
+    "slide": 15,
+    "text": "Threshold: maximize validation TSS, targeting recall ≥0.5 and precision ≥0.15.\nAugmentation: H/V fli",
+    "need_pt": 30.9,
+    "height_pt": 49.0,
+    "x": 0.77,
+    "y": 6.0,
+    "w": 11.8,
+    "h": 0.68
+  },
+  {
+    "slide": 15,
+    "text": "Source: paper Table 1 and §3–4. Repository configs include negative subsampling; benchmark counts ar",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 16,
+    "text": "BACKUP B02",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 16,
+    "text": "Resolution study: all reported metrics",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 16,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 16,
+    "text": "B02",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 16,
+    "text": "Task / pixels",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 0.8,
+    "y": 2.21,
+    "w": 2.1599999999999997,
+    "h": 0.3
+  },
+  {
+    "slide": 16,
+    "text": "TSS",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 3.16,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 16,
+    "text": "ROC-AUC",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 5.57,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 16,
+    "text": "PR-AUC",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 7.98,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 16,
+    "text": "F1",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 10.389999999999999,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 16,
+    "text": "≥C / 224",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 2.7199999999999998,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".534 ± .026",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".833 ± .010",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".641 ± .024",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".620 ± .013",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": "≥C / 112",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 3.23,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".539 ± .061",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".834 ± .031",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".640 ± .048",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".613 ± .041",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": "≥C / 56",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 3.74,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".522 ± .064",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".829 ± .032",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".626 ± .049",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".605 ± .043",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": "≥M / 224",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 4.25,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".647 ± .046",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".910 ± .007",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".391 ± .047",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".309 ± .028",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": "≥M / 112",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 4.76,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".618 ± .050",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".902 ± .013",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".373 ± .055",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".296 ± .048",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": "≥M / 56",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 5.2700000000000005,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".618 ± .062",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".898 ± .018",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".324 ± .055",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": ".296 ± .032",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 16,
+    "text": "Reduced spatial detail remains useful; lack of significance does not establish equivalence.",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 0.78,
+    "y": 6.1850000000000005,
+    "w": 11.75,
+    "h": 0.3
+  },
+  {
+    "slide": 16,
+    "text": "Source: paper Table 2. All values are mean ± SD across 10 seeds.",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 17,
+    "text": "BACKUP B03",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 17,
+    "text": "Longitude: threshold-free ranking metrics",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 17,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 17,
+    "text": "B03",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 17,
+    "text": "Task",
+    "need_pt": 13.7,
+    "height_pt": 21.6,
+    "x": 0.8,
+    "y": 2.0,
+    "w": 1.2,
+    "h": 0.3
+  },
+  {
+    "slide": 17,
+    "text": "Training",
+    "need_pt": 13.7,
+    "height_pt": 21.6,
+    "x": 2.2,
+    "y": 2.0,
+    "w": 2.05,
+    "h": 0.3
+  },
+  {
+    "slide": 17,
+    "text": "Test",
+    "need_pt": 13.7,
+    "height_pt": 21.6,
+    "x": 4.45,
+    "y": 2.0,
+    "w": 2.05,
+    "h": 0.3
+  },
+  {
+    "slide": 17,
+    "text": "ROC-AUC",
+    "need_pt": 13.7,
+    "height_pt": 21.6,
+    "x": 6.7,
+    "y": 2.0,
+    "w": 2.8499999999999996,
+    "h": 0.3
+  },
+  {
+    "slide": 17,
+    "text": "PR-AUC",
+    "need_pt": 13.7,
+    "height_pt": 21.6,
+    "x": 9.749999999999998,
+    "y": 2.0,
+    "w": 2.8499999999999996,
+    "h": 0.3
+  },
+  {
+    "slide": 17,
+    "text": "≥C",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 0.8,
+    "y": 2.39,
+    "w": 1.2,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Full",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 2.2,
+    "y": 2.39,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Full",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 4.45,
+    "y": 2.39,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".833 ± .010",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 6.7,
+    "y": 2.39,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".641 ± .024",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 9.749999999999998,
+    "y": 2.39,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "≥C",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 0.8,
+    "y": 2.7800000000000002,
+    "w": 1.2,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Full",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 2.2,
+    "y": 2.7800000000000002,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Inner",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 4.45,
+    "y": 2.7800000000000002,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".863 ± .015",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 6.7,
+    "y": 2.7800000000000002,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".637 ± .038",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 9.749999999999998,
+    "y": 2.7800000000000002,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "≥C",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 0.8,
+    "y": 3.17,
+    "w": 1.2,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Full",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 2.2,
+    "y": 3.17,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Outer",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 4.45,
+    "y": 3.17,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".843 ± .015",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 6.7,
+    "y": 3.17,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".726 ± .023",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 9.749999999999998,
+    "y": 3.17,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "≥C",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 0.8,
+    "y": 3.56,
+    "w": 1.2,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Central",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 2.2,
+    "y": 3.56,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Inner",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 4.45,
+    "y": 3.56,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".852 ± .010",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 6.7,
+    "y": 3.56,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".623 ± .025",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 9.749999999999998,
+    "y": 3.56,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "≥C",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 0.8,
+    "y": 3.95,
+    "w": 1.2,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Central",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 2.2,
+    "y": 3.95,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Outer",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 4.45,
+    "y": 3.95,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".830 ± .007",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 6.7,
+    "y": 3.95,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".712 ± .015",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 9.749999999999998,
+    "y": 3.95,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "≥M",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 0.8,
+    "y": 4.34,
+    "w": 1.2,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Full",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 2.2,
+    "y": 4.34,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Full",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 4.45,
+    "y": 4.34,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".910 ± .007",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 6.7,
+    "y": 4.34,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".391 ± .047",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 9.749999999999998,
+    "y": 4.34,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "≥M",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 0.8,
+    "y": 4.7299999999999995,
+    "w": 1.2,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Full",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 2.2,
+    "y": 4.7299999999999995,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Inner",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 4.45,
+    "y": 4.7299999999999995,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".916 ± .013",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 6.7,
+    "y": 4.7299999999999995,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".455 ± .060",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 9.749999999999998,
+    "y": 4.7299999999999995,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "≥M",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 0.8,
+    "y": 5.12,
+    "w": 1.2,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Full",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 2.2,
+    "y": 5.12,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Outer",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 4.45,
+    "y": 5.12,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".887 ± .025",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 6.7,
+    "y": 5.12,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".359 ± .049",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 9.749999999999998,
+    "y": 5.12,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "≥M",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 0.8,
+    "y": 5.510000000000001,
+    "w": 1.2,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Central",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 2.2,
+    "y": 5.510000000000001,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Inner",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 4.45,
+    "y": 5.510000000000001,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".920 ± .010",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 6.7,
+    "y": 5.510000000000001,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".470 ± .066",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 9.749999999999998,
+    "y": 5.510000000000001,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "≥M",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 0.8,
+    "y": 5.9,
+    "w": 1.2,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Central",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 2.2,
+    "y": 5.9,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Outer",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 4.45,
+    "y": 5.9,
+    "w": 2.05,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".907 ± .008",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 6.7,
+    "y": 5.9,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": ".316 ± .045",
+    "need_pt": 13.7,
+    "height_pt": 18.7,
+    "x": 9.749999999999998,
+    "y": 5.9,
+    "w": 2.8499999999999996,
+    "h": 0.26
+  },
+  {
+    "slide": 17,
+    "text": "Inner: |lon| ≤30°; outer: 30°<|lon|≤60°. PR-AUC comparisons also depend on the positive fraction in ",
+    "need_pt": 12.6,
+    "height_pt": 25.2,
+    "x": 0.74,
+    "y": 6.4,
+    "w": 11.95,
+    "h": 0.35
+  },
+  {
+    "slide": 17,
+    "text": "Source: paper Table 3. Values: mean ± SD across 10 seeds. Descriptive ranking comparisons; no signif",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 18,
+    "text": "BACKUP B04",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 18,
+    "text": "Cadence study: 16 frames, three temporal spans",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 18,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 18,
+    "text": "B04",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 18,
+    "text": "Task / cadence",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 0.8,
+    "y": 2.21,
+    "w": 2.1599999999999997,
+    "h": 0.3
+  },
+  {
+    "slide": 18,
+    "text": "TSS",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 3.16,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 18,
+    "text": "ROC-AUC",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 5.57,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 18,
+    "text": "PR-AUC",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 7.98,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 18,
+    "text": "F1",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 10.389999999999999,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 18,
+    "text": "≥C / 60 min",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 2.7199999999999998,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".674 ± .021",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".910 ± .015",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".766 ± .033",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".677 ± .015",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": "≥C / 120 min",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 3.23,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".742 ± .028",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".934 ± .011",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".810 ± .033",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".718 ± .022",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": "≥C / 180 min",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 3.74,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".789 ± .021",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".958 ± .005",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".855 ± .029",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".736 ± .025",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": "≥M / 60 min",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 4.25,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".626 ± .062",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".896 ± .013",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".405 ± .070",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".277 ± .039",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": "≥M / 120 min",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 4.76,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".671 ± .039",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".914 ± .010",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".366 ± .076",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".289 ± .040",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": "≥M / 180 min",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 5.2700000000000005,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".706 ± .107",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".947 ± .013",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".393 ± .065",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": ".362 ± .078",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 18,
+    "text": "≥C paired TSS tests: 120 vs. 60, p < .001; 180 vs. 120, p = .0013; 180 vs. 60, p < .001.\n≥M pairwise",
+    "need_pt": 30.9,
+    "height_pt": 46.1,
+    "x": 0.76,
+    "y": 6.0,
+    "w": 11.8,
+    "h": 0.64
+  },
+  {
+    "slide": 18,
+    "text": "Source: paper Table 4. Mean ± SD over 10 seeds. Repository fixed-threshold TSS aggregates reproduce ",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 19,
+    "text": "BACKUP B05",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 19,
+    "text": "Frame-count study: fixed 45-hour endpoints",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 19,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 19,
+    "text": "B05",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 19,
+    "text": "Task / frames",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 0.8,
+    "y": 2.21,
+    "w": 2.1599999999999997,
+    "h": 0.3
+  },
+  {
+    "slide": 19,
+    "text": "TSS",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 3.16,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 19,
+    "text": "ROC-AUC",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 5.57,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 19,
+    "text": "PR-AUC",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 7.98,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 19,
+    "text": "F1",
+    "need_pt": 14.7,
+    "height_pt": 21.6,
+    "x": 10.389999999999999,
+    "y": 2.21,
+    "w": 2.21,
+    "h": 0.3
+  },
+  {
+    "slide": 19,
+    "text": "≥C / 16",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 2.7199999999999998,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".789 ± .021",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".958 ± .005",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".855 ± .029",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".736 ± .025",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 2.7199999999999998,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": "≥C / 8",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 3.23,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".802 ± .033",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".962 ± .006",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".871 ± .017",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".737 ± .037",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 3.23,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": "≥C / 4",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 3.74,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".805 ± .025",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".960 ± .005",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".862 ± .015",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".741 ± .028",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 3.74,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": "≥M / 16",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 4.25,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".706 ± .107",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".947 ± .013",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".393 ± .065",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".362 ± .078",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 4.25,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": "≥M / 8",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 4.76,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".751 ± .075",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".952 ± .010",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".389 ± .081",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".352 ± .059",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 4.76,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": "≥M / 4",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 0.8,
+    "y": 5.2700000000000005,
+    "w": 2.1599999999999997,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".752 ± .069",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 3.16,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".945 ± .012",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 5.57,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".359 ± .061",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 7.98,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": ".327 ± .057",
+    "need_pt": 14.7,
+    "height_pt": 27.4,
+    "x": 10.389999999999999,
+    "y": 5.2700000000000005,
+    "w": 2.21,
+    "h": 0.38
+  },
+  {
+    "slide": 19,
+    "text": "Repository lookbacks: T4 = [45, 30, 15, 0] h; T8 = [45, 39, 33, 27, 18, 12, 6, 0] h.\nT16 samples eve",
+    "need_pt": 30.9,
+    "height_pt": 46.1,
+    "x": 0.76,
+    "y": 6.0,
+    "w": 11.8,
+    "h": 0.64
+  },
+  {
+    "slide": 19,
+    "text": "Sources: paper Table 5; repository saved frame-count configs. Mean ± SD over 10 seeds. TSS differenc",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 20,
+    "text": "BACKUP B06 / REPOSITORY CHECK",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 20,
+    "text": "Longer sequences leave fewer test examples",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 20,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 20,
+    "text": "B06",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 20,
+    "text": "Time between images",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 0.8,
+    "y": 2.33,
+    "w": 2.9,
+    "h": 0.3
+  },
+  {
+    "slide": 20,
+    "text": "Period covered",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 3.9000000000000004,
+    "y": 2.33,
+    "w": 1.9000000000000001,
+    "h": 0.3
+  },
+  {
+    "slide": 20,
+    "text": "Test examples",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 6.000000000000001,
+    "y": 2.33,
+    "w": 2.5,
+    "h": 0.3
+  },
+  {
+    "slide": 20,
+    "text": "M-or-stronger examples",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 8.700000000000001,
+    "y": 2.33,
+    "w": 3.8999999999999995,
+    "h": 0.3
+  },
+  {
+    "slide": 20,
+    "text": "60 min",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 0.8,
+    "y": 2.93,
+    "w": 2.9,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "15 h",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 3.9000000000000004,
+    "y": 2.93,
+    "w": 1.9000000000000001,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "14,551",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 6.000000000000001,
+    "y": 2.93,
+    "w": 2.5,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "494",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 8.700000000000001,
+    "y": 2.93,
+    "w": 3.8999999999999995,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "120 min",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 0.8,
+    "y": 3.5300000000000002,
+    "w": 2.9,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "30 h",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 3.9000000000000004,
+    "y": 3.5300000000000002,
+    "w": 1.9000000000000001,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "5,475",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 6.000000000000001,
+    "y": 3.5300000000000002,
+    "w": 2.5,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "165",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 8.700000000000001,
+    "y": 3.5300000000000002,
+    "w": 3.8999999999999995,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "180 min",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 0.8,
+    "y": 4.13,
+    "w": 2.9,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "45 h",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 3.9000000000000004,
+    "y": 4.13,
+    "w": 1.9000000000000001,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "2,702",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 6.000000000000001,
+    "y": 4.13,
+    "w": 2.5,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "73",
+    "need_pt": 16.8,
+    "height_pt": 33.8,
+    "x": 8.700000000000001,
+    "y": 4.13,
+    "w": 3.8999999999999995,
+    "h": 0.47
+  },
+  {
+    "slide": 20,
+    "text": "Why this matters",
+    "need_pt": 25.2,
+    "height_pt": 36.0,
+    "x": 0.78,
+    "y": 5.0,
+    "w": 4.4,
+    "h": 0.5
+  },
+  {
+    "slide": 20,
+    "text": "The time-window comparison also changes the examples being evaluated.\nNext step: compare the same pr",
+    "need_pt": 42.0,
+    "height_pt": 55.4,
+    "x": 0.78,
+    "y": 5.72,
+    "w": 11.73,
+    "h": 0.77
+  },
+  {
+    "slide": 20,
+    "text": "Source: saved confusion counts in the 30 M-task cadence runs. Counts agree across 10 seeds per setti",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 21,
+    "text": "BACKUP B07",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 21,
+    "text": "Questions to be ready for",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 21,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 21,
+    "text": "B07",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 21,
+    "text": "What is new?",
+    "need_pt": 23.1,
+    "height_pt": 31.0,
+    "x": 0.76,
+    "y": 2.02,
+    "w": 11.9,
+    "h": 0.43
+  },
+  {
+    "slide": 21,
+    "text": "Controlled input-design comparisons within a common MViT framework.",
+    "need_pt": 17.9,
+    "height_pt": 30.2,
+    "x": 0.77,
+    "y": 2.5300000000000002,
+    "w": 11.75,
+    "h": 0.42
+  },
+  {
+    "slide": 21,
+    "text": "Why not claim a best frame count?",
+    "need_pt": 23.1,
+    "height_pt": 31.0,
+    "x": 0.76,
+    "y": 3.08,
+    "w": 11.9,
+    "h": 0.43
+  },
+  {
+    "slide": 21,
+    "text": "Differences are uncertain, and preferred settings change across metrics.",
+    "need_pt": 17.9,
+    "height_pt": 30.2,
+    "x": 0.77,
+    "y": 3.59,
+    "w": 11.75,
+    "h": 0.42
+  },
+  {
+    "slide": 21,
+    "text": "Does this establish operational readiness?",
+    "need_pt": 23.1,
+    "height_pt": 31.0,
+    "x": 0.76,
+    "y": 4.14,
+    "w": 11.9,
+    "h": 0.43
+  },
+  {
+    "slide": 21,
+    "text": "No prospective validation, calibration study or deployment cost model yet.",
+    "need_pt": 17.9,
+    "height_pt": 30.2,
+    "x": 0.77,
+    "y": 4.6499999999999995,
+    "w": 11.75,
+    "h": 0.42
+  },
+  {
+    "slide": 21,
+    "text": "What is the most useful next experiment?",
+    "need_pt": 23.1,
+    "height_pt": 31.0,
+    "x": 0.76,
+    "y": 5.2,
+    "w": 11.9,
+    "h": 0.43
+  },
+  {
+    "slide": 21,
+    "text": "Match the eligible samples across cadences and the static baseline.",
+    "need_pt": 17.9,
+    "height_pt": 30.2,
+    "x": 0.77,
+    "y": 5.71,
+    "w": 11.75,
+    "h": 0.42
+  },
+  {
+    "slide": 21,
+    "text": "Discussion guidance grounded in paper §6; see embedded notes for more methodological questions and a",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 22,
+    "text": "BACKUP B08",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 22,
+    "text": "Selected references and visual provenance",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 22,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 22,
+    "text": "B08",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 22,
+    "text": "This study",
+    "need_pt": 15.8,
+    "height_pt": 28.8,
+    "x": 0.75,
+    "y": 1.96,
+    "w": 1.72,
+    "h": 0.4
+  },
+  {
+    "slide": 22,
+    "text": "Garmaev, D.; Meunier, J. Solar Flare Prediction from Magnetograms: A Controlled Study of Input Desig",
+    "need_pt": 28.7,
+    "height_pt": 53.3,
+    "x": 2.58,
+    "y": 1.96,
+    "w": 10.04,
+    "h": 0.74
+  },
+  {
+    "slide": 22,
+    "text": "Dataset",
+    "need_pt": 15.8,
+    "height_pt": 28.8,
+    "x": 0.75,
+    "y": 2.81,
+    "w": 1.72,
+    "h": 0.4
+  },
+  {
+    "slide": 22,
+    "text": "Boucheron et al. Solar active region magnetogram image dataset for studies of space weather. Scienti",
+    "need_pt": 28.7,
+    "height_pt": 53.3,
+    "x": 2.58,
+    "y": 2.81,
+    "w": 10.04,
+    "h": 0.74
+  },
+  {
+    "slide": 22,
+    "text": "Skill metric",
+    "need_pt": 15.8,
+    "height_pt": 28.8,
+    "x": 0.75,
+    "y": 3.66,
+    "w": 1.72,
+    "h": 0.4
+  },
+  {
+    "slide": 22,
+    "text": "Bloomfield et al. Toward reliable benchmarking of solar flare forecasting methods. ApJL 747, L41 (20",
+    "need_pt": 28.7,
+    "height_pt": 53.3,
+    "x": 2.58,
+    "y": 3.66,
+    "w": 10.04,
+    "h": 0.74
+  },
+  {
+    "slide": 22,
+    "text": "Instrument",
+    "need_pt": 15.8,
+    "height_pt": 28.8,
+    "x": 0.75,
+    "y": 4.51,
+    "w": 1.72,
+    "h": 0.4
+  },
+  {
+    "slide": 22,
+    "text": "Scherrer et al. The Helioseismic and Magnetic Imager (HMI) investigation for the Solar Dynamics Obse",
+    "need_pt": 28.7,
+    "height_pt": 53.3,
+    "x": 2.58,
+    "y": 4.51,
+    "w": 10.04,
+    "h": 0.74
+  },
+  {
+    "slide": 22,
+    "text": "Architecture",
+    "need_pt": 15.8,
+    "height_pt": 28.8,
+    "x": 0.75,
+    "y": 5.359999999999999,
+    "w": 1.72,
+    "h": 0.4
+  },
+  {
+    "slide": 22,
+    "text": "Fan et al. Multiscale Vision Transformers. ICCV (2021), pp. 6824–6835.",
+    "need_pt": 13.7,
+    "height_pt": 53.3,
+    "x": 2.58,
+    "y": 5.359999999999999,
+    "w": 10.04,
+    "h": 0.74
+  },
+  {
+    "slide": 22,
+    "text": "Background: Garmaev, master’s thesis (2026), §1.1–1.2; NOAA, Solar Flares (Radio Blackouts).\nVisuals",
+    "need_pt": 24.3,
+    "height_pt": 31.7,
+    "x": 0.76,
+    "y": 6.36,
+    "w": 11.8,
+    "h": 0.44
+  },
+  {
+    "slide": 23,
+    "text": "BACKUP B09 / SOTA DISCUSSION",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 23,
+    "text": "How does this compare with published methods?",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 23,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 23,
+    "text": "B09",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 23,
+    "text": "Selected ≥M / next-24-hour results  •  reported TSS, mean ± SD",
+    "need_pt": 19.9,
+    "height_pt": 30.2,
+    "x": 0.76,
+    "y": 1.91,
+    "w": 11.9,
+    "h": 0.42
+  },
+  {
+    "slide": 23,
+    "text": "Study / model",
+    "need_pt": 13.7,
+    "height_pt": 21.6,
+    "x": 0.8,
+    "y": 2.6999999999999997,
+    "w": 3.8499999999999996,
+    "h": 0.3
+  },
+  {
+    "slide": 23,
+    "text": "Input and evaluation",
+    "need_pt": 13.7,
+    "height_pt": 21.6,
+    "x": 4.85,
+    "y": 2.6999999999999997,
+    "w": 5.38,
+    "h": 0.3
+  },
+  {
+    "slide": 23,
+    "text": "Reported TSS",
+    "need_pt": 13.7,
+    "height_pt": 21.6,
+    "x": 10.429999999999998,
+    "y": 2.6999999999999997,
+    "w": 2.17,
+    "h": 0.3
+  },
+  {
+    "slide": 23,
+    "text": "Riggi et al. / SigLIP2",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 0.8,
+    "y": 3.25,
+    "w": 3.8499999999999996,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "HMI images; downsampled Boucheron split",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 4.85,
+    "y": 3.25,
+    "w": 5.38,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "0.671 ± 0.027",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 10.429999999999998,
+    "y": 3.25,
+    "w": 2.17,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "Riggi et al. / VideoMAE",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 0.8,
+    "y": 3.8,
+    "w": 3.8499999999999996,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "HMI sequences; downsampled Boucheron split",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 4.85,
+    "y": 3.8,
+    "w": 5.38,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "0.613 ± 0.050",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 10.429999999999998,
+    "y": 3.8,
+    "w": 2.17,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "Alatoom & Nikolaou / ViT + temporal model",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 0.8,
+    "y": 4.35,
+    "w": 3.8499999999999996,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "SDOBenchmark; multi-wavelength; AR aggregation",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 4.85,
+    "y": 4.35,
+    "w": 5.38,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "0.806 ± 0.041",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 10.429999999999998,
+    "y": 4.35,
+    "w": 2.17,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "This study / image MViT",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 0.8,
+    "y": 4.8999999999999995,
+    "w": 3.8499999999999996,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "Boucheron image benchmark; 224 × 224",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 4.85,
+    "y": 4.8999999999999995,
+    "w": 5.38,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "0.647 ± 0.046",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 10.429999999999998,
+    "y": 4.8999999999999995,
+    "w": 2.17,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "This study / 4-image MViT",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 0.8,
+    "y": 5.45,
+    "w": 3.8499999999999996,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "Boucheron sequence subset; 45-hour window",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 4.85,
+    "y": 5.45,
+    "w": 5.38,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "0.752 ± 0.069",
+    "need_pt": 13.7,
+    "height_pt": 30.2,
+    "x": 10.429999999999998,
+    "y": 5.45,
+    "w": 2.17,
+    "h": 0.42000000000000004
+  },
+  {
+    "slide": 23,
+    "text": "Different samples, inputs and evaluation units prevent a direct ranking.",
+    "need_pt": 21.0,
+    "height_pt": 31.0,
+    "x": 0.78,
+    "y": 6.02,
+    "w": 11.8,
+    "h": 0.43
+  },
+  {
+    "slide": 23,
+    "text": "Our contribution: evidence about input design. Establishing a performance lead requires matched base",
+    "need_pt": 12.6,
+    "height_pt": 20.2,
+    "x": 0.78,
+    "y": 6.49,
+    "w": 11.8,
+    "h": 0.28
+  },
+  {
+    "slide": 23,
+    "text": "Sources: Riggi et al., arXiv:2510.23400v1, Table 6 (default split, tuned threshold); Alatoom & Nikol",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  },
+  {
+    "slide": 24,
+    "text": "BACKUP B10 / SOTA FOLLOW-UP",
+    "need_pt": 11.6,
+    "height_pt": 21.6,
+    "x": 0.58,
+    "y": 0.32,
+    "w": 11,
+    "h": 0.3
+  },
+  {
+    "slide": 24,
+    "text": "What would establish a fair performance comparison?",
+    "need_pt": 31.5,
+    "height_pt": 72.0,
+    "x": 0.58,
+    "y": 0.91,
+    "w": 12.2,
+    "h": 1.0
+  },
+  {
+    "slide": 24,
+    "text": "GARMAEV & MEUNIER  /  ICANN 2026",
+    "need_pt": 9.5,
+    "height_pt": 15.8,
+    "x": 0.58,
+    "y": 7.19,
+    "w": 6,
+    "h": 0.22
+  },
+  {
+    "slide": 24,
+    "text": "B10",
+    "need_pt": 10.5,
+    "height_pt": 18.0,
+    "x": 11.7,
+    "y": 7.16,
+    "w": 1.05,
+    "h": 0.25
+  },
+  {
+    "slide": 24,
+    "text": "Match the forecasting task",
+    "need_pt": 23.1,
+    "height_pt": 31.0,
+    "x": 0.77,
+    "y": 2.04,
+    "w": 11.8,
+    "h": 0.43
+  },
+  {
+    "slide": 24,
+    "text": "Same flare threshold, forecast horizon, examples and active-region splits.",
+    "need_pt": 18.9,
+    "height_pt": 41.0,
+    "x": 0.78,
+    "y": 2.5700000000000003,
+    "w": 11.75,
+    "h": 0.57
+  },
+  {
+    "slide": 24,
+    "text": "Match the evaluation",
+    "need_pt": 23.1,
+    "height_pt": 31.0,
+    "x": 0.77,
+    "y": 3.16,
+    "w": 11.8,
+    "h": 0.43
+  },
+  {
+    "slide": 24,
+    "text": "Same threshold-selection policy, metrics and unit of prediction.",
+    "need_pt": 18.9,
+    "height_pt": 41.0,
+    "x": 0.78,
+    "y": 3.6900000000000004,
+    "w": 11.75,
+    "h": 0.57
+  },
+  {
+    "slide": 24,
+    "text": "Use strong reference models",
+    "need_pt": 23.1,
+    "height_pt": 31.0,
+    "x": 0.77,
+    "y": 4.28,
+    "w": 11.8,
+    "h": 0.43
+  },
+  {
+    "slide": 24,
+    "text": "Last-frame baseline, sequence baseline and published models on those same examples.",
+    "need_pt": 18.9,
+    "height_pt": 41.0,
+    "x": 0.78,
+    "y": 4.8100000000000005,
+    "w": 11.75,
+    "h": 0.57
+  },
+  {
+    "slide": 24,
+    "text": "The defensible contribution today: a systematic study of which input choices matter.",
+    "need_pt": 16.8,
+    "height_pt": 21.6,
+    "x": 0.78,
+    "y": 6.235,
+    "w": 11.75,
+    "h": 0.3
+  },
+  {
+    "slide": 24,
+    "text": "Proposed follow-up, not an experiment reported in the paper. Published score context and sources: ba",
+    "need_pt": 9.5,
+    "height_pt": 16.6,
+    "x": 0.62,
+    "y": 6.77,
+    "w": 12,
+    "h": 0.23
+  }
+]

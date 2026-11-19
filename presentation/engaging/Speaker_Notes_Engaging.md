@@ -1,0 +1,297 @@
+# ICANN 2026 speaker guide — Engaging version
+
+Paper 750 · Danil Garmaev and Jean Meunier
+
+14 main slides · target 14 minutes 25 seconds · 35 seconds of buffer · 5 minutes for questions.
+
+Engaging version: stronger contribution framing, with the earlier clear version preserved in the parent directory. Dedicated SOTA discussion: B09 (slide 23) and B10 (slide 24). The same notes are embedded in the PowerPoint Notes pane. Backup slides are hidden from normal slideshow progression; access them through PowerPoint’s slide navigator.
+
+## 01. Solar Flare Prediction from Magnetograms (0:00–0:20)
+
+Hello, I’m Danil Garmaev, a master’s student at Université de Montréal. With Jean Meunier, I studied a practical question in solar flare prediction: how much information does a model actually need? Our results point to useful choices about image detail and the way we sample the past.
+
+**Delivery:** Start slowly. Give the audience a moment to settle before moving to the background.
+
+**How to say it:** Garmaev and Meunier: use your usual pronunciation of your names. No need to read the full subtitle.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. Figure 1; SDO/HMI imagery credited in the paper.
+
+## 02. Solar flares: what they are and why we predict them (0:20–1:50)
+
+Before I get into the model, let me explain what we are trying to predict. A solar flare is a sudden release of magnetic energy in the Sun’s atmosphere. We observe it as a burst of radiation, like the bright region in this image. Strong flares can disrupt radio communication on the sunlit side of Earth. Forecasting them helps people prepare for those disruptions.
+
+The letters along the bottom describe flare strength, measured using X-rays. The scale runs from A to X. Each step has a threshold ten times higher than the previous one: for example, M-one is ten times as intense as C-one in that measurement. We focus on two questions: will there be a C-class flare or stronger, and will there be an M-class flare or stronger? The second group contains the stronger, rarer events. In both cases, we want to predict what happens in the next twenty-four hours, before the flare occurs.
+
+**Delivery:** Point to the bright flare, then follow the letters from left to right. Explain the two tasks once; after this, “C-class or stronger” and “M-class or stronger” are enough.
+
+**How to say it:** A, B, C, M, X: “ay, bee, see, em, ex.” ≥C: “C-class or stronger.” ≥M: “M-class or stronger.” M1 and C1: “M-one” and “C-one.”
+
+**If asked:** Flare classes measure peak GOES soft X-ray flux, not total energy. M1 has ten times the peak flux of C1; comparing arbitrary M and C events is not a fixed factor of ten. A flare is a burst of radiation; a CME is an ejection of plasma and magnetic field. They can occur together, but the task here is flare prediction, not CME or geomagnetic-storm forecasting. Radiation reaches Earth as we observe the flare, so advance prediction differs from detecting a flare that has already occurred.
+
+**Source:** Garmaev, master’s thesis, §1.1 and Table 1.1. NOAA: https://www.spaceweather.gov/phenomena/solar-flares-radio-blackouts . NASA: https://science.nasa.gov/sun/solar-storms-and-flares/ . Image: https://www.spaceweather.gov/sites/default/files/FlareImage.jpg
+
+## 03. What the model sees (1:50–3:00)
+
+To look for warning signs, we use images of the Sun’s magnetic field. These are called magnetograms. They are different from the flare image we just saw: black and white show magnetic fields pointing in opposite directions.
+
+We focus on active regions, which are areas where the magnetic field is concentrated. The box on the full image shows one of these regions, and the smaller image shows the cutout we give to the model. The two views use different contrast settings, which is why they look different.
+
+The model sees either one image or a series of images from the same region. It then estimates whether a flare above our chosen class will happen during the following day. So we are looking for signs before an event, rather than recognizing a flare that is already happening.
+
+**Delivery:** Point to the full disk and then the cutout. Make the distinction between the magnetic-field image and the earlier flare image explicit.
+
+**How to say it:** Magnetogram: “mag-NEE-toh-gram.” AR means “active region”; use the words in the talk. 24 h: “the next twenty-four hours” or “the following day.”
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §1–2, Fig. 1. Boucheron et al., Scientific Data 10, 825 (2023), doi:10.1038/s41597-023-02628-8.
+
+## 04. Input design as a research question (3:00–3:50)
+
+Our contribution is a controlled study of input design. We ask four questions: how much spatial detail matters, how the viewing position affects prediction, how far back the model should look, and how many observations it needs within that period.
+
+The last two are especially useful to separate. A sequence can contain many images yet cover very little time. Or it can contain just a few observations spread over a longer period.
+
+We study these choices within the same model family and a shared training procedure. This gives us evidence for designing the input alongside the architecture. I’ll start with the spatial results, then show why the temporal findings are particularly interesting.
+
+**Delivery:** Treat this as a short roadmap. Do not read all settings from the four boxes.
+
+**How to say it:** 224 × 224: “two twenty-four by two twenty-four pixels,” if needed. “Image size” is usually enough here.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §4.1–4.7.
+
+## 05. Data and evaluation (3:50–4:55)
+
+The images come from the Solar Dynamics Observatory. Each active region belongs to only one of the training, validation or test sets, so we test on regions unseen during training.
+
+Strong flares are rare: only about three percent of M-task training examples are positive. Always predicting no flare could look accurate without being useful.
+
+We therefore use the True Skill Statistic, or TSS: sensitivity minus the false-positive rate. Sensitivity is the fraction of positive examples we correctly detect. The false-positive rate is the fraction of negative examples that trigger a warning. TSS rewards detection while penalizing false alarms. One is perfect; zero means no skill by this measure. We choose the warning threshold using validation data.
+
+**Delivery:** Leave the exact dataset counts on screen. Point to the orange bar, then the first equation. Explain that equation in words; the equivalent specificity form is there for readers familiar with it.
+
+**How to say it:** TSS: “tee ess ess.” First equation: “TSS equals sensitivity minus the false-positive rate.” Equivalent form, only if asked: “sensitivity plus specificity minus one.” Specificity: “spess-ih-FISS-ih-tee.” 3.1%: “about three percent.”
+
+**If asked:** TSS = sensitivity + specificity − 1 = TP/(TP+FN) − FP/(FP+TN). Sensitivity (recall or true-positive rate) = TP/(TP+FN). Specificity (true-negative rate) = TN/(TN+FP) = 1 − false-positive rate. Positive means a flare at or above the task threshold within the next 24 hours. TSS ranges from −1 to 1; negative values indicate a hit rate below the false-positive rate. A trivial all-negative classifier has TSS 0. False-positive rate, FP/(FP+TN), differs from the fraction of warnings that are false, FP/(TP+FP). Validation threshold selection targets TSS with recall ≥0.5 and precision ≥0.15 constraints.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §2–3; dataset image counts and training positive fractions.
+
+## 06. A common framework for input comparisons (4:55–5:45)
+
+We use MViT, a Multiscale Vision Transformer. It combines information at different spatial scales, from local patterns to the broader structure of an active region. Its image and sequence versions let us study both inputs within one model family.
+
+We fine-tune pretrained models on magnetograms and repeat each setting ten times. The error bars show variation between those training runs, so we can distinguish a consistent pattern from a favorable run.
+
+This framework lets us focus on the scientific question: which parts of the available information contribute to forecasting skill? The detailed training settings are in the backups.
+
+**Delivery:** Spend more time on what the model receives than on the optimizer. Explain the error bars once here.
+
+**How to say it:** MViT: “em-vit,” followed once by “Multiscale Vision Transformer.” “Ten training runs” is clearer than repeatedly saying “ten random seeds.”
+
+**If asked:** There is no claim of a new MViT architecture. The controlled factors are input choices within the shared model family and fine-tuning protocol.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §4.1–4.7, Table 1. Fan et al., Multiscale Vision Transformers, ICCV 2021, pp. 6824–6835.
+
+## 07. Forecasting with less spatial detail (5:45–6:40)
+
+First, how much spatial detail does the prediction need? We deliberately make the magnetograms coarser, then resize them back to the model’s expected dimensions.
+
+The striking feature is how little the TSS changes. For C-class or stronger flares, the trend is nearly flat. For the stronger M-class task, full resolution has the highest average, but the differences are not statistically clear.
+
+This suggests that useful predictive information survives substantial loss of fine detail. It gives us a reason to investigate more compact image representations. It does not establish that fine structure is irrelevant, or that the model runs faster: the final input dimensions are unchanged.
+
+**Delivery:** Describe the mostly flat trend. There is no need to read any TSS values on this slide.
+
+**How to say it:** 56 × 56: “fifty-six by fifty-six.” 112 × 112: “one twelve by one twelve.” “Original, half-size and quarter-size images” is also fine.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §4.3, §5.1, Table 2. Visual pipeline applied to repository frame_15 (AR 1339).
+
+## 08. Viewing geometry affects the comparison (6:40–7:50)
+
+A magnetogram also depends on where we observe the region. Near the center of the visible Sun, we see it more directly. Farther out, projection changes its apparent shape and the magnetic field we measure along our line of sight.
+
+The disk diagrams show the full and central ranges. On the right, the same model achieves a higher average ROC-AUC on central regions for both tasks. ROC-AUC measures how well it separates flaring from non-flaring examples across thresholds.
+
+But training only on central regions gives mixed results. A cleaner viewing geometry does not automatically make a better training set. Removing outer regions also removes data and changes the population. The implication is to evaluate where a model works well before deciding which observations to exclude.
+
+**Delivery:** Explain the restored disk diagrams before discussing the chart. Blue dots are region centers, not flare events. Keep numerical specialization results in backup B03.
+
+**How to say it:** ROC-AUC: “rock A-U-C.” Longitude: “LON-jih-tood.” ±30°: “within thirty degrees of the center.” Do not read the absolute-value notation aloud.
+
+**If asked:** Preparation audit found that saved A2 evaluations use Best_threshold from test evaluation, while the paper describes validation-selected thresholds. This deck therefore omits longitude TSS/F1 and associated p-values. Confirm or reevaluate A2 with validation-selected thresholds before making those claims; no new training or reevaluation was performed for this deck.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §4.4, §5.2, Table 3; thesis Fig. 2.2; restored latlon_30.png and latlon_60.png; repository A2 evaluation records.
+
+## 09. Temporal coverage and sampling density (7:50–8:55)
+
+The temporal experiments separate two choices that are easy to confuse: the period we observe and the number of images we collect within it.
+
+At the top, each sequence has sixteen images and ends when we make the prediction. Increasing the time between images extends our view into the past. The longest setting covers forty-five hours, almost two days.
+
+At the bottom, we keep that same period but reduce the number of observations. We can then ask whether the useful information requires dense sampling, or whether a few widely spaced images remain informative.
+
+Keep the two time windows in mind: we observe the past and predict the following twenty-four hours. We are not predicting forty-five hours ahead.
+
+**Delivery:** Trace the right-aligned endpoints first. Use your pointer to show “more time covered” versus “fewer dots.”
+
+**How to say it:** 45 h: “forty-five hours,” or “almost two days” when explaining the idea. Cadence means “time between images”; prefer that phrase.
+
+**If asked:** The implemented T8 subset uses lookbacks [45,39,33,27,18,12,6,0] h; it is approximately spaced on the available grid, not eight perfectly equal intervals.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §4.5–4.6; repository frame-count configs: T4 offsets [-225,-150,-75,0] in 12-minute steps.
+
+## 10. Longer windows improve C-class prediction (8:55–10:05)
+
+This is the clearest improvement in the study. With sixteen images in every sequence, extending the observation period improves C-class-or-stronger prediction: TSS rises from about zero point six seven to zero point seven nine.
+
+The improvement is statistically significant across the repeated runs. The ranking metrics improve as well, so the finding is supported by more than one way of evaluating the predictions. For M-class or stronger, the mean moves in the same direction, but the uncertainty is larger.
+
+Why does this matter? The model receives the same number of images, but they cover more of the region’s evolution. That makes temporal coverage a promising design choice.
+
+There is one important qualification: longer sequences change which examples are available. Comparing exactly the same prediction examples is the next step toward isolating the effect of the longer window.
+
+**Delivery:** This is the one result where reading two rounded values helps. Then point to the trend and the larger orange error bars. Leave p-values to questions.
+
+**How to say it:** 0.674 → 0.789: say “about zero point six seven to zero point seven nine.” These are TSS scores, not percentages of correct predictions.
+
+**If asked:** Cadence and span change together in this experiment. The cohort-count backup shows sample attrition. These results support, but do not prove a purely causal temporal-span explanation.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §5.3, Table 4. Repository aggregation of fixed_TSS reproduced all six means and sample SDs to 3 decimals.
+
+## 11. Four images remain competitive (10:05–11:15)
+
+Now comes the complementary result. Once the images cover almost two days, reducing the sequence from sixteen observations to four leaves TSS competitive for both tasks.
+
+The four magnetograms on the left show what that input looks like: an early observation, two intermediate views, and the latest image. The model still has access to change over the full period.
+
+The differences in TSS are not statistically significant, so this is evidence for a useful sparse setting, not proof that four images are optimal or equivalent to sixteen.
+
+Together with the previous result, this suggests that covering the relevant period may matter more than sampling it densely. Four images also mean three quarters fewer inputs, which motivates measuring practical savings in speed and memory. But TSS is only one part of the picture; the stronger-flare task reveals a trade-off.
+
+**Delivery:** Point to the four real observations. Say “the same period” or “almost two days,” rather than “preserving a 45-hour history.”
+
+**How to say it:** 75%: “seventy-five percent” or, more naturally here, “three quarters fewer images.” Do not read all six plotted TSS values.
+
+**If asked:** 75% = (16−4)/16. Lack of statistical significance is not an equivalence or non-inferiority test. No measured runtime or memory savings are claimed.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §5.4, Table 5. AR1339 frames copied unchanged from data/wds_out/train/shard-000015.tar through shard-000017.tar.
+
+## 12. Rare events: interpreting PR-AUC (11:15–12:50)
+
+To understand that trade-off, we need to read this metric on the right scale. PR-AUC summarizes the precision–recall curve: how reliable our warnings are as we try to detect more of the flares, across different thresholds.
+
+A score around zero point three six is not thirty-six percent accuracy. In this test set, only about three in a hundred examples are followed by an M-class flare or stronger. The conventional random-ranking reference is therefore about zero point zero three, near the bottom of the plot. Our scores sit well above that reference, showing that the model has learned useful predictive information.
+
+That does not mean the forecasting problem is solved. With fewer images, mean PR-AUC decreases even as mean TSS increases. The apparent advantage depends on the metric we choose.
+
+For an application, we would need to decide how to balance missed flares and false warnings, then evaluate a suitable operating threshold. The useful conclusion here is that sparse inputs remain promising, with a trade-off that TSS alone would hide.
+
+**Delivery:** Point to the random-ranking reference before the model points. Do not say “thirteen times more accurate,” and do not treat PR-AUC as precision at a single threshold.
+
+**How to say it:** PR-AUC: “P-R A-U-C.” On first use: “the area under the precision–recall curve.” 0.36: “zero point three six.” 0.03: “zero point zero three.”
+
+**If asked:** TSS is not alert precision. Calibration, deployment prevalence, costs of missed events and false alarms, and a pre-specified operating policy would matter for operational deployment.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §5.4, Table 5; thesis §1.2; pr_baseline_audit.json. The exact random-ranking reference is 73/2702, about 0.027, in all 30 M-task frame-count runs.
+
+## 13. From input findings to stronger benchmarks (12:50–13:45)
+
+These findings suggest a focused next stage. First, match the regions and prediction times across input settings. Include a single-image baseline using the last frame of each sequence, and strong published models under that same protocol.
+
+Second, measure speed and memory use. Reducing the number of input images creates an opportunity for practical savings, but those savings need measurement.
+
+Third, test other time periods to see how well the findings generalize.
+
+Those experiments would connect the input-design results to a stronger performance benchmark. I have a backup comparison with published methods for the discussion; the current study’s main contribution is the evidence about the input choices themselves.
+
+**Delivery:** Present three concrete next steps. Keep additional limitations in the backup notes.
+
+**How to say it:** “The same examples” is clearer than “matched cohorts.” “Other time periods” is enough unless someone asks specifically about solar cycles.
+
+**If asked:** A stronger static baseline uses the final frame of the same sequence-derived examples with matched labels, splits and training budget. A solar-cycle holdout probes a different generalization question from the current AR-disjoint split.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §6; presentation/pr_baseline_audit.json.
+
+## 14. What this study contributes (13:45–14:25)
+
+Three findings stand out. Extending the observation period improved C-class-or-stronger prediction. Four images remained competitive when they covered that longer period. And reducing spatial detail had a limited effect on TSS in these experiments.
+
+Together, these results give us a practical direction: preserve informative changes over time, then test how much spatial and temporal detail the model really needs. Input design deserves to be evaluated alongside model design. Thank you.
+
+**Delivery:** Finish here at roughly 14 minutes 25 seconds. Keep this slide visible for questions; use the hidden backups only when needed.
+
+**How to say it:** No numbers need to be read on the closing slide.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §7; Tables 2–5.
+
+## 15. B01 — Training and evaluation details (Q&A backup)
+
+Use this slide only for a training-protocol question. The learning rates differ between the pretrained backbone and classification head. Geometric transforms and polarity inversion are consistent across a sequence; noise can vary across frames. Early stopping and checkpoint selection use validation information. Repository configs also include negative subsampling, so do not interpret the full image-benchmark counts as the number of effective training examples for every run.
+
+**If asked:** The code can fall back to unconstrained TSS if no threshold satisfies the constraints. The constraints describe the selection target, not a guarantee about test precision or recall.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §3, §4.2, Table 1; repository saved config.json files.
+
+## 16. B02 — Resolution study: all reported metrics (Q&A backup)
+
+The full-resolution M-task setting has the highest means on all four metrics, and its PR-AUC advantage over the coarsest setting is more noticeable than the TSS difference. Do not generalize a non-significant TSS test to every metric. The resolution operation changes the information available before resizing; the final network dimensions remain fixed.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. Table 2.
+
+## 17. B03 — Longitude: threshold-free ranking metrics (Q&A backup)
+
+Compare inner versus outer only within the same training setup. Compare specialization using the same central test subset. The central-only model is also evaluated on the outer bucket, but those numbers do not establish that central-only training is a general improvement. PR-AUC depends on the positive fraction of the evaluated population. Longitude TSS and F1 are intentionally omitted pending resolution of the threshold-provenance discrepancy found in the repository. The analysis memo has concrete evidence and the recommended reevaluation.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. Table 3; A2 JSON evaluation records; Analysis_and_Verification.md.
+
+## 18. B04 — Cadence study: full results (Q&A backup)
+
+For C-or-stronger, all four mean metrics improve across the three tested spans. For M-or-stronger, TSS and ROC-AUC peak at 180 minutes, but PR-AUC peaks at 60 minutes. This reinforces the metric-dependent interpretation. The significant tests reported here concern TSS only. Do not imply that all changes in AUC, PR-AUC or F1 were tested or found significant.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. Table 4, §5.3.
+
+## 19. B05 — Frame-count study: full results (Q&A backup)
+
+This table supports a viable sparse regime rather than a unique optimum. For C-or-stronger, TSS means are close. For M-or-stronger, the larger TSS means with sparse inputs coexist with lower mean PR-AUC and F1. The eight-frame implementation selects an approximately spaced subset from the three-hour grid, with a nine-hour gap in the middle. Do not claim mathematically uniform spacing for that configuration. The endpoints remain exactly forty-five hours apart.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. Table 5; saved config.json seq_offsets fields and scripts/run_mvit_framecount_unique_5seed_a100.slurm.
+
+## 20. B06 — Test example counts (Q&A backup)
+
+These counts come directly from the evaluated test predictions in the saved run metrics. Longer sequences leave fewer usable test examples. The forty-five-hour setting has 73 M-or-stronger positives out of 2,702 examples, which gives the approximately 0.03 random-ranking reference used on the PR-AUC slide. The four-, eight- and sixteen-frame settings all have these same class counts across their ten runs. Equal counts alone do not prove that all example identities match. These are correlated sequence examples, not counts of independent flare events.
+
+**Source:** presentation/pr_baseline_audit.json, using the run paths saved in temporal_results_audit.json. Earlier cached sequence_size_counts differed and are not used here.
+
+## 21. B07 — Q&A preparation (Q&A backup)
+
+Answer the direct question first, then one supporting fact. These prompts are a rehearsal aid; normally keep the final takeaway slide visible and navigate directly to the relevant evidence table.
+
+**If asked:** Why MViT? It supports multiscale image and temporal representations in a common family; architecture novelty is not the claim. Why ten seeds? To quantify optimization variability; this does not replace AR-level or temporal uncertainty analysis. Why TSS? It balances hit rate and false-positive rate under class imbalance, but it is not sufficient for an operational policy. Is 180 minutes optimal? It is the strongest mean TSS/AUC among the paper’s three 16-frame settings, not a global optimum. Did lower resolution save compute? No measured backbone speedup: inputs were returned to 224×224. Are four frames equivalent to sixteen? No formal equivalence test; they are competitive in these results. Is the threshold tuned on test? The reported main TSS uses a validation-selected threshold; repository metrics also contain other threshold variants, which must not be substituted. Is a 3D model proven better than a 2D model? No: use a matched last-frame baseline before making that claim.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §6.
+
+## 22. B08 — References and visual provenance (Q&A backup)
+
+These references are copied from the accepted paper. The main charts are newly drawn for readability using the paper’s numeric results. The magnetograms are actual data, not generated scientific images. The cohort analysis is explicitly identified as supplementary repository material.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. references 1–3 and 17; Garmaev_Danil_2026_memoire.pdf §1.1–1.2 and Fig. 2.2; https://www.spaceweather.gov/phenomena/solar-flares-radio-blackouts ; https://science.nasa.gov/sun/solar-storms-and-flares/ ; presentation/assets/frame_provenance.json.
+
+## 23. B09 — Published performance / SOTA context (Q&A backup)
+
+We report useful forecasting skill, but this study does not establish a state-of-the-art ranking. For the M-class-or-stronger task, our four-image setting reaches a mean TSS of about zero point seven five. Published scores provide context, but these methods were not evaluated on the same examples with the same inputs. The contribution I can defend directly is the input-design comparison within our framework. A matched evaluation against strong baselines is the next step.
+
+**Delivery:** Answer the SOTA question directly, then show this table if a numerical comparison is useful. Do not read every row. This is slide 23 / B09; B10 gives the methodological answer.
+
+**How to say it:** SOTA: “state of the art.” For our M-task result, say “a TSS of about zero point seven five,” not “seventy-five percent accuracy.”
+
+**If asked:** Selected relevant reports, not an exhaustive SOTA leaderboard. Riggi values come from the explicitly identified v1 preprint table; its later full-encoder VideoMAE experiment reports 0.636 ± 0.046. Alatoom uses multiple SDO wavelengths and maximum probability aggregation per active region, a different evaluation unit from our sequence examples. Do not interpret the numerical gaps as measured improvements or infer significance from these standard deviations. Our single-image and sequence rows also use different eligible examples. The C-task TSS of 0.805 must not be compared with these M-task scores.
+
+**Source:** Riggi et al., Solar flare forecasting with foundational transformer models across image, video, and time-series modalities, https://arxiv.org/html/2510.23400v1 , Table 6: default split, tau-star column, five runs. Alatoom & Nikolaou (2026), Multi-Wavelength Transformer-Based 24-Hour Solar Flare Forecasting at the Active-Region Level, https://doi.org/10.1029/2026SW005010 , Table 5: six seeds. Own results: accepted paper Tables 2 and 5, ten seeds. Sources checked 14 September 2026.
+
+## 24. B10 — Answering the SOTA follow-up (Q&A backup)
+
+The strongest test would use the same prediction examples for every model, including a baseline that sees only the last image. We would keep the flare class, forecast horizon, data split and evaluation policy fixed. That would let us ask whether our input choices transfer to other architectures and whether they improve performance under a shared benchmark. What this study already provides is a set of testable findings: longer temporal coverage helped the C task, sparse observations remained competitive, and substantial spatial coarsening caused limited changes in TSS.
+
+**Delivery:** Use only if the question continues beyond the performance table. Lead with the answer, then the experiment that would resolve it. This is slide 24 / B10.
+
+**If asked:** If asked “Why was there no SOTA benchmark?”: The study was designed around input comparisons within MViT; a shared-data comparison with other model families was outside the reported experiments. If asked “What is novel without a record score?”: Separating temporal coverage from observation count produces practical hypotheses for input design, supported by repeated runs. Do not claim a new architecture, a global optimum, or that these choices necessarily transfer to every model.
+
+**Source:** Garmaev & Meunier, accepted ICANN 2026 author proof, 715691_1_En_43_Chapter_Author.pdf. §4–6; proposed benchmark design informed by the documented protocol differences in B09.
