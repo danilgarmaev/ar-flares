@@ -86,6 +86,7 @@ COMMON_A1_OVERRIDES = {
     # model selection / logging
     "model_selection": "tss",
     "redirect_log": True,
+    "auto_update_video_summary": False,
 
     # early stopping
     "early_stopping_patience": 5,

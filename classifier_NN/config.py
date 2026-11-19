@@ -288,6 +288,7 @@ CFG = {
     # Optional metadata for experiment tracking
     "run_id": None,
     "notes": "",
+    "auto_update_video_summary": True,
 }
 
 _DEFAULT_NORM_SETTINGS = {

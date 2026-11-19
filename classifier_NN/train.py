@@ -372,6 +372,7 @@ def _trim_cfg_for_logging(cfg: dict) -> dict:
         "scheduler",
         "steps_per_epoch",
         "run_tag",
+        "auto_update_video_summary",
         # eval / checkpointing
         "model_selection",
         "early_stopping_patience",
@@ -1326,7 +1327,8 @@ def main(cfg=None):
 
         tag = cfg.get("model_name", os.path.basename(exp_dir))
         save_summary(exp_dir, tag, results, cfg)
-        _auto_update_video_summary()
+        if bool(cfg.get("auto_update_video_summary", True)):
+            _auto_update_video_summary()
         print(f"\n✅ Training complete! Results saved to: {exp_dir}\n")
 
     if ddp_enabled and _dist_is_ready():
