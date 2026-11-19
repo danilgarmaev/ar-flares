@@ -714,7 +714,7 @@ def main() -> None:
         else:
             low_model.load_state_dict(state2)
 
-        low_in30, low_out30, low_skipped, _ = evaluate_longitude_buckets(
+        low_in30, low_out30, low_skipped, low_arrays = evaluate_longitude_buckets(
             model=low_model,
             test_loader=test_loader,
             device=device,
@@ -733,6 +733,8 @@ def main() -> None:
                 "lon_30_60": low_out30.as_dict(),
             },
         }
+        for name, (y, p) in low_arrays.items():
+            low_lon_train_info[name] = _compute_auc_metrics(y, p)
 
     # Metrics dict
     buckets = {
