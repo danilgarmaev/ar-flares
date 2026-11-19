@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import csv
 from datetime import datetime
 from pathlib import Path
 from statistics import mean, stdev
@@ -26,6 +27,7 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS_DIR = ROOT / "results"
 FIGURES_DIR = ROOT / "figures"
+CACHE_COUNTS_PATH = RESULTS_DIR / "a3_sequence_size_counts.tsv"
 CADENCES = [60, 120, 180, 240, 300]
 LABELS = ["C", "M"]
 RUN_RE = re.compile(r"A3-16-cadence-(\d+)min_.*_seed(\d+)_", re.IGNORECASE)
@@ -104,12 +106,47 @@ def _aggregate_tss() -> dict[str, dict[int, tuple[float, float, int]]]:
     return out
 
 
+def _load_cached_counts(path: Path) -> list[dict[str, int | str]] | None:
+    if not path.exists():
+        return None
+    rows: list[dict[str, int | str]] = []
+    with path.open("r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            parsed: dict[str, int | str] = {}
+            for key, value in row.items():
+                if value is None:
+                    parsed[key] = ""
+                elif key == "label":
+                    parsed[key] = value
+                else:
+                    parsed[key] = int(value)
+            rows.append(parsed)
+    return rows
+
+
+def _write_cached_counts(path: Path, rows: list[dict[str, int | str]]) -> None:
+    if not rows:
+        return
+    fieldnames = list(rows[0].keys())
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+
 def main() -> None:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     tss_summary = _aggregate_tss()
     print("Aggregated fixed_TSS from A3 augmented runs", flush=True)
-    count_rows = summarize_counts(show_progress=False)
-    print("Loaded exact A3 cadence sample counts", flush=True)
+    count_rows = _load_cached_counts(CACHE_COUNTS_PATH)
+    if count_rows is None:
+        count_rows = summarize_counts(show_progress=False)
+        _write_cached_counts(CACHE_COUNTS_PATH, count_rows)
+        print(f"Computed and cached exact A3 cadence sample counts at {CACHE_COUNTS_PATH}", flush=True)
+    else:
+        print(f"Loaded cached exact A3 cadence sample counts from {CACHE_COUNTS_PATH}", flush=True)
     count_map = {(int(row["cadence_min"]), str(row["label"])): row for row in count_rows}
 
     c_means = [tss_summary["C"][c][0] for c in CADENCES]
@@ -148,6 +185,32 @@ def main() -> None:
     plt.close(fig)
     print(f"Saved {out_png}")
     print(f"Saved {out_pdf}")
+
+    fig2, (bx1, bx2) = plt.subplots(2, 1, figsize=(8.4, 7.4), sharex=True, gridspec_kw={"height_ratios": [1.2, 1.0]})
+
+    bx1.errorbar(CADENCES, c_means, yerr=c_stds, marker="o", lw=2.2, capsize=4, color="#0B6E4F", label="C+ fixed TSS")
+    bx1.errorbar(CADENCES, m_means, yerr=m_stds, marker="s", lw=2.2, capsize=4, color="#C84C09", label="M+ fixed TSS")
+    bx1.set_ylabel("Fixed TSS")
+    bx1.set_title("A3 Cadence Trade-off: Performance vs Exact Counts")
+    bx1.grid(True, linestyle="--", alpha=0.35)
+    bx1.legend(loc="best")
+
+    bx2.plot(CADENCES, train_effective, marker="o", lw=2.2, color="#1F4E79", label="Train windows / epoch")
+    bx2.plot(CADENCES, c_pos, marker="^", lw=2.0, color="#2A9D8F", label="C+ train positives")
+    bx2.plot(CADENCES, m_pos, marker="D", lw=2.0, color="#E76F51", label="M+ train positives")
+    bx2.set_xlabel("Cadence (minutes)")
+    bx2.set_ylabel("Count")
+    bx2.grid(True, linestyle="--", alpha=0.35)
+    bx2.legend(loc="best")
+
+    out_counts_png = FIGURES_DIR / "a3_cadence_tradeoff_counts.png"
+    out_counts_pdf = FIGURES_DIR / "a3_cadence_tradeoff_counts.pdf"
+    fig2.tight_layout()
+    fig2.savefig(out_counts_png, dpi=220, bbox_inches="tight")
+    fig2.savefig(out_counts_pdf, bbox_inches="tight")
+    plt.close(fig2)
+    print(f"Saved {out_counts_png}")
+    print(f"Saved {out_counts_pdf}")
 
 
 if __name__ == "__main__":
