@@ -36,6 +36,7 @@ mkdir -p "$HF_HOME" "$TORCH_HOME"
 idx="${SLURM_ARRAY_TASK_ID}"
 group=$(( idx / 10 ))
 slot=$(( idx % 10 ))
+SEED_OFFSET="${SEED_OFFSET:-0}"
 
 if (( group == 0 )); then
   LABEL_CLASS="C"
@@ -59,11 +60,11 @@ fi
 
 if (( slot < 5 )); then
   T_FRAMES="8"
-  SEED="${slot}"
+  SEED="$(( slot + SEED_OFFSET ))"
   SEQ_OFFSETS="${OFFSETS_T8}"
 else
   T_FRAMES="4"
-  SEED="$(( slot - 5 ))"
+  SEED="$(( slot - 5 + SEED_OFFSET ))"
   SEQ_OFFSETS="${OFFSETS_T4}"
 fi
 

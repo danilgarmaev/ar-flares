@@ -35,7 +35,8 @@ export TORCH_HOME=/home/dgarmaev/scratch/ar-flares/.cache/torch
 mkdir -p "$HF_HOME" "$TORCH_HOME"
 
 LABEL_CLASSES=(C C C C C M M M M M)
-SEEDS=(0 1 2 3 4 0 1 2 3 4)
+BASE_SEEDS=(0 1 2 3 4 0 1 2 3 4)
+SEED_OFFSET="${SEED_OFFSET:-0}"
 RUN_TAGS=(
   diag_mvit_c180_augprobe
   diag_mvit_c180_augprobe
@@ -51,7 +52,7 @@ RUN_TAGS=(
 
 idx="${SLURM_ARRAY_TASK_ID}"
 LABEL_CLASS="${LABEL_CLASSES[$idx]}"
-SEED="${SEEDS[$idx]}"
+SEED="$(( BASE_SEEDS[$idx] + SEED_OFFSET ))"
 RUN_TAG="${RUN_TAGS[$idx]}"
 
 CADENCE="${CADENCE:-180}"

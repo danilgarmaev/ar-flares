@@ -38,13 +38,15 @@ mkdir -p "$HF_HOME" "$TORCH_HOME"
 RESOLUTIONS=(224 112 56)
 LABEL_CLASSES=(C M)
 N_SEEDS=5
+SEED_OFFSET="${SEED_OFFSET:-0}"
 TASKS_PER_LABEL=$(( ${#RESOLUTIONS[@]} * N_SEEDS ))
 
 idx="${SLURM_ARRAY_TASK_ID}"
 label_idx=$(( idx / TASKS_PER_LABEL ))
 within_label_idx=$(( idx % TASKS_PER_LABEL ))
 res_idx=$(( within_label_idx / N_SEEDS ))
-seed=$(( within_label_idx % N_SEEDS ))
+base_seed=$(( within_label_idx % N_SEEDS ))
+seed=$(( base_seed + SEED_OFFSET ))
 
 LABEL_CLASS="${LABEL_CLASSES[$label_idx]}"
 RESOLUTION="${RESOLUTIONS[$res_idx]}"
